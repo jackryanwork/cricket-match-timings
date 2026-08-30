@@ -149,6 +149,9 @@
             <option value="Other">Other</option>
         </select>
 
+        <label>Add custom tournament name (optional)</label>
+        <input type="text" id="customCompetition" placeholder="e.g. IPL 2026">
+
         <label>Venue</label>
         <input type="text" id="venue" placeholder="Mumbai">
 
@@ -220,7 +223,9 @@ async function saveMatch() {
     const date = document.getElementById("matchDate").value;
     const timeInput = document.getElementById("matchTime").value.trim();
     const period = document.getElementById("matchPeriod").value;
-    const competition = document.getElementById("competition").value;
+    const selectedCompetition = document.getElementById("competition").value;
+    const customCompetition = document.getElementById("customCompetition").value.trim();
+    const competition = customCompetition || selectedCompetition;
     const venue = document.getElementById("venue").value.trim();
 
     if (!team1 || !team2 || !date || !timeInput) {
@@ -274,6 +279,7 @@ if (error) {
     document.getElementById("matchDate").value = "";
     document.getElementById("matchTime").value = "";
     document.getElementById("matchPeriod").value = "AM";
+    document.getElementById("customCompetition").value = "";
     document.getElementById("venue").value = "";
 
 
@@ -295,6 +301,33 @@ function convertTo24HourTime(timeInput, period) {
 
     const hours24 = (hours % 12) + (period === "PM" ? 12 : 0);
     return `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function populateCompetitionOptions(matches) {
+    const select = document.getElementById("competition");
+    const defaultCompetitions = new Set([
+        "T20 International",
+        "ODI",
+        "Test",
+        "T20 League",
+        "Other"
+    ]);
+
+    select.querySelectorAll("option[data-saved-competition]").forEach(option => option.remove());
+
+    const savedCompetitions = [...new Set(
+        matches
+            .map(match => (match.competition || "").trim())
+            .filter(competition => competition && !defaultCompetitions.has(competition))
+    )].sort();
+
+    savedCompetitions.forEach(competition => {
+        const option = document.createElement("option");
+        option.value = competition;
+        option.textContent = competition;
+        option.dataset.savedCompetition = "true";
+        select.appendChild(option);
+    });
 }
 
 
@@ -321,6 +354,8 @@ async function loadSavedMatches() {
         return;
 
     }
+
+    populateCompetitionOptions(matches || []);
 
     if (!matches || matches.length === 0) {
 
