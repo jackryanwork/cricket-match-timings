@@ -131,7 +131,13 @@
         <input type="date" id="matchDate">
 
         <label>Time</label>
-        <input type="time" id="matchTime">
+        <input type="text" id="matchTime" placeholder="7:30" inputmode="numeric">
+
+        <label>AM or PM</label>
+        <select id="matchPeriod">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+        </select>
 
         <label>Competition</label>
 
@@ -212,15 +218,23 @@ async function saveMatch() {
     const team1 = document.getElementById("team1").value.trim();
     const team2 = document.getElementById("team2").value.trim();
     const date = document.getElementById("matchDate").value;
-    const time = document.getElementById("matchTime").value;
+    const timeInput = document.getElementById("matchTime").value.trim();
+    const period = document.getElementById("matchPeriod").value;
     const competition = document.getElementById("competition").value;
     const venue = document.getElementById("venue").value.trim();
 
-    if (!team1 || !team2 || !date || !time) {
+    if (!team1 || !team2 || !date || !timeInput) {
 
         alert("Please fill Team 1, Team 2, Date and Time.");
         return;
 
+    }
+
+    const time = convertTo24HourTime(timeInput, period);
+
+    if (!time) {
+        alert("Please enter a valid time, for example 7:30, and select AM or PM.");
+        return;
     }
 
     const match = {
@@ -259,6 +273,7 @@ if (error) {
     document.getElementById("team2").value = "";
     document.getElementById("matchDate").value = "";
     document.getElementById("matchTime").value = "";
+    document.getElementById("matchPeriod").value = "AM";
     document.getElementById("venue").value = "";
 
 
@@ -266,6 +281,20 @@ if (error) {
 
     alert("Match saved successfully!");
 
+}
+
+function convertTo24HourTime(timeInput, period) {
+    const match = timeInput.match(/^(\d{1,2}):(\d{2})$/);
+
+    if (!match) return null;
+
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+
+    if (hours < 1 || hours > 12 || minutes > 59) return null;
+
+    const hours24 = (hours % 12) + (period === "PM" ? 12 : 0);
+    return `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 
