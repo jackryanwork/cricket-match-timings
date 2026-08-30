@@ -1,512 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Cricket Match Timings</title>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Cricket Match Timings - Admin</title>
 
     <style>
+
         * {
             box-sizing: border-box;
         }
 
-        :root {
-            --bg: #07111f;
-            --card: #0d1b2d;
-            --card-light: #12243a;
-            --text: #ffffff;
-            --muted: #91a0b5;
-            --accent: #19c37d;
-            --border: rgba(255,255,255,0.08);
-        }
-
         body {
             margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
-
-        button {
-            font-family: inherit;
-        }
-
-        .app {
-            max-width: 600px;
-            margin: auto;
-            padding: 16px 14px 30px;
-        }
-
-        /* HEADER */
-
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 18px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-        }
-
-        .logo {
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #19c37d, #087f55);
-            font-size: 25px;
-            box-shadow: 0 7px 18px rgba(25,195,125,0.20);
-        }
-
-        .brand h1 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 800;
-        }
-
-        .brand p {
-            margin: 3px 0 0;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .notification {
-            width: 40px;
-            height: 40px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: var(--card);
+            background: #0b1020;
             color: white;
-            font-size: 18px;
+            font-family: Arial, sans-serif;
         }
 
-        /* WELCOME */
-
-        .welcome {
-            background: linear-gradient(135deg, #0d2d28, #0d1b2d);
-            border: 1px solid rgba(25,195,125,0.15);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 18px;
+        .container {
+            max-width: 700px;
+            margin: auto;
+            padding: 25px 15px;
         }
 
-        .welcome-label {
-            color: var(--accent);
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .welcome h2 {
-            margin: 7px 0 5px;
-            font-size: 22px;
-        }
-
-        .welcome p {
-            margin: 0;
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        /* FILTERS */
-
-        .filters {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 4px;
-            margin-bottom: 20px;
-        }
-
-        .filter {
-            flex-shrink: 0;
-            border: 1px solid var(--border);
-            background: var(--card);
-            color: var(--muted);
-            padding: 10px 15px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .filter.active {
-            background: var(--accent);
-            color: #06140f;
-            border-color: var(--accent);
-        }
-
-        /* SECTION */
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 11px;
-        }
-
-        .section-header h3 {
-            margin: 0;
-            font-size: 17px;
-        }
-
-        .section-header span {
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        /* LIVE CARD */
-
-        .live-card {
-            background: linear-gradient(135deg, #132b27, #0d1b2d);
-            border: 1px solid rgba(25,195,125,0.22);
-            border-radius: 18px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .live-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .live-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            color: #ff5c5c;
-            font-size: 11px;
-            font-weight: 800;
-        }
-
-        .live-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #ff5c5c;
-        }
-
-        .competition {
-            color: var(--muted);
-            font-size: 10px;
-            text-transform: uppercase;
-            font-weight: 700;
-        }
-
-        .live-teams {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            text-align: center;
-        }
-
-        .live-team {
-            width: 38%;
-        }
-
-        .team-flag {
-            font-size: 30px;
+        h1 {
             margin-bottom: 5px;
         }
 
-        .team-name {
-            font-size: 14px;
-            font-weight: 800;
+        .subtitle {
+            color: #9aa4b5;
+            margin-bottom: 25px;
         }
 
-        .score {
-            margin-top: 5px;
-            font-size: 12px;
-            color: var(--muted);
+        .card {
+            background: #121a2e;
+            border: 1px solid #293552;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
 
-        .live-vs {
-            font-size: 11px;
-            color: var(--muted);
-            font-weight: 800;
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 7px;
+            color: #cbd5e1;
         }
 
-        /* MATCH CARD */
-
-        .match-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 17px;
-            padding: 15px;
-            margin-bottom: 11px;
-        }
-
-        .match-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .match-type {
-            color: var(--accent);
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-
-        .match-status {
-            background: rgba(25,195,125,0.10);
-            color: var(--accent);
-            padding: 5px 8px;
-            border-radius: 7px;
-            font-size: 9px;
-            font-weight: 800;
-        }
-
-        .teams {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            text-align: center;
-        }
-
-        .team {
-            width: 40%;
-        }
-
-        .team-logo {
-            font-size: 27px;
-            margin-bottom: 6px;
-        }
-
-        .team-name-card {
-            font-size: 13px;
-            font-weight: 750;
-        }
-
-        .vs {
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        .match-bottom {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid var(--border);
-            margin-top: 14px;
-            padding-top: 12px;
-        }
-
-        .match-time {
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #34415e;
+            background: #0c1324;
+            color: white;
             font-size: 15px;
-            font-weight: 800;
         }
 
-        .timezone {
-            color: var(--muted);
-            font-size: 9px;
-            margin-left: 3px;
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #3d72ff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
         }
 
-        .venue {
-            color: var(--muted);
-            font-size: 10px;
+        .match-item {
+            background: #0c1324;
+            border: 1px solid #303b59;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 12px;
         }
 
-        /* FOOTER */
-
-        .footer {
+        .empty {
+            color: #9aa4b5;
             text-align: center;
-            margin-top: 22px;
-            color: #627188;
-            font-size: 10px;
+            padding: 15px;
         }
 
-        @media (max-width: 360px) {
-            .app {
-                padding-left: 10px;
-                padding-right: 10px;
-            }
-
-            .team-name-card {
-                font-size: 12px;
-            }
-
-            .welcome h2 {
-                font-size: 20px;
-            }
-        }
     </style>
-</head>
 
-<body>
-
-<div class="app">
-
-    <!-- HEADER -->
-    <div class="header">
-
-        <div class="brand">
-            <div class="logo">🏏</div>
-
-            <div>
-                <h1>Cricket Match Timings</h1>
-                <p>Daily cricket schedule</p>
-            </div>
-        </div>
-
-        <button class="notification">🔔</button>
-
-    </div>
-
-
-    <!-- WELCOME -->
-    <div class="welcome">
-
-        <div class="welcome-label">
-            Match Center
-        </div>
-
-        <h2>Never miss a match.</h2>
-
-        <p>
-            Get today's cricket match timings,
-            upcoming fixtures and live matches in one place.
-        </p>
-
-    </div>
-
-
-   <!-- FILTERS -->
-<div class="filters">
-
-    <button class="filter active" onclick="showMatches('today')">
-        Today
-    </button>
-
-    <button class="filter" onclick="showMatches('tomorrow')">
-        Tomorrow
-    </button>
-
-    <button class="filter" onclick="showMatches('upcoming')">
-        Upcoming
-    </button>
-
-</div>
-
-
-    <!-- MATCH CONTENT -->
-
-<div id="matchContent">
-
-    <!-- TODAY -->
-    <div class="match-section">
-
-        <div class="section-header">
-            <h3>Today's Matches</h3>
-            <span>28 Aug 2026</span>
-        </div>
-
-        <div class="match-card">
-
-            <div class="match-top">
-                <div class="match-type">T20 International</div>
-                <div class="match-status">UPCOMING</div>
-            </div>
-
-            <div class="teams">
-
-                <div class="team">
-                    <div class="team-logo">🇮🇳</div>
-                    <div class="team-name-card">India</div>
-                </div>
-
-                <div class="vs">VS</div>
-
-                <div class="team">
-                    <div class="team-logo">🇦🇺</div>
-                    <div class="team-name-card">Australia</div>
-                </div>
-
-            </div>
-
-            <div class="match-bottom">
-
-                <div class="match-time">
-                    7:30 PM
-                    <span class="timezone">IST</span>
-                </div>
-
-                <div class="venue">
-                    🏟️ Stadium
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="match-card">
-
-            <div class="match-top">
-                <div class="match-type">ODI</div>
-                <div class="match-status">UPCOMING</div>
-            </div>
-
-            <div class="teams">
-
-                <div class="team">
-                    <div class="team-logo">🇬🇧</div>
-                    <div class="team-name-card">England</div>
-                </div>
-
-                <div class="vs">VS</div>
-
-                <div class="team">
-                    <div class="team-logo">🇿🇦</div>
-                    <div class="team-name-card">South Africa</div>
-                </div>
-
-            </div>
-
-            <div class="match-bottom">
-
-                <div class="match-time">
-                    10:00 PM
-                    <span class="timezone">IST</span>
-                </div>
-
-                <div class="venue">
-                    🏟️ Stadium
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-        Cricket Match Timings • Updated Daily
-    </div>
-
-</div>
-
-</body>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+
+<body>
+    <div id="loginScreen">
+    <h2>Admin Login</h2>
+
+    <input type="email" id="email" placeholder="Email">
+
+    <input type="password" id="password" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+</div>
+
+<div class="container" id="adminPanel" style="display: none;">
+
+    <h1>🔐 TEST ADMIN PANEL 123</h1>
+
+    <div class="subtitle">
+        Cricket Match Timings Management
+    </div>
+
+
+    <!-- ADD MATCH -->
+
+    <div class="card">
+
+        <h2>Add New Match</h2>
+
+        <label>Team 1</label>
+        <input type="text" id="team1" placeholder="India">
+
+        <label>Team 2</label>
+        <input type="text" id="team2" placeholder="Australia">
+
+        <label>Date</label>
+        <input type="date" id="matchDate">
+
+        <label>Time</label>
+        <input type="time" id="matchTime">
+
+        <label>Competition</label>
+
+        <select id="competition">
+            <option value="T20 International">T20 International</option>
+            <option value="ODI">ODI</option>
+            <option value="Test">Test</option>
+            <option value="T20 League">T20 League</option>
+            <option value="Other">Other</option>
+        </select>
+
+        <label>Venue</label>
+        <input type="text" id="venue" placeholder="Mumbai">
+
+        <button onclick="saveMatch()">
+            ➕ Save Match
+        </button>
+
+    </div>
+
+
+    <!-- SAVED MATCHES -->
+
+    <div class="card">
+
+        <h2>📋 Saved Matches</h2>
+
+        <div id="savedMatches">
+            Loading...
+        </div>
+
+    </div>
+
+
+</div>
+
 
 <script>
+    async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
+
+    if (error) {
+        alert("Login failed: " + error.message);
+        return;
+    }
+
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("adminPanel").style.display = "block";
+}
+async function checkSession() {
+    const { data } = await supabaseClient.auth.getSession();
+
+    if (data.session) {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+    }
+}
+
     const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 
@@ -514,297 +203,174 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
 );
+checkSession();
 
-    async function showMatches(type) {
+async function saveMatch() {
 
-    const filters = document.querySelectorAll(".filter");
+    alert("Save button clicked");
 
-    filters.forEach(button => {
-        button.classList.remove("active");
-    });
+    const team1 = document.getElementById("team1").value.trim();
+    const team2 = document.getElementById("team2").value.trim();
+    const date = document.getElementById("matchDate").value;
+    const time = document.getElementById("matchTime").value;
+    const competition = document.getElementById("competition").value;
+    const venue = document.getElementById("venue").value.trim();
 
-    if (type === "today") {
-        filters[0].classList.add("active");
+    if (!team1 || !team2 || !date || !time) {
 
-     const { data: matches, error } = await supabaseClient
+        alert("Please fill Team 1, Team 2, Date and Time.");
+        return;
+
+    }
+
+    const match = {
+
+        id: Date.now(),
+        team1: team1,
+        team2: team2,
+        date: date,
+        time: time,
+        competition: competition,
+        venue: venue
+
+    };
+
+const { error } = await supabaseClient
     .from("matches")
-    .select("*");
+    .insert([
+        {
+            team1: team1,
+            team2: team2,
+            match_date: date,
+            match_time: time,
+            competition: competition,
+            venue: venue
+        }
+    ]);
 
 if (error) {
-    console.error("Error loading matches:", error);
+    alert("Error saving match: " + error.message);
     return;
 }
+    
 
-const today = new Date().toISOString().split("T")[0];
 
-const todayMatches = matches.filter(function(match) {
-  return match.match_date === today;
-});
+    document.getElementById("team1").value = "";
+    document.getElementById("team2").value = "";
+    document.getElementById("matchDate").value = "";
+    document.getElementById("matchTime").value = "";
+    document.getElementById("venue").value = "";
 
-let html = `
-    <div class="section-header">
-        <h3>Today's Matches</h3>
-        <span>${today}</span>
-    </div>
-`;
 
-if (todayMatches.length === 0) {
+    loadSavedMatches();
 
-    html += `
-        <div class="match-card">
-            <div class="match-bottom">
-                No matches available today.
+    alert("Match saved successfully!");
+
+}
+
+
+async function loadSavedMatches() {
+
+    const container =
+        document.getElementById("savedMatches");
+
+    container.innerHTML = "Loading...";
+
+    const { data: matches, error } = await supabaseClient
+        .from("matches")
+        .select("*")
+        .order("match_date", { ascending: true })
+        .order("match_time", { ascending: true });
+
+    if (error) {
+
+        container.innerHTML =
+            '<div class="empty">Error loading matches: ' +
+            error.message +
+            '</div>';
+
+        return;
+
+    }
+
+    if (!matches || matches.length === 0) {
+
+        container.innerHTML =
+            '<div class="empty">No matches saved yet.</div>';
+
+        return;
+
+    }
+
+    container.innerHTML = "";
+
+    matches.forEach(function(match) {
+
+        container.innerHTML += `
+
+            <div class="match-item">
+
+                <strong>
+                    ${match.team1} vs ${match.team2}
+                </strong>
+
+                <br><br>
+
+                📅 ${match.match_date}
+
+                <br>
+
+                ⏰ ${match.match_time}
+
+                <br>
+
+                🏏 ${match.competition || "No competition"}
+
+                <br>
+
+                🏟️ ${match.venue || "No venue"}
+
+                <button onclick="deleteMatch(${match.id})">
+                    🗑️ Delete Match
+                </button>
+
             </div>
-        </div>
-    `;
 
-} else {
-
-    todayMatches.forEach(function(match) {
-
-        html += `
-            <div class="match-card">
-
-                <div class="match-top">
-                    <div class="match-type">
-                        ${match.competition}
-                    </div>
-
-                    <div class="match-status">
-                        UPCOMING
-                    </div>
-                </div>
-
-                <div class="teams">
-
-                    <div class="team">
-                        <div class="team-logo">🏏</div>
-                        <div class="team-name-card">
-                            ${match.team1}
-                        </div>
-                    </div>
-
-                    <div class="vs">VS</div>
-
-                    <div class="team">
-                        <div class="team-logo">🏏</div>
-                        <div class="team-name-card">
-                            ${match.team2}
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="match-bottom">
-
-                    <div class="match-time">
-                        ${match.match_time}
-                        <span class="timezone">IST</span>
-                    </div>
-
-                    <div class="venue">
-                        🏟️ ${match.venue || "Stadium"}
-                    </div>
-
-                </div>
-
-            </div>
         `;
 
     });
 
 }
 
-document.getElementById("matchContent").innerHTML = html;
+
+loadSavedMatches();
+async function deleteMatch(id) {
+
+    const confirmDelete = confirm(
+        "Are you sure you want to delete this match?"
+    );
+
+    if (!confirmDelete) {
+        return;
     }
 
-    if (type === "tomorrow") {
-        filters[1].classList.add("active");
+    const { error } = await supabaseClient
+        .from("matches")
+        .delete()
+        .eq("id", id);
 
-        const matches = JSON.parse(
-    localStorage.getItem("cricketMatches")
-) || [];
-
-const tomorrowDate = new Date();
-tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-
-const tomorrow = tomorrowDate.toISOString().split("T")[0];
-
-const tomorrowMatches = matches.filter(function(match) {
-    return match.date === tomorrow;
-});
-
-let html = `
-    <div class="section-header">
-        <h3>Tomorrow's Matches</h3>
-        <span>${tomorrow}</span>
-    </div>
-`;
-
-if (tomorrowMatches.length === 0) {
-
-    html += `
-        <div class="match-card">
-            <div class="match-bottom">
-                No matches available tomorrow.
-            </div>
-        </div>
-    `;
-
-} else {
-
-    tomorrowMatches.forEach(function(match) {
-
-        html += `
-            <div class="match-card">
-
-                <div class="match-top">
-                    <div class="match-type">
-                        ${match.competition}
-                    </div>
-
-                    <div class="match-status">
-                        UPCOMING
-                    </div>
-                </div>
-
-                <div class="teams">
-
-                    <div class="team">
-                        <div class="team-logo">🏏</div>
-                        <div class="team-name-card">
-                            ${match.team1}
-                        </div>
-                    </div>
-
-                    <div class="vs">VS</div>
-
-                    <div class="team">
-                        <div class="team-logo">🏏</div>
-                        <div class="team-name-card">
-                            ${match.team2}
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="match-bottom">
-
-                    <div class="match-time">
-                        ${match.time}
-                        <span class="timezone">IST</span>
-                    </div>
-
-                    <div class="venue">
-                        🏟️ ${match.venue || "Stadium"}
-                    </div>
-
-                </div>
-
-            </div>
-        `;
-
-    });
-
-}
-
-document.getElementById("matchContent").innerHTML = html;
+    if (error) {
+        alert("Error deleting match: " + error.message);
+        return;
     }
 
-    if (type === "upcoming") {
-        filters[2].classList.add("active");
+    alert("Match deleted successfully! ✅");
 
-        const matches = JSON.parse(
-    localStorage.getItem("cricketMatches")
-) || [];
-
-const tomorrowDate = new Date();
-tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-
-const tomorrow = tomorrowDate.toISOString().split("T")[0];
-
-const upcomingMatches = matches.filter(function(match) {
-    return match.date > tomorrow;
-});
-
-let html = `
-    <div class="section-header">
-        <h3>Upcoming Matches</h3>
-        <span>Next Matches</span>
-    </div>
-`;
-
-if (upcomingMatches.length === 0) {
-
-    html += `
-        <div class="match-card">
-            <div class="match-bottom">
-                No upcoming matches available.
-            </div>
-        </div>
-    `;
-
-} else {
-
-    upcomingMatches.forEach(function(match) {
-
-        html += `
-            <div class="match-card">
-
-                <div class="match-top">
-                    <div class="match-type">
-                        ${match.competition}
-                    </div>
-
-                    <div class="match-status">
-                        UPCOMING
-                    </div>
-                </div>
-
-                <div class="teams">
-
-                    <div class="team">
-                        <div class="team-logo">🏏</div>
-                        <div class="team-name-card">
-                            ${match.team1}
-                        </div>
-                    </div>
-
-                    <div class="vs">VS</div>
-
-                    <div class="team">
-                        <div class="team-logo">🏏</div>
-                        <div class="team-name-card">
-                            ${match.team2}
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="match-bottom">
-
-                    <div class="match-time">
-                        ${match.time}
-                        <span class="timezone">IST</span>
-                    </div>
-
-                    <div class="venue">
-                        🏟️ ${match.venue || "Stadium"}
-                    </div>
-
-                </div>
-
-            </div>
-        `;
-
-    });
-
+    loadSavedMatches();
 }
-
-document.getElementById("matchContent").innerHTML = html;
-    }
-}
-
 </script>
+
+
 </body>
+
 </html>
