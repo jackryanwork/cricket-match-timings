@@ -522,6 +522,17 @@ const supabaseClient = window.supabase.createClient(
     return `${year}-${month}-${day}`;
 }
 
+function formatMatchTime(time) {
+    if (!time) return "Time not set";
+
+    const [hoursText, minutes] = time.split(":");
+    const hours = Number(hoursText);
+    const period = hours >= 12 ? "PM" : "AM";
+    const displayHours = hours % 12 || 12;
+
+    return `${displayHours}:${minutes} ${period}`;
+}
+
     async function showMatches(type) {
 
     const filters = document.querySelectorAll(".filter");
@@ -605,7 +616,7 @@ if (todayMatches.length === 0) {
                 <div class="match-bottom">
 
                     <div class="match-time">
-                        ${match.match_time}
+                        ${formatMatchTime(match.match_time)}
                         <span class="timezone">IST</span>
                     </div>
 
@@ -704,7 +715,7 @@ if (tomorrowMatches.length === 0) {
                 <div class="match-bottom">
 
                     <div class="match-time">
-                        ${match.match_time}
+                        ${formatMatchTime(match.match_time)}
                         <span class="timezone">IST</span>
                     </div>
 
@@ -804,7 +815,7 @@ if (upcomingMatches.length === 0) {
                 <div class="match-bottom">
 
                     <div class="match-time">
-                        ${match.match_time}
+                        ${formatMatchTime(match.match_time)}
                         <span class="timezone">IST</span>
                     </div>
 
