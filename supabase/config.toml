@@ -3,3 +3,9 @@ verify_jwt = false
 
 [functions.subscribe-match-reminder]
 verify_jwt = false
+
+[functions.telegram-bot-webhook]
+verify_jwt = false
+
+[functions.setup-telegram-bot]
+verify_jwt = false
