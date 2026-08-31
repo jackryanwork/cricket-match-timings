@@ -1540,8 +1540,10 @@ document.addEventListener("click", event => {
 });
 
 function toggleBigMatches(event) {
+    const bigMatchStack = event.target.closest(".big-match-stack");
     const firstBigMatch = event.target.closest('[data-big-match-index="0"]');
-    if (!firstBigMatch || bigMatches.length < 2) return;
+    const canToggle = bigMatchesExpanded ? bigMatchStack : firstBigMatch;
+    if (!canToggle || bigMatches.length < 2) return;
 
     bigMatchesExpanded = !bigMatchesExpanded;
     renderBigMatches();
