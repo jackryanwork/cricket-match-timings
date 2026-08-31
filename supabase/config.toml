@@ -1,0 +1,2 @@
+[functions.sync-cricket-matches]
+verify_jwt = false

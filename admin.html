@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Cricket Match Timings - Admin</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #0b1020;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            padding: 25px 15px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #9aa4b5;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #121a2e;
+            border: 1px solid #293552;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 7px;
+            color: #cbd5e1;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #34415e;
+            background: #0c1324;
+            color: white;
+            font-size: 15px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #3d72ff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .match-item {
+            background: #0c1324;
+            border: 1px solid #303b59;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 12px;
+        }
+
+        .empty {
+            color: #9aa4b5;
+            text-align: center;
+            padding: 15px;
+        }
+
+    </style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+
+<body>
+    <div id="loginScreen">
+    <h2>Admin Login</h2>
+
+    <input type="email" id="email" placeholder="Email">
+
+    <input type="password" id="password" placeholder="Password">
+
+    <button onclick="login()">Login</button>
+</div>
+
+<div class="container" id="adminPanel" style="display: none;">
+
+    <h1>🔐 TEST ADMIN PANEL 123</h1>
+
+    <div class="subtitle">
+        Cricket Match Timings Management
+    </div>
+
+
+    <!-- ADD MATCH -->
+
+    <div class="card">
+
+        <h2>Add New Match</h2>
+
+        <label>Team 1</label>
+        <input type="text" id="team1" placeholder="India">
+
+        <label>Team 2</label>
+        <input type="text" id="team2" placeholder="Australia">
+
+        <label>Date</label>
+        <input type="date" id="matchDate">
+
+        <label>Time</label>
+        <input type="text" id="matchTime" placeholder="7:30" inputmode="numeric">
+
+        <label>AM or PM</label>
+        <select id="matchPeriod">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+        </select>
+
+        <label>Competition</label>
+
+        <select id="competition">
+            <option value="T20 International">T20 International</option>
+            <option value="ODI">ODI</option>
+            <option value="Test">Test</option>
+            <option value="T20 League">T20 League</option>
+            <option value="Other">Other</option>
+        </select>
+
+        <label>Add custom tournament name (optional)</label>
+        <input type="text" id="customCompetition" placeholder="e.g. IPL 2026">
+
+        <label>Venue</label>
+        <input type="text" id="venue" placeholder="Mumbai">
+
+        <button onclick="saveMatch()">
+            ➕ Save Match
+        </button>
+
+    </div>
+
+
+    <!-- SAVED MATCHES -->
+
+    <div class="card">
+
+        <h2>📋 Saved Matches</h2>
+
+        <div id="savedMatches">
+            Loading...
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<script>
+    async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
+
+    if (error) {
+        alert("Login failed: " + error.message);
+        return;
+    }
+
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("adminPanel").style.display = "block";
+}
+async function checkSession() {
+    const { data } = await supabaseClient.auth.getSession();
+
+    if (data.session) {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+    }
+}
+
+    const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+checkSession();
+
+async function saveMatch() {
+
+    alert("Save button clicked");
+
+    const team1 = document.getElementById("team1").value.trim();
+    const team2 = document.getElementById("team2").value.trim();
+    const date = document.getElementById("matchDate").value;
+    const timeInput = document.getElementById("matchTime").value.trim();
+    const period = document.getElementById("matchPeriod").value;
+    const selectedCompetition = document.getElementById("competition").value;
+    const customCompetition = document.getElementById("customCompetition").value.trim();
+    const competition = customCompetition || selectedCompetition;
+    const venue = document.getElementById("venue").value.trim();
+
+    if (!team1 || !team2 || !date || !timeInput) {
+
+        alert("Please fill Team 1, Team 2, Date and Time.");
+        return;
+
+    }
+
+    const time = convertTo24HourTime(timeInput, period);
+
+    if (!time) {
+        alert("Please enter a valid time, for example 7:30, and select AM or PM.");
+        return;
+    }
+
+    const match = {
+
+        id: Date.now(),
+        team1: team1,
+        team2: team2,
+        date: date,
+        time: time,
+        competition: competition,
+        venue: venue
+
+    };
+
+const { error } = await supabaseClient
+    .from("matches")
+    .insert([
+        {
+            team1: team1,
+            team2: team2,
+            match_date: date,
+            match_time: time,
+            competition: competition,
+            venue: venue
+        }
+    ]);
+
+if (error) {
+    alert("Error saving match: " + error.message);
+    return;
+}
+    
+
+
+    document.getElementById("team1").value = "";
+    document.getElementById("team2").value = "";
+    document.getElementById("matchDate").value = "";
+    document.getElementById("matchTime").value = "";
+    document.getElementById("matchPeriod").value = "AM";
+    document.getElementById("customCompetition").value = "";
+    document.getElementById("venue").value = "";
+
+
+    loadSavedMatches();
+
+    alert("Match saved successfully!");
+
+}
+
+function convertTo24HourTime(timeInput, period) {
+    const match = timeInput.match(/^(\d{1,2}):(\d{2})$/);
+
+    if (!match) return null;
+
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+
+    if (hours < 1 || hours > 12 || minutes > 59) return null;
+
+    const hours24 = (hours % 12) + (period === "PM" ? 12 : 0);
+    return `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function populateCompetitionOptions(matches) {
+    const select = document.getElementById("competition");
+    const defaultCompetitions = new Set([
+        "T20 International",
+        "ODI",
+        "Test",
+        "T20 League",
+        "Other"
+    ]);
+
+    select.querySelectorAll("option[data-saved-competition]").forEach(option => option.remove());
+
+    const savedCompetitions = [...new Set(
+        matches
+            .map(match => (match.competition || "").trim())
+            .filter(competition => competition && !defaultCompetitions.has(competition))
+    )].sort();
+
+    savedCompetitions.forEach(competition => {
+        const option = document.createElement("option");
+        option.value = competition;
+        option.textContent = competition;
+        option.dataset.savedCompetition = "true";
+        select.appendChild(option);
+    });
+}
+
+
+async function loadSavedMatches() {
+
+    const container =
+        document.getElementById("savedMatches");
+
+    container.innerHTML = "Loading...";
+
+    const { data: matches, error } = await supabaseClient
+        .from("matches")
+        .select("*")
+        .order("match_date", { ascending: true })
+        .order("match_time", { ascending: true });
+
+    if (error) {
+
+        container.innerHTML =
+            '<div class="empty">Error loading matches: ' +
+            error.message +
+            '</div>';
+
+        return;
+
+    }
+
+    populateCompetitionOptions(matches || []);
+
+    if (!matches || matches.length === 0) {
+
+        container.innerHTML =
+            '<div class="empty">No matches saved yet.</div>';
+
+        return;
+
+    }
+
+    container.innerHTML = "";
+
+    matches.forEach(function(match) {
+
+        container.innerHTML += `
+
+            <div class="match-item">
+
+                <strong>
+                    ${match.team1} vs ${match.team2}
+                </strong>
+
+                <br><br>
+
+                📅 ${match.match_date}
+
+                <br>
+
+                ⏰ ${match.match_time}
+
+                <br>
+
+                🏏 ${match.competition || "No competition"}
+
+                <br>
+
+                🏟️ ${match.venue || "No venue"}
+
+                <button onclick="deleteMatch(${match.id})">
+                    🗑️ Delete Match
+                </button>
+
+            </div>
+
+        `;
+
+    });
+
+}
+
+
+loadSavedMatches();
+async function deleteMatch(id) {
+
+    const confirmDelete = confirm(
+        "Are you sure you want to delete this match?"
+    );
+
+    if (!confirmDelete) {
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("matches")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+        alert("Error deleting match: " + error.message);
+        return;
+    }
+
+    alert("Match deleted successfully! ✅");
+
+    loadSavedMatches();
+}
+</script>
+
+
+</body>
+
+</html>
