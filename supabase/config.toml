@@ -1,2 +1,5 @@
 [functions.sync-cricket-matches]
 verify_jwt = false
+
+[functions.subscribe-match-reminder]
+verify_jwt = false

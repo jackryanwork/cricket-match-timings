@@ -88,6 +88,43 @@
             padding: 15px;
         }
 
+        .big-match-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 12px;
+            border: 1px solid rgba(61, 114, 255, 0.35);
+            border-radius: 10px;
+            background: rgba(61, 114, 255, 0.09);
+            cursor: pointer;
+        }
+
+        .big-match-option input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            accent-color: #3d72ff;
+        }
+
+        .big-match-option span {
+            color: #dbe7ff;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .big-match-badge {
+            display: inline-block;
+            margin-top: 9px;
+            padding: 4px 7px;
+            border-radius: 6px;
+            background: rgba(61, 114, 255, 0.18);
+            color: #91b1ff;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
     </style>
 
 
@@ -154,6 +191,11 @@
 
         <label>Venue</label>
         <input type="text" id="venue" placeholder="Mumbai">
+
+        <label class="big-match-option">
+            <input type="checkbox" id="isBigMatch">
+            <span>⭐ Show in Upcoming Big Matches</span>
+        </label>
 
         <button onclick="saveMatch()">
             ➕ Save Match
@@ -227,6 +269,7 @@ async function saveMatch() {
     const customCompetition = document.getElementById("customCompetition").value.trim();
     const competition = customCompetition || selectedCompetition;
     const venue = document.getElementById("venue").value.trim();
+    const isBigMatch = document.getElementById("isBigMatch").checked;
 
     if (!team1 || !team2 || !date || !timeInput) {
 
@@ -263,7 +306,8 @@ const { error } = await supabaseClient
             match_date: date,
             match_time: time,
             competition: competition,
-            venue: venue
+            venue: venue,
+            is_big_match: isBigMatch
         }
     ]);
 
@@ -281,6 +325,7 @@ if (error) {
     document.getElementById("matchPeriod").value = "AM";
     document.getElementById("customCompetition").value = "";
     document.getElementById("venue").value = "";
+    document.getElementById("isBigMatch").checked = false;
 
 
     loadSavedMatches();
@@ -403,6 +448,8 @@ async function loadSavedMatches() {
                 <br>
 
                 🏟️ ${escapeHtml(match.venue || "No venue")}
+
+                ${match.is_big_match ? '<br><span class="big-match-badge">⭐ BIG MATCH</span>' : ''}
 
                 <button onclick="deleteMatch(${Number(match.id)})">
                     🗑️ Delete Match

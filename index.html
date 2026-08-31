@@ -26,7 +26,7 @@
         body {
             margin: 0;
             background: var(--bg);
-            color: var(--text);
+            color: white;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
@@ -38,6 +38,28 @@
             max-width: 600px;
             margin: auto;
             padding: 16px 14px 30px;
+        }
+
+        .pull-indicator {
+            height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            opacity: 0;
+            transition: height 0.18s ease, opacity 0.18s ease;
+        }
+
+        .pull-indicator.visible {
+            height: 34px;
+            opacity: 1;
+        }
+
+        .pull-indicator.ready {
+            color: var(--accent);
         }
 
         /* HEADER */
@@ -85,8 +107,73 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             background: var(--card);
-            color: white;
+            color: var(--text);
             font-size: 18px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .menu-button {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .menu-panel {
+            display: none;
+            position: absolute;
+            z-index: 10;
+            top: 50px;
+            right: 0;
+            width: 210px;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: #102238;
+            box-shadow: 0 18px 35px rgba(0, 0, 0, 0.30);
+        }
+
+        .menu-panel.open {
+            display: block;
+        }
+
+        .menu-title {
+            padding: 8px 10px 10px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.9px;
+            text-transform: uppercase;
+        }
+
+        .menu-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 10px;
+            background: transparent;
+            color: var(--text);
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .menu-item span:last-child {
+            color: var(--muted);
+            font-size: 10px;
         }
 
         /* WELCOME */
@@ -119,6 +206,93 @@
             line-height: 1.5;
         }
 
+        /* FEATURED NEXT MATCH */
+
+        .featured-match {
+            display: none;
+            overflow: hidden;
+            margin-bottom: 18px;
+            border: 1px solid rgba(25, 195, 125, 0.28);
+            border-radius: 20px;
+            background: linear-gradient(135deg, #123a31, #102238 68%);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+        }
+
+        .featured-match.visible {
+            display: block;
+        }
+
+        .featured-label {
+            display: inline-flex;
+            margin: 14px 14px 0;
+            padding: 6px 9px;
+            border-radius: 999px;
+            background: rgba(25, 195, 125, 0.16);
+            color: var(--accent);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .featured-teams {
+            padding: 14px 16px 8px;
+            font-size: 19px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .featured-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 16px 16px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .featured-countdown {
+            margin: 0 12px 12px;
+            padding: 12px;
+            border-radius: 13px;
+            background: rgba(7, 17, 31, 0.38);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .big-match-stack {
+            margin-top: 4px;
+        }
+
+        .big-match-card {
+            border-top: 1px solid rgba(255, 255, 255, 0.10);
+            cursor: pointer;
+        }
+
+        .big-match-card:not(:first-child) {
+            display: none;
+        }
+
+        .featured-match.expanded .big-match-card:not(:first-child) {
+            display: block;
+            animation: reveal-big-match 0.22s ease-out;
+        }
+
+        .big-match-toggle {
+            display: block;
+            margin: -2px 16px 12px;
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        @keyframes reveal-big-match {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* FILTERS */
 
         .filters {
@@ -141,9 +315,52 @@
         }
 
         .filter.active {
-            background: var(--accent);
             color: #06140f;
-            border-color: var(--accent);
+        }
+
+        .filter.today.active {
+            background: #19c37d;
+            border-color: #19c37d;
+        }
+
+        .filter.tomorrow.active {
+            background: #64a5ff;
+            border-color: #64a5ff;
+            color: #07111f;
+        }
+
+        .filter.upcoming.active {
+            background: #b58cff;
+            border-color: #b58cff;
+            color: #160d2a;
+        }
+
+        .match-tools {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: -5px 0 12px;
+        }
+
+        .last-updated {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .refresh-button {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 7px 10px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .refresh-button:disabled {
+            cursor: wait;
+            opacity: 0.65;
         }
 
         /* SECTION */
@@ -248,6 +465,16 @@
             margin-bottom: 11px;
         }
 
+        .match-card[data-match-id] {
+            cursor: pointer;
+            transition: transform 0.16s ease, border-color 0.16s ease;
+        }
+
+        .match-card[data-match-id]:active {
+            transform: scale(0.985);
+            border-color: rgba(25, 195, 125, 0.45);
+        }
+
         .match-top {
             display: flex;
             justify-content: space-between;
@@ -263,12 +490,21 @@
         }
 
         .match-status {
-            background: rgba(25,195,125,0.10);
-            color: var(--accent);
             padding: 5px 8px;
             border-radius: 7px;
             font-size: 9px;
             font-weight: 800;
+            letter-spacing: 0.4px;
+        }
+
+        .match-status.today {
+            background: rgba(25,195,125,0.14);
+            color: var(--accent);
+        }
+
+        .match-status.upcoming {
+            background: rgba(145,160,181,0.12);
+            color: #c0cad8;
         }
 
         .teams {
@@ -332,6 +568,214 @@
             font-size: 10px;
         }
 
+        .match-modal {
+            display: none;
+            position: fixed;
+            z-index: 20;
+            inset: 0;
+            align-items: flex-end;
+            background: rgba(2, 8, 16, 0.72);
+        }
+
+        .match-modal.open {
+            display: flex;
+        }
+
+        .match-modal-sheet {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 14px 16px 30px;
+            border: 1px solid var(--border);
+            border-radius: 24px 24px 0 0;
+            background: #0d1b2d;
+            box-shadow: 0 -16px 36px rgba(0, 0, 0, 0.28);
+        }
+
+        .modal-handle {
+            width: 38px;
+            height: 4px;
+            margin: 0 auto 14px;
+            border-radius: 99px;
+            background: rgba(255, 255, 255, 0.20);
+        }
+
+        .modal-close {
+            float: right;
+            width: 34px;
+            height: 34px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--card-light);
+            color: var(--text);
+            font-size: 18px;
+        }
+
+        .detail-tournament {
+            margin: 0 42px 7px 0;
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+        }
+
+        .detail-teams {
+            margin: 0 42px 20px 0;
+            font-size: 21px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 13px 0;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .detail-row strong {
+            color: var(--text);
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .detail-reminder {
+            width: 100%;
+            margin-top: 18px;
+            border: 1px solid rgba(25, 195, 125, 0.22);
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(25, 195, 125, 0.08);
+            color: var(--muted);
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .detail-reminder:disabled {
+            cursor: wait;
+            opacity: 0.72;
+        }
+
+        .welcome-celebration {
+            display: none;
+            position: fixed;
+            z-index: 30;
+            inset: 0;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+            background: rgba(2, 8, 16, 0.78);
+        }
+
+        .welcome-celebration.open {
+            display: flex;
+        }
+
+        .welcome-celebration-card {
+            position: relative;
+            overflow: hidden;
+            width: min(330px, 100%);
+            padding: 26px 22px 20px;
+            border: 1px solid rgba(25, 195, 125, 0.30);
+            border-radius: 24px;
+            background: radial-gradient(circle at 50% 0%, #1b4b3d 0%, #0d1b2d 48%, #07111f 100%);
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.38);
+            text-align: center;
+        }
+
+        .welcome-celebration-card::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0;
+            height: 44px;
+            background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.34));
+            pointer-events: none;
+        }
+
+        .celebration-scene {
+            position: relative;
+            z-index: 1;
+            height: 176px;
+            margin: -16px 0 4px;
+        }
+
+        .celebration-scene::before,
+        .celebration-scene::after {
+            content: "";
+            position: absolute;
+            top: -34px;
+            width: 115px;
+            height: 225px;
+            opacity: 0.68;
+            filter: blur(2px);
+            pointer-events: none;
+        }
+
+        .celebration-scene::before {
+            left: -18px;
+            background: linear-gradient(145deg, rgba(255, 245, 188, 0.63), transparent 68%);
+            transform: rotate(-16deg);
+        }
+
+        .celebration-scene::after {
+            right: -18px;
+            background: linear-gradient(215deg, rgba(181, 255, 218, 0.48), transparent 68%);
+            transform: rotate(16deg);
+        }
+
+        .celebration-player {
+            position: relative;
+            z-index: 1;
+            width: 160px;
+            height: 190px;
+            object-fit: contain;
+            animation: player-entrance 0.85s cubic-bezier(0.2, 0.85, 0.3, 1) both;
+        }
+
+        .welcome-celebration h2 {
+            position: relative;
+            z-index: 1;
+            margin: 2px 0 7px;
+            font-size: 25px;
+        }
+
+        .welcome-celebration p {
+            position: relative;
+            z-index: 1;
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .celebration-skip {
+            position: relative;
+            z-index: 1;
+            margin-top: 18px;
+            border: 0;
+            background: transparent;
+            color: var(--accent);
+            font: inherit;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        @keyframes player-entrance {
+            from { opacity: 0; transform: translateX(52px) translateY(10px) scale(0.90); }
+            to { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .celebration-player {
+                animation: none;
+            }
+        }
+
         @media (max-width: 360px) {
             .app {
                 padding-left: 10px;
@@ -353,6 +797,8 @@
 
 <div class="app">
 
+    <div class="pull-indicator" id="pullIndicator" aria-live="polite">↓ Pull down to refresh</div>
+
     <!-- HEADER -->
     <div class="header">
 
@@ -361,11 +807,21 @@
 
             <div>
                 <h1>Cricket Match Timings</h1>
-                <p>Daily cricket schedule</p>
+                <p>Match schedules</p>
             </div>
         </div>
 
-        <button class="notification">🔔</button>
+        <div class="header-actions">
+            <button class="notification" type="button" aria-label="Notifications">🔔</button>
+            <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false">☰</button>
+
+            <div class="menu-panel" id="menuPanel" aria-label="Menu">
+                <div class="menu-title">Menu</div>
+                <button class="menu-item" type="button"><span>⭐ My favourites</span><span>Coming soon</span></button>
+                <button class="menu-item" type="button"><span>🔔 Match reminders</span><span>Coming soon</span></button>
+                <button class="menu-item" type="button"><span>ℹ️ About this app</span><span>Coming soon</span></button>
+            </div>
+        </div>
 
     </div>
 
@@ -374,36 +830,45 @@
     <div class="welcome">
 
         <div class="welcome-label">
-            Match Center
+            Cricket Schedule
         </div>
 
         <h2>Never miss a match.</h2>
 
         <p>
-            Get today's cricket match timings,
-            upcoming fixtures and live matches in one place.
+            Get daily fixtures and upcoming matches.
         </p>
 
     </div>
 
 
+    <!-- UPCOMING BIG MATCHES -->
+    <section class="featured-match" id="featuredMatch" aria-live="polite">
+        <div id="featuredMatchContent"></div>
+    </section>
+
+
    <!-- FILTERS -->
 <div class="filters">
 
-    <button class="filter active" onclick="showMatches('today')">
+    <button class="filter today active" onclick="refreshMatches('today')">
         Today
     </button>
 
-    <button class="filter" onclick="showMatches('tomorrow')">
+    <button class="filter tomorrow" onclick="refreshMatches('tomorrow')">
         Tomorrow
     </button>
 
-    <button class="filter" onclick="showMatches('upcoming')">
+    <button class="filter upcoming" onclick="refreshMatches('upcoming')">
         Upcoming
     </button>
 
 </div>
 
+    <div class="match-tools">
+        <span class="last-updated" id="lastUpdated">Loading matches…</span>
+        <button class="refresh-button" id="refreshButton" type="button">↻ Refresh</button>
+    </div>
 
     <!-- MATCH CONTENT -->
 
@@ -420,9 +885,28 @@
         </div>
     </div>
 </div>
-        Cricket Match Timings • Updated Daily
+        All match times are shown in IST
     </div>
 
+</div>
+
+<div class="match-modal" id="matchModal" role="dialog" aria-modal="true" aria-label="Match details">
+    <div class="match-modal-sheet">
+        <div class="modal-handle"></div>
+        <button class="modal-close" id="modalClose" type="button" aria-label="Close match details">×</button>
+        <div id="matchDetailContent"></div>
+    </div>
+</div>
+
+<div class="welcome-celebration" id="welcomeCelebration" role="dialog" aria-modal="true" aria-label="Welcome">
+    <div class="welcome-celebration-card">
+        <div class="celebration-scene" aria-hidden="true">
+            <img class="celebration-player" src="assets/welcome-cricketer.png" alt="">
+        </div>
+        <h2>Welcome, Buddy!</h2>
+        <p>Your cricket schedule is ready.</p>
+        <button class="celebration-skip" id="celebrationSkip" type="button">Enter Match Center</button>
+    </div>
 </div>
 
 </body>
@@ -430,8 +914,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-    const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
+const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
+const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-reminder`;
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -466,6 +951,244 @@ function escapeHtml(value) {
     })[character]);
 }
 
+function formatIndiaDate(date) {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).formatToParts(date);
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+
+    return `${values.year}-${values.month}-${values.day}`;
+}
+
+function formatDateLabel(dateText) {
+    return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Kolkata",
+        weekday: "short",
+        day: "numeric",
+        month: "short"
+    }).format(new Date(`${dateText}T00:00:00+05:30`));
+}
+
+function getMatchStart(match) {
+    if (!match.match_date || !match.match_time) return null;
+
+    const time = String(match.match_time).slice(0, 5);
+    const start = new Date(`${match.match_date}T${time}:00+05:30`);
+
+    return Number.isNaN(start.getTime()) ? null : start;
+}
+
+function formatCountdown(start) {
+    const remaining = start.getTime() - Date.now();
+
+    if (remaining <= 0) return "Starting now";
+
+    const totalSeconds = Math.ceil(remaining / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const parts = [];
+
+    if (days) parts.push(`${days}d`);
+    if (hours || days) parts.push(`${hours}h`);
+    parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
+
+    return `Starts in ${parts.join(" ")}`;
+}
+
+let bigMatches = [];
+let bigMatchesExpanded = false;
+let currentMatchType = "today";
+let lastUpdatedAt = null;
+let displayedMatches = new Map();
+
+function setDisplayedMatches(matches) {
+    displayedMatches = new Map(
+        matches
+            .filter(match => Number.isFinite(Number(match.id)))
+            .map(match => [String(Number(match.id)), match])
+    );
+}
+
+function formatMatchDate(matchDate) {
+    if (!matchDate) return "Date to be confirmed";
+
+    return new Intl.DateTimeFormat("en-IN", {
+        timeZone: "Asia/Kolkata",
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+    }).format(new Date(`${matchDate}T00:00:00+05:30`));
+}
+
+function openMatchDetails(match) {
+    const detailContent = document.getElementById("matchDetailContent");
+    const matchModal = document.getElementById("matchModal");
+    const matchId = Number(match.id);
+    const reminderButton = Number.isSafeInteger(matchId) && matchId > 0
+        ? `<button class="detail-reminder" type="button" data-reminder-match-id="${matchId}">🔔 Remind me 30 minutes before</button>`
+        : "";
+
+    detailContent.innerHTML = `
+        <div class="detail-tournament">${escapeHtml(match.competition || "Cricket match")}</div>
+        <div class="detail-teams">${escapeHtml(match.team1)} <span class="vs">VS</span> ${escapeHtml(match.team2)}</div>
+        <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatMatchDate(match.match_date))}</strong></div>
+        <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatMatchTime(match.match_time))} IST</strong></div>
+        <div class="detail-row"><span>Venue</span><strong>${escapeHtml(match.venue || "Venue to be confirmed")}</strong></div>
+        ${reminderButton}
+    `;
+    matchModal.classList.add("open");
+}
+
+async function subscribeToReminder(button) {
+    const matchId = Number(button.dataset.reminderMatchId);
+    const initData = window.Telegram?.WebApp?.initData;
+
+    if (!initData) {
+        button.textContent = "Open this app through Telegram to set a reminder";
+        return;
+    }
+
+    if (!Number.isSafeInteger(matchId) || matchId <= 0) return;
+
+    button.disabled = true;
+    button.textContent = "Setting reminder…";
+
+    try {
+        const response = await fetch(REMINDER_FUNCTION_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData, matchId })
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(result.error || "Could not set the reminder.");
+        }
+
+        button.textContent = result.alreadyExists
+            ? "🔔 Reminder already set"
+            : "✓ Reminder set for 30 minutes before";
+    } catch (error) {
+        button.disabled = false;
+        button.textContent = error.message || "Try setting the reminder again";
+    }
+}
+
+function closeMatchDetails() {
+    document.getElementById("matchModal").classList.remove("open");
+}
+
+function updateLastUpdated() {
+    const lastUpdated = document.getElementById("lastUpdated");
+
+    if (!lastUpdatedAt) {
+        lastUpdated.textContent = "Loading matches…";
+        return;
+    }
+
+    const elapsedSeconds = Math.floor((Date.now() - lastUpdatedAt.getTime()) / 1000);
+    if (elapsedSeconds < 60) {
+        lastUpdated.textContent = "Last updated just now";
+    } else {
+        const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+        lastUpdated.textContent = `Last updated ${elapsedMinutes}m ago`;
+    }
+}
+
+function renderBigMatches() {
+    const featuredCard = document.getElementById("featuredMatch");
+    const featuredContent = document.getElementById("featuredMatchContent");
+
+    if (bigMatches.length === 0) {
+        featuredCard.classList.remove("visible", "expanded");
+        featuredContent.innerHTML = "";
+        return;
+    }
+
+    const matchCards = bigMatches.map((match, index) => {
+        const start = getMatchStart(match);
+
+        return `
+            <article class="big-match-card" data-big-match-index="${index}" ${index === 0 && bigMatches.length > 1 ? 'role="button" tabindex="0" aria-label="Show all upcoming big matches"' : ''}>
+                <div class="featured-teams">${escapeHtml(match.team1)} <span class="vs">VS</span> ${escapeHtml(match.team2)}</div>
+                <div class="featured-meta">
+                    <span>${escapeHtml(match.competition || "Cricket match")}</span>
+                    <span>${escapeHtml(formatMatchTime(match.match_time))} IST</span>
+                </div>
+                <div class="featured-countdown" data-big-countdown-index="${index}">${formatCountdown(start)}</div>
+            </article>
+        `;
+    }).join("");
+
+    const toggle = bigMatches.length > 1
+        ? `<span class="big-match-toggle">${bigMatchesExpanded ? "Hide extra big matches" : "Tap to view all big matches"}</span>`
+        : "";
+
+    featuredContent.innerHTML = `
+        <div class="featured-label">Upcoming Big Matches</div>
+        <div class="big-match-stack">${matchCards}</div>
+        ${toggle}
+    `;
+    featuredCard.classList.add("visible");
+    featuredCard.classList.toggle("expanded", bigMatchesExpanded);
+}
+
+function updateBigMatchCountdowns() {
+    document.querySelectorAll("[data-big-countdown-index]").forEach(countdown => {
+        const match = bigMatches[Number(countdown.dataset.bigCountdownIndex)];
+        const start = match && getMatchStart(match);
+
+        if (start) countdown.textContent = formatCountdown(start);
+    });
+}
+
+async function loadBigMatches() {
+    const { data: matches, error } = await supabaseClient
+        .from("matches")
+        .select("team1, team2, competition, match_date, match_time")
+        .eq("is_big_match", true)
+        .gte("match_date", formatIndiaDate(new Date()));
+
+    if (error) {
+        console.error("Error loading big matches:", error);
+        return;
+    }
+
+    bigMatches = (matches || [])
+        .map(match => ({ match, start: getMatchStart(match) }))
+        .filter(({ start }) => start && start.getTime() > Date.now())
+        .sort((a, b) => a.start.getTime() - b.start.getTime())
+        .map(({ match }) => match);
+
+    if (bigMatches.length < 2) bigMatchesExpanded = false;
+    renderBigMatches();
+}
+
+async function refreshMatches(type = currentMatchType) {
+    currentMatchType = type;
+    const refreshButton = document.getElementById("refreshButton");
+    refreshButton.disabled = true;
+    refreshButton.textContent = "Refreshing…";
+
+    const matchesLoaded = await showMatches(type);
+    await loadBigMatches();
+
+    if (matchesLoaded) {
+        lastUpdatedAt = new Date();
+        updateLastUpdated();
+    }
+
+    refreshButton.disabled = false;
+    refreshButton.textContent = "↻ Refresh";
+}
+
     async function showMatches(type) {
 
     const filters = document.querySelectorAll(".filter");
@@ -483,7 +1206,7 @@ function escapeHtml(value) {
 
 if (error) {
     console.error("Error loading matches:", error);
-    return;
+    return false;
 }
 
 const today = formatLocalDate(new Date());
@@ -492,10 +1215,12 @@ const todayMatches = matches.filter(function(match) {
   return match.match_date === today;
 });
 
+setDisplayedMatches(todayMatches);
+
 let html = `
     <div class="section-header">
         <h3>Today's Matches</h3>
-        <span>${today}</span>
+        <span>${formatDateLabel(today)}</span>
     </div>
 `;
 
@@ -504,7 +1229,7 @@ if (todayMatches.length === 0) {
     html += `
         <div class="match-card">
             <div class="match-bottom">
-                No matches available today.
+                No matches scheduled today.
             </div>
         </div>
     `;
@@ -514,15 +1239,15 @@ if (todayMatches.length === 0) {
     todayMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card">
+            <div class="match-card" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
                         ${escapeHtml(match.competition)}
                     </div>
 
-                    <div class="match-status">
-                        UPCOMING
+                    <div class="match-status today">
+                        TODAY
                     </div>
                 </div>
 
@@ -567,6 +1292,7 @@ if (todayMatches.length === 0) {
 }
 
 document.getElementById("matchContent").innerHTML = html;
+return true;
     }
 
     if (type === "tomorrow") {
@@ -579,7 +1305,7 @@ document.getElementById("matchContent").innerHTML = html;
 
 if (error) {
     console.error("Error loading matches:", error);
-    return;
+    return false;
 }
 
 const tomorrowDate = new Date();
@@ -590,6 +1316,8 @@ const tomorrow = formatLocalDate(tomorrowDate);
 const tomorrowMatches = matches.filter(function(match) {
     return match.match_date === tomorrow;
 });
+
+setDisplayedMatches(tomorrowMatches);
 
 let html = `
     <div class="section-header">
@@ -613,14 +1341,14 @@ if (tomorrowMatches.length === 0) {
     tomorrowMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card">
+            <div class="match-card" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
                         ${escapeHtml(match.competition)}
                     </div>
 
-                    <div class="match-status">
+                    <div class="match-status upcoming">
                         UPCOMING
                     </div>
                 </div>
@@ -666,6 +1394,7 @@ if (tomorrowMatches.length === 0) {
 }
 
 document.getElementById("matchContent").innerHTML = html;
+return true;
     }
 
     if (type === "upcoming") {
@@ -679,7 +1408,7 @@ document.getElementById("matchContent").innerHTML = html;
 
 if (error) {
     console.error("Error loading matches:", error);
-    return;
+    return false;
 }
 
 const tomorrowDate = new Date();
@@ -690,6 +1419,8 @@ const tomorrow = formatLocalDate(tomorrowDate);
 const upcomingMatches = matches.filter(function(match) {
     return match.match_date > tomorrow;
 });
+
+setDisplayedMatches(upcomingMatches);
 
 let html = `
     <div class="section-header">
@@ -713,14 +1444,14 @@ if (upcomingMatches.length === 0) {
     upcomingMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card">
+            <div class="match-card" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
                         ${escapeHtml(match.competition)}
                     </div>
 
-                    <div class="match-status">
+                    <div class="match-status upcoming">
                         UPCOMING
                     </div>
                 </div>
@@ -766,10 +1497,144 @@ if (upcomingMatches.length === 0) {
 }
 
 document.getElementById("matchContent").innerHTML = html;
+return true;
     }
 }
 
-showMatches("today");
+refreshMatches("today");
+setInterval(updateBigMatchCountdowns, 1000);
+
+const menuButton = document.getElementById("menuButton");
+const menuPanel = document.getElementById("menuPanel");
+const refreshButton = document.getElementById("refreshButton");
+const matchContent = document.getElementById("matchContent");
+const bigMatchesPanel = document.getElementById("featuredMatch");
+const matchModal = document.getElementById("matchModal");
+const modalClose = document.getElementById("modalClose");
+const welcomeCelebration = document.getElementById("welcomeCelebration");
+const celebrationSkip = document.getElementById("celebrationSkip");
+let celebrationTimer;
+
+function closeWelcomeCelebration() {
+    welcomeCelebration.classList.remove("open");
+    clearTimeout(celebrationTimer);
+}
+
+setTimeout(() => {
+    welcomeCelebration.classList.add("open");
+    celebrationTimer = setTimeout(closeWelcomeCelebration, 2200);
+}, 250);
+
+celebrationSkip.addEventListener("click", closeWelcomeCelebration);
+
+menuButton.addEventListener("click", () => {
+    const isOpen = menuPanel.classList.toggle("open");
+    menuButton.setAttribute("aria-expanded", String(isOpen));
+});
+
+document.addEventListener("click", event => {
+    if (!event.target.closest(".header-actions")) {
+        menuPanel.classList.remove("open");
+        menuButton.setAttribute("aria-expanded", "false");
+    }
+});
+
+function toggleBigMatches(event) {
+    const firstBigMatch = event.target.closest('[data-big-match-index="0"]');
+    if (!firstBigMatch || bigMatches.length < 2) return;
+
+    bigMatchesExpanded = !bigMatchesExpanded;
+    renderBigMatches();
+}
+
+bigMatchesPanel.addEventListener("click", toggleBigMatches);
+bigMatchesPanel.addEventListener("keydown", event => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    event.preventDefault();
+    toggleBigMatches(event);
+});
+
+function openDetailsFromCard(card) {
+    const match = displayedMatches.get(card.dataset.matchId);
+    if (match) openMatchDetails(match);
+}
+
+matchContent.addEventListener("click", event => {
+    const card = event.target.closest("[data-match-id]");
+    if (card) openDetailsFromCard(card);
+});
+
+matchContent.addEventListener("keydown", event => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    const card = event.target.closest("[data-match-id]");
+    if (!card) return;
+
+    event.preventDefault();
+    openDetailsFromCard(card);
+});
+
+modalClose.addEventListener("click", closeMatchDetails);
+matchModal.addEventListener("click", event => {
+    if (event.target === matchModal) closeMatchDetails();
+
+    const reminderButton = event.target.closest("[data-reminder-match-id]");
+    if (reminderButton && !reminderButton.disabled) {
+        subscribeToReminder(reminderButton);
+    }
+});
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeMatchDetails();
+});
+
+refreshButton.addEventListener("click", () => {
+    refreshMatches();
+});
+
+setInterval(updateLastUpdated, 30000);
+
+const pullIndicator = document.getElementById("pullIndicator");
+const pullThreshold = 72;
+let touchStartY = null;
+let pullDistance = 0;
+
+function resetPullIndicator() {
+    pullIndicator.classList.remove("visible", "ready");
+    pullIndicator.textContent = "↓ Pull down to refresh";
+    touchStartY = null;
+    pullDistance = 0;
+}
+
+document.addEventListener("touchstart", event => {
+    if (window.scrollY <= 0 && event.touches.length === 1) {
+        touchStartY = event.touches[0].clientY;
+    }
+}, { passive: true });
+
+document.addEventListener("touchmove", event => {
+    if (touchStartY === null || event.touches.length !== 1) return;
+
+    pullDistance = Math.max(0, event.touches[0].clientY - touchStartY);
+    if (pullDistance === 0) return;
+
+    pullIndicator.classList.add("visible");
+    const isReady = pullDistance >= pullThreshold;
+    pullIndicator.classList.toggle("ready", isReady);
+    pullIndicator.textContent = isReady ? "↑ Release to refresh" : "↓ Pull down to refresh";
+}, { passive: true });
+
+document.addEventListener("touchend", async () => {
+    if (pullDistance >= pullThreshold) {
+        pullIndicator.classList.add("visible", "ready");
+        pullIndicator.textContent = "Refreshing matches…";
+        await refreshMatches();
+    }
+
+    resetPullIndicator();
+}, { passive: true });
+
+document.addEventListener("touchcancel", resetPullIndicator, { passive: true });
 
 </script>
 </body>
