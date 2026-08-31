@@ -303,6 +303,16 @@ function convertTo24HourTime(timeInput, period) {
     return `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>'"]/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "'": "&#39;",
+        '"': "&quot;"
+    })[character]);
+}
+
 function populateCompetitionOptions(matches) {
     const select = document.getElementById("competition");
     const defaultCompetitions = new Set([
@@ -348,7 +358,7 @@ async function loadSavedMatches() {
 
         container.innerHTML =
             '<div class="empty">Error loading matches: ' +
-            error.message +
+            escapeHtml(error.message) +
             '</div>';
 
         return;
@@ -375,26 +385,26 @@ async function loadSavedMatches() {
             <div class="match-item">
 
                 <strong>
-                    ${match.team1} vs ${match.team2}
+                    ${escapeHtml(match.team1)} vs ${escapeHtml(match.team2)}
                 </strong>
 
                 <br><br>
 
-                📅 ${match.match_date}
+                📅 ${escapeHtml(match.match_date)}
 
                 <br>
 
-                ⏰ ${match.match_time}
+                ⏰ ${escapeHtml(match.match_time)}
 
                 <br>
 
-                🏏 ${match.competition || "No competition"}
+                🏏 ${escapeHtml(match.competition || "No competition")}
 
                 <br>
 
-                🏟️ ${match.venue || "No venue"}
+                🏟️ ${escapeHtml(match.venue || "No venue")}
 
-                <button onclick="deleteMatch(${match.id})">
+                <button onclick="deleteMatch(${Number(match.id)})">
                     🗑️ Delete Match
                 </button>
 
