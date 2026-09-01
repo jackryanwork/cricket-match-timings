@@ -271,21 +271,13 @@
             cursor: pointer;
         }
 
-        .big-match-card:not(:first-child) {
+        .big-match-card:nth-child(n + 3) {
             display: none;
         }
 
-        .featured-match.expanded .big-match-card:not(:first-child) {
+        .featured-match.expanded .big-match-card {
             display: block;
             animation: reveal-big-match 0.22s ease-out;
-        }
-
-        .big-match-toggle {
-            display: block;
-            margin: -2px 16px 12px;
-            color: var(--accent);
-            font-size: 11px;
-            font-weight: 800;
         }
 
         @keyframes reveal-big-match {
@@ -1108,6 +1100,9 @@ function renderBigMatches() {
 
     if (bigMatches.length === 0) {
         featuredCard.classList.remove("visible", "expanded");
+        featuredCard.removeAttribute("role");
+        featuredCard.removeAttribute("tabindex");
+        featuredCard.removeAttribute("aria-label");
         featuredContent.innerHTML = "";
         return;
     }
@@ -1116,7 +1111,7 @@ function renderBigMatches() {
         const start = getMatchStart(match);
 
         return `
-            <article class="big-match-card" data-big-match-index="${index}" ${index === 0 && bigMatches.length > 1 ? 'role="button" tabindex="0" aria-label="Show all upcoming big matches"' : ''}>
+            <article class="big-match-card" data-big-match-index="${index}">
                 <div class="featured-teams">${escapeHtml(match.team1)} <span class="vs">VS</span> ${escapeHtml(match.team2)}</div>
                 <div class="featured-meta">
                     <span>${escapeHtml(match.competition || "Cricket match")}</span>
@@ -1127,17 +1122,24 @@ function renderBigMatches() {
         `;
     }).join("");
 
-    const toggle = bigMatches.length > 1
-        ? `<span class="big-match-toggle">${bigMatchesExpanded ? "Hide extra big matches" : "Tap to view all big matches"}</span>`
-        : "";
-
     featuredContent.innerHTML = `
         <div class="featured-label">Upcoming Big Matches</div>
         <div class="big-match-stack">${matchCards}</div>
-        ${toggle}
     `;
     featuredCard.classList.add("visible");
     featuredCard.classList.toggle("expanded", bigMatchesExpanded);
+
+    if (bigMatches.length > 2) {
+        featuredCard.setAttribute("role", "button");
+        featuredCard.setAttribute("tabindex", "0");
+        featuredCard.setAttribute("aria-label", bigMatchesExpanded
+            ? "Close upcoming big matches list"
+            : "Show all upcoming big matches");
+    } else {
+        featuredCard.removeAttribute("role");
+        featuredCard.removeAttribute("tabindex");
+        featuredCard.removeAttribute("aria-label");
+    }
 }
 
 function updateBigMatchCountdowns() {
@@ -1540,10 +1542,7 @@ document.addEventListener("click", event => {
 });
 
 function toggleBigMatches(event) {
-    const bigMatchStack = event.target.closest(".big-match-stack");
-    const firstBigMatch = event.target.closest('[data-big-match-index="0"]');
-    const canToggle = bigMatchesExpanded ? bigMatchStack : firstBigMatch;
-    if (!canToggle || bigMatches.length < 2) return;
+    if (!event.target.closest("#featuredMatch") || bigMatches.length < 3) return;
 
     bigMatchesExpanded = !bigMatchesExpanded;
     renderBigMatches();
