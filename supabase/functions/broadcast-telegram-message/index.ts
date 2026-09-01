@@ -16,7 +16,7 @@ const keyboard = {
   keyboard: [
     [{ text: "🏏 Today’s Matches" }],
     [{ text: "📅 Tomorrow" }, { text: "⭐ Big Matches" }],
-    [{ text: "🔔 Enable Alerts" }, { text: "🔕 Stop Alerts" }],
+    [{ text: "💬 Contact Us" }],
     [{ text: "📲 Open App", web_app: { url: MINI_APP_URL } }],
   ],
   resize_keyboard: true,
