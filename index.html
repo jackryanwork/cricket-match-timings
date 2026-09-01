@@ -1093,6 +1093,38 @@
 const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-reminder`;
+const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
+
+function getTelegramInitData() {
+    const telegramApp = window.Telegram?.WebApp;
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const queryParams = new URLSearchParams(window.location.search);
+    const currentInitData = telegramApp?.initData
+        || hashParams.get("tgWebAppData")
+        || queryParams.get("tgWebAppData")
+        || "";
+
+    if (currentInitData) {
+        try {
+            sessionStorage.setItem(TELEGRAM_INIT_DATA_STORAGE_KEY, currentInitData);
+        } catch {
+            // Reminders still work when browser storage is unavailable.
+        }
+        return currentInitData;
+    }
+
+    try {
+        return sessionStorage.getItem(TELEGRAM_INIT_DATA_STORAGE_KEY) || "";
+    } catch {
+        return "";
+    }
+}
+
+if (window.Telegram?.WebApp) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+    getTelegramInitData();
+}
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -1224,10 +1256,10 @@ function openMatchDetails(match) {
 
 async function subscribeToReminder(button) {
     const matchId = Number(button.dataset.reminderMatchId);
-    const initData = window.Telegram?.WebApp?.initData;
+    const initData = getTelegramInitData();
 
     if (!initData) {
-        button.textContent = "Open this app through Telegram to set a reminder";
+        button.textContent = "Open from the bot’s 📲 Open App button";
         return;
     }
 

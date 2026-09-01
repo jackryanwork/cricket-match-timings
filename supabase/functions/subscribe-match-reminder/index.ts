@@ -106,13 +106,18 @@ export default {
       return Response.json({ error: "Invalid reminder request." }, { status: 400 });
     }
 
-    const { data: match, error: matchError } = await ctx.supabaseAdmin
+    const { data: match, error: matchError } = await ctx.supabase
       .from("matches")
       .select("id, match_date, match_time")
       .eq("id", matchId)
       .maybeSingle();
 
-    if (matchError || !match) {
+    if (matchError) {
+      console.error("Unable to load reminder match", matchError.code, matchError.message);
+      return Response.json({ error: "Could not load this match right now." }, { status: 500 });
+    }
+
+    if (!match) {
       return Response.json({ error: "Match not found." }, { status: 404 });
     }
 
@@ -155,7 +160,7 @@ export default {
     }
 
     if (existingReminder) {
-      return Response.json({ success: true, alreadySubscribed: true });
+      return Response.json({ success: true, alreadyExists: true });
     }
 
     const { error: reminderError } = await ctx.supabaseAdmin
