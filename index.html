@@ -1328,6 +1328,48 @@ const DEFAULT_TEAMS = [
     "South Africa", "Sri Lanka", "United Arab Emirates", "United States of America",
     "West Indies", "Zimbabwe"
 ];
+const TEAM_COUNTRY_CODES = {
+    "Afghanistan": "AF", "Argentina": "AR", "Australia": "AU", "Austria": "AT",
+    "Bahamas": "BS", "Bahrain": "BH", "Bangladesh": "BD", "Belgium": "BE",
+    "Belize": "BZ", "Bermuda": "BM", "Bhutan": "BT", "Botswana": "BW",
+    "Brazil": "BR", "Bulgaria": "BG", "Cambodia": "KH", "Cameroon": "CM",
+    "Canada": "CA", "Cayman Islands": "KY", "Chile": "CL", "China": "CN",
+    "Cook Islands": "CK", "Costa Rica": "CR", "Côte d’Ivoire": "CI", "Croatia": "HR",
+    "Cyprus": "CY", "Czech Republic": "CZ", "Denmark": "DK", "Estonia": "EE",
+    "Eswatini": "SZ", "Falkland Islands": "FK", "Fiji": "FJ", "Finland": "FI",
+    "France": "FR", "Gambia": "GM", "Germany": "DE", "Ghana": "GH",
+    "Gibraltar": "GI", "Greece": "GR", "Guernsey": "GG", "Hong Kong": "HK",
+    "Hungary": "HU", "India": "IN", "Indonesia": "ID", "Iran": "IR",
+    "Ireland": "IE", "Isle of Man": "IM", "Israel": "IL", "Italy": "IT",
+    "Japan": "JP", "Jersey": "JE", "Kenya": "KE", "Kuwait": "KW",
+    "Lesotho": "LS", "Luxembourg": "LU", "Malawi": "MW", "Malaysia": "MY",
+    "Maldives": "MV", "Mali": "ML", "Malta": "MT", "Mexico": "MX",
+    "Mongolia": "MN", "Mozambique": "MZ", "Myanmar": "MM", "Namibia": "NA",
+    "Nepal": "NP", "Netherlands": "NL", "New Zealand": "NZ", "Nigeria": "NG",
+    "Norway": "NO", "Oman": "OM", "Pakistan": "PK", "Panama": "PA",
+    "Papua New Guinea": "PG", "Peru": "PE", "Philippines": "PH", "Portugal": "PT",
+    "Qatar": "QA", "Romania": "RO", "Rwanda": "RW", "Saint Helena": "SH",
+    "Samoa": "WS", "Saudi Arabia": "SA", "Serbia": "RS", "Seychelles": "SC",
+    "Sierra Leone": "SL", "Singapore": "SG", "Slovenia": "SI", "South Africa": "ZA",
+    "South Korea": "KR", "Spain": "ES", "Sri Lanka": "LK", "Suriname": "SR",
+    "Sweden": "SE", "Switzerland": "CH", "Tajikistan": "TJ", "Tanzania": "TZ",
+    "Thailand": "TH", "Turkey": "TR", "Turks and Caicos Islands": "TC", "Uganda": "UG",
+    "United Arab Emirates": "AE", "United States of America": "US", "Uzbekistan": "UZ",
+    "Vanuatu": "VU", "Zimbabwe": "ZW"
+};
+
+function flagFromCountryCode(code) {
+    return [...code].map(letter => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("");
+}
+
+function teamFlag(teamName) {
+    if (teamName === "England") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
+    if (teamName === "Scotland") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}";
+    if (teamName === "West Indies") return "🏏";
+
+    const countryCode = TEAM_COUNTRY_CODES[teamName];
+    return countryCode ? flagFromCountryCode(countryCode) : "🏏";
+}
 
 function readMyTeams() {
     try {
@@ -1503,7 +1545,7 @@ function openMatchDetails(match) {
 
     detailContent.innerHTML = `
         <div class="detail-tournament">${escapeHtml(match.competition || "Cricket match")}</div>
-        <div class="detail-teams">${escapeHtml(match.team1)} <span class="vs">VS</span> ${escapeHtml(match.team2)}</div>
+        <div class="detail-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
         <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatMatchDate(match.match_date))}</strong></div>
         <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatMatchTime(match.match_time))} IST</strong></div>
         <div class="detail-row"><span>Venue</span><strong>${escapeHtml(match.venue || "Venue to be confirmed")}</strong></div>
@@ -1674,7 +1716,7 @@ async function openMyTeams() {
         .map(team => `
             <label class="team-choice">
                 <input type="checkbox" value="${escapeHtml(team)}" ${myTeams.has(team) ? "checked" : ""}>
-                <span>${escapeHtml(team)}</span>
+                <span>${teamFlag(team)} ${escapeHtml(team)}</span>
             </label>
         `).join("");
 }
@@ -1748,7 +1790,7 @@ function renderBigMatches() {
 
         return `
             <article class="big-match-card" data-big-match-index="${index}">
-                <div class="featured-teams">${escapeHtml(match.team1)} <span class="vs">VS</span> ${escapeHtml(match.team2)}</div>
+                <div class="featured-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
                 <div class="featured-meta">
                     <span>${escapeHtml(match.competition || "Cricket match")}</span>
                     <span>${escapeHtml(formatMatchDate(match.match_date))}<br>${escapeHtml(formatMatchTime(match.match_time))} IST</span>
@@ -1895,7 +1937,7 @@ if (todayMatches.length === 0) {
                 <div class="teams">
 
                     <div class="team">
-                        <div class="team-logo">🏏</div>
+                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team1)}</div>
                         <div class="team-name-card">
                             ${escapeHtml(match.team1)}
                         </div>
@@ -1904,7 +1946,7 @@ if (todayMatches.length === 0) {
                     <div class="vs">VS</div>
 
                     <div class="team">
-                        <div class="team-logo">🏏</div>
+                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
                         <div class="team-name-card">
                             ${escapeHtml(match.team2)}
                         </div>
@@ -1997,7 +2039,7 @@ if (tomorrowMatches.length === 0) {
                 <div class="teams">
 
                     <div class="team">
-                        <div class="team-logo">🏏</div>
+                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team1)}</div>
                         <div class="team-name-card">
                             ${escapeHtml(match.team1)}
                         </div>
@@ -2006,7 +2048,7 @@ if (tomorrowMatches.length === 0) {
                     <div class="vs">VS</div>
 
                     <div class="team">
-                        <div class="team-logo">🏏</div>
+                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
                         <div class="team-name-card">
                             ${escapeHtml(match.team2)}
                         </div>
@@ -2100,7 +2142,7 @@ if (upcomingMatches.length === 0) {
                 <div class="teams">
 
                     <div class="team">
-                        <div class="team-logo">🏏</div>
+                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team1)}</div>
                         <div class="team-name-card">
                             ${escapeHtml(match.team1)}
                         </div>
@@ -2109,7 +2151,7 @@ if (upcomingMatches.length === 0) {
                     <div class="vs">VS</div>
 
                     <div class="team">
-                        <div class="team-logo">🏏</div>
+                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
                         <div class="team-name-card">
                             ${escapeHtml(match.team2)}
                         </div>
