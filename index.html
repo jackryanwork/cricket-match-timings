@@ -1639,9 +1639,6 @@ function openTelegramDestination(url) {
     const platform = String(telegramApp?.platform || "").toLowerCase();
     const isDesktopClient = ["tdesktop", "macos", "web", "weba", "webk"].includes(platform);
 
-    menuPanel.classList.remove("open");
-    menuButton.setAttribute("aria-expanded", "false");
-
     if (isDesktopClient && typeof telegramApp?.openLink === "function") {
         telegramApp.openLink(url);
         return;
@@ -2191,13 +2188,6 @@ menuButton.addEventListener("click", () => {
     menuButton.setAttribute("aria-expanded", String(isOpen));
 });
 
-document.addEventListener("click", event => {
-    if (!event.target.closest(".header-actions")) {
-        menuPanel.classList.remove("open");
-        menuButton.setAttribute("aria-expanded", "false");
-    }
-});
-
 function toggleBigMatches(event) {
     if (bigMatches.length < 2) return;
 
@@ -2248,13 +2238,9 @@ matchModal.addEventListener("click", event => {
 
 notificationButton.addEventListener("click", () => loadReminderCenter(true));
 remindersMenuButton.addEventListener("click", () => {
-    menuPanel.classList.remove("open");
-    menuButton.setAttribute("aria-expanded", "false");
     loadReminderCenter(true);
 });
 myTeamsMenuButton.addEventListener("click", () => {
-    menuPanel.classList.remove("open");
-    menuButton.setAttribute("aria-expanded", "false");
     openMyTeams();
 });
 channelMenuButton.addEventListener("click", () => openTelegramDestination(CHANNEL_URL));
@@ -2263,8 +2249,6 @@ shareMenuButton.addEventListener("click", () => {
     shareMiniApp().catch(() => {});
 });
 aboutMenuButton.addEventListener("click", () => {
-    menuPanel.classList.remove("open");
-    menuButton.setAttribute("aria-expanded", "false");
     aboutModal.classList.add("open");
 });
 myTeamsModalClose.addEventListener("click", () => myTeamsModal.classList.remove("open"));
