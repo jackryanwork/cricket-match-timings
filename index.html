@@ -196,6 +196,7 @@
             color: var(--text);
             font-size: 13px;
             text-align: left;
+            cursor: pointer;
         }
 
         .menu-item span:last-child {
@@ -541,6 +542,21 @@
             border-color: rgba(25, 195, 125, 0.45);
         }
 
+        .match-card.favourite-match {
+            border-color: rgba(250, 204, 21, 0.42);
+            box-shadow: inset 3px 0 0 #facc15;
+        }
+
+        .match-card.favourite-match::before {
+            content: "★ MY TEAM";
+            display: block;
+            margin-bottom: 10px;
+            color: #facc15;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 0.7px;
+        }
+
         .match-top {
             display: flex;
             justify-content: space-between;
@@ -785,6 +801,82 @@
         .reminder-cancel:disabled {
             cursor: wait;
             opacity: 0.65;
+        }
+
+        .feature-heading {
+            margin: 0 42px 5px 0;
+            font-size: 20px;
+        }
+
+        .feature-copy {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .team-picker {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            max-height: min(52vh, 420px);
+            margin-top: 18px;
+            overflow-y: auto;
+        }
+
+        .team-choice {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            background: var(--card-light);
+            color: var(--text);
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .team-choice:has(input:checked) {
+            border-color: rgba(250, 204, 21, 0.48);
+            background: rgba(250, 204, 21, 0.08);
+        }
+
+        .team-choice input {
+            accent-color: #facc15;
+        }
+
+        .feature-primary {
+            width: 100%;
+            margin-top: 14px;
+            padding: 12px;
+            border: 0;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #03130d;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .about-list {
+            display: grid;
+            gap: 10px;
+            margin: 18px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .about-list li {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--card-light);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
         }
 
         .welcome-celebration {
@@ -1078,9 +1170,12 @@
 
             <div class="menu-panel" id="menuPanel" aria-label="Menu">
                 <div class="menu-title">Menu</div>
-                <button class="menu-item" type="button"><span>⭐ My favourites</span><span>Coming soon</span></button>
+                <button class="menu-item" id="myTeamsMenuButton" type="button"><span>⭐ My Teams</span><span id="myTeamsMenuCount">Select</span></button>
                 <button class="menu-item" id="remindersMenuButton" type="button"><span>🔔 Match reminders</span><span>Open</span></button>
-                <button class="menu-item" type="button"><span>ℹ️ About this app</span><span>Coming soon</span></button>
+                <button class="menu-item" id="channelMenuButton" type="button"><span>📢 Join Our Channel</span><span>Open</span></button>
+                <button class="menu-item" id="shareMenuButton" type="button"><span>📤 Share App</span><span>Share</span></button>
+                <button class="menu-item" id="contactMenuButton" type="button"><span>💬 Contact Us</span><span>Open</span></button>
+                <button class="menu-item" id="aboutMenuButton" type="button"><span>ℹ️ About</span><span>View</span></button>
             </div>
         </div>
 
@@ -1172,6 +1267,32 @@
     </div>
 </div>
 
+<div class="match-modal" id="myTeamsModal" role="dialog" aria-modal="true" aria-label="My Teams">
+    <div class="match-modal-sheet">
+        <div class="modal-handle"></div>
+        <button class="modal-close" id="myTeamsModalClose" type="button" aria-label="Close My Teams">×</button>
+        <h2 class="feature-heading">⭐ My Teams</h2>
+        <p class="feature-copy">Select your teams. Their matches will appear first and be highlighted.</p>
+        <div class="team-picker" id="teamPicker"><p class="reminder-state">Loading teams…</p></div>
+        <button class="feature-primary" id="saveMyTeamsButton" type="button">Save My Teams</button>
+    </div>
+</div>
+
+<div class="match-modal" id="aboutModal" role="dialog" aria-modal="true" aria-label="About Cricket Match Timings">
+    <div class="match-modal-sheet">
+        <div class="modal-handle"></div>
+        <button class="modal-close" id="aboutModalClose" type="button" aria-label="Close About">×</button>
+        <h2 class="feature-heading">About</h2>
+        <p class="feature-copy">Cricket Match Timings helps you follow international cricket schedules without missing an important game.</p>
+        <ul class="about-list">
+            <li>🕒 All match times are displayed in India Standard Time (IST).</li>
+            <li>🔔 Set a personal Telegram reminder for 30 minutes before a match.</li>
+            <li>⭐ Select My Teams to bring their matches to the top.</li>
+            <li>📢 Follow our channel for cricket match updates.</li>
+        </ul>
+    </div>
+</div>
+
 <div class="welcome-celebration" id="welcomeCelebration" role="dialog" aria-modal="true" aria-label="Welcome">
     <div class="welcome-celebration-card">
         <div class="celebration-scene" aria-hidden="true">
@@ -1192,6 +1313,40 @@ const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-reminder`;
 const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
+const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
+const MINI_APP_PUBLIC_URL = "https://jackryanwork.github.io/cricket-match-timings/";
+const CHANNEL_URL = "https://t.me/cricketmatchupdatesicc";
+const CONTACT_URL = "https://t.me/MembersHelpDesk";
+const DEFAULT_TEAMS = [
+    "Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland",
+    "Namibia", "Nepal", "Netherlands", "New Zealand", "Pakistan", "Scotland",
+    "South Africa", "Sri Lanka", "United Arab Emirates", "United States of America",
+    "West Indies", "Zimbabwe"
+];
+
+function readMyTeams() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(MY_TEAMS_STORAGE_KEY) || "[]");
+        return new Set(Array.isArray(saved) ? saved.filter(team => typeof team === "string") : []);
+    } catch {
+        return new Set();
+    }
+}
+
+let myTeams = readMyTeams();
+
+function isFavouriteMatch(match) {
+    return myTeams.has(match.team1) || myTeams.has(match.team2);
+}
+
+function sortFavouriteMatches(matches) {
+    return [...matches].sort((left, right) => Number(isFavouriteMatch(right)) - Number(isFavouriteMatch(left)));
+}
+
+function updateMyTeamsMenuCount() {
+    const count = document.getElementById("myTeamsMenuCount");
+    if (count) count.textContent = myTeams.size ? `${myTeams.size} selected` : "Select";
+}
 
 function getTelegramInitData() {
     const telegramApp = window.Telegram?.WebApp;
@@ -1474,6 +1629,75 @@ function closeMatchDetails() {
     document.getElementById("matchModal").classList.remove("open");
 }
 
+function openTelegramDestination(url) {
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+    }
+}
+
+async function openMyTeams() {
+    const teamPicker = document.getElementById("teamPicker");
+    document.getElementById("myTeamsModal").classList.add("open");
+    teamPicker.innerHTML = '<p class="reminder-state">Loading teams…</p>';
+
+    const { data, error } = await supabaseClient
+        .from("matches")
+        .select("team1, team2");
+
+    const availableTeams = new Set(DEFAULT_TEAMS);
+    if (!error) {
+        (data || []).forEach(match => {
+            if (match.team1) availableTeams.add(match.team1);
+            if (match.team2) availableTeams.add(match.team2);
+        });
+    }
+
+    teamPicker.innerHTML = [...availableTeams]
+        .sort((left, right) => left.localeCompare(right))
+        .map(team => `
+            <label class="team-choice">
+                <input type="checkbox" value="${escapeHtml(team)}" ${myTeams.has(team) ? "checked" : ""}>
+                <span>${escapeHtml(team)}</span>
+            </label>
+        `).join("");
+}
+
+async function saveMyTeams() {
+    myTeams = new Set(
+        [...document.querySelectorAll("#teamPicker input:checked")]
+            .map(input => input.value)
+    );
+
+    try {
+        localStorage.setItem(MY_TEAMS_STORAGE_KEY, JSON.stringify([...myTeams]));
+    } catch {
+        // Selection still applies for the current session.
+    }
+
+    updateMyTeamsMenuCount();
+    document.getElementById("myTeamsModal").classList.remove("open");
+    await refreshMatches(currentMatchType);
+}
+
+async function shareMiniApp() {
+    const shareText = "🏏 Check cricket match schedules and IST timings on Cricket Match Timings.";
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(MINI_APP_PUBLIC_URL)}&text=${encodeURIComponent(shareText)}`;
+        window.Telegram.WebApp.openTelegramLink(shareUrl);
+        return;
+    }
+
+    if (navigator.share) {
+        await navigator.share({ title: "Cricket Match Timings", text: shareText, url: MINI_APP_PUBLIC_URL });
+        return;
+    }
+
+    await navigator.clipboard.writeText(MINI_APP_PUBLIC_URL);
+    window.alert("App link copied.");
+}
+
 function updateLastUpdated() {
     const lastUpdated = document.getElementById("lastUpdated");
 
@@ -1613,9 +1837,9 @@ if (error) {
 
 const today = formatLocalDate(new Date());
 
-const todayMatches = matches.filter(function(match) {
+const todayMatches = sortFavouriteMatches(matches.filter(function(match) {
   return match.match_date === today;
-});
+}));
 
 setDisplayedMatches(todayMatches);
 
@@ -1641,7 +1865,7 @@ if (todayMatches.length === 0) {
     todayMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
+            <div class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
@@ -1715,9 +1939,9 @@ tomorrowDate.setDate(tomorrowDate.getDate() + 1);
 
 const tomorrow = formatLocalDate(tomorrowDate);
 
-const tomorrowMatches = matches.filter(function(match) {
+const tomorrowMatches = sortFavouriteMatches(matches.filter(function(match) {
     return match.match_date === tomorrow;
-});
+}));
 
 setDisplayedMatches(tomorrowMatches);
 
@@ -1743,7 +1967,7 @@ if (tomorrowMatches.length === 0) {
     tomorrowMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
+            <div class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
@@ -1818,9 +2042,9 @@ tomorrowDate.setDate(tomorrowDate.getDate() + 1);
 
 const tomorrow = formatLocalDate(tomorrowDate);
 
-const upcomingMatches = matches.filter(function(match) {
+const upcomingMatches = sortFavouriteMatches(matches.filter(function(match) {
     return match.match_date > tomorrow;
-});
+}));
 
 setDisplayedMatches(upcomingMatches);
 
@@ -1846,7 +2070,7 @@ if (upcomingMatches.length === 0) {
     upcomingMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
+            <div class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
@@ -1918,6 +2142,16 @@ const remindersMenuButton = document.getElementById("remindersMenuButton");
 const reminderModal = document.getElementById("reminderModal");
 const reminderModalClose = document.getElementById("reminderModalClose");
 const reminderList = document.getElementById("reminderList");
+const myTeamsMenuButton = document.getElementById("myTeamsMenuButton");
+const channelMenuButton = document.getElementById("channelMenuButton");
+const shareMenuButton = document.getElementById("shareMenuButton");
+const contactMenuButton = document.getElementById("contactMenuButton");
+const aboutMenuButton = document.getElementById("aboutMenuButton");
+const myTeamsModal = document.getElementById("myTeamsModal");
+const myTeamsModalClose = document.getElementById("myTeamsModalClose");
+const saveMyTeamsButton = document.getElementById("saveMyTeamsButton");
+const aboutModal = document.getElementById("aboutModal");
+const aboutModalClose = document.getElementById("aboutModalClose");
 const welcomeCelebration = document.getElementById("welcomeCelebration");
 const celebrationSkip = document.getElementById("celebrationSkip");
 let celebrationTimer;
@@ -2000,6 +2234,30 @@ remindersMenuButton.addEventListener("click", () => {
     menuButton.setAttribute("aria-expanded", "false");
     loadReminderCenter(true);
 });
+myTeamsMenuButton.addEventListener("click", () => {
+    menuPanel.classList.remove("open");
+    menuButton.setAttribute("aria-expanded", "false");
+    openMyTeams();
+});
+channelMenuButton.addEventListener("click", () => openTelegramDestination(CHANNEL_URL));
+contactMenuButton.addEventListener("click", () => openTelegramDestination(CONTACT_URL));
+shareMenuButton.addEventListener("click", () => {
+    shareMiniApp().catch(() => {});
+});
+aboutMenuButton.addEventListener("click", () => {
+    menuPanel.classList.remove("open");
+    menuButton.setAttribute("aria-expanded", "false");
+    aboutModal.classList.add("open");
+});
+myTeamsModalClose.addEventListener("click", () => myTeamsModal.classList.remove("open"));
+saveMyTeamsButton.addEventListener("click", saveMyTeams);
+myTeamsModal.addEventListener("click", event => {
+    if (event.target === myTeamsModal) myTeamsModal.classList.remove("open");
+});
+aboutModalClose.addEventListener("click", () => aboutModal.classList.remove("open"));
+aboutModal.addEventListener("click", event => {
+    if (event.target === aboutModal) aboutModal.classList.remove("open");
+});
 reminderModalClose.addEventListener("click", () => reminderModal.classList.remove("open"));
 reminderModal.addEventListener("click", event => {
     if (event.target === reminderModal) reminderModal.classList.remove("open");
@@ -2011,6 +2269,8 @@ document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
         closeMatchDetails();
         reminderModal.classList.remove("open");
+        myTeamsModal.classList.remove("open");
+        aboutModal.classList.remove("open");
     }
 });
 
@@ -2020,6 +2280,7 @@ refreshButton.addEventListener("click", () => {
 
 setInterval(updateLastUpdated, 30000);
 loadReminderCenter(false);
+updateMyTeamsMenuCount();
 
 const pullIndicator = document.getElementById("pullIndicator");
 const pullThreshold = 72;
