@@ -304,6 +304,7 @@
             margin-top: 4px;
             margin-bottom: 16px;
             isolation: isolate;
+            transition: margin-bottom 0.34s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .big-match-stack::before,
@@ -314,6 +315,8 @@
             border: 1px solid rgba(255, 255, 255, 0.10);
             border-radius: 0 0 16px 16px;
             background: #10283a;
+            transform-origin: top center;
+            transition: opacity 0.22s ease, transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .big-match-stack::before {
@@ -334,7 +337,8 @@
 
         .featured-match.expanded .big-match-stack::before,
         .featured-match.expanded .big-match-stack::after {
-            display: none;
+            opacity: 0;
+            transform: translateY(-8px) scale(0.98);
         }
 
         .big-match-toggle {
@@ -352,17 +356,27 @@
         }
 
         .big-match-card:not(:first-child) {
-            display: none;
-        }
-
-        .featured-match.expanded .big-match-card {
             display: block;
-            animation: reveal-big-match 0.22s ease-out;
+            max-height: 0;
+            overflow: hidden;
+            border-top-color: transparent;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-12px) scale(0.985);
+            transform-origin: top center;
+            transition:
+                max-height 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.2s ease,
+                transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 0.18s ease;
         }
 
-        @keyframes reveal-big-match {
-            from { opacity: 0; transform: translateY(-8px); }
-            to { opacity: 1; transform: translateY(0); }
+        .featured-match.expanded .big-match-card:not(:first-child) {
+            max-height: 240px;
+            border-top-color: rgba(255, 255, 255, 0.10);
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
         }
 
         /* FILTERS */
@@ -1820,12 +1834,24 @@ function renderBigMatches() {
     featuredContent.innerHTML = `
         <div class="featured-label">Upcoming Big Matches</div>
         <div class="big-match-stack">${matchCards}</div>
-        ${bigMatches.length > 1 && !bigMatchesExpanded
+        ${bigMatches.length > 1
             ? '<span class="big-match-toggle">Tap to see all matches</span>'
             : ''}
     `;
     featuredCard.classList.add("visible");
+    updateBigMatchesExpandedState();
+}
+
+function updateBigMatchesExpandedState() {
+    const featuredCard = document.getElementById("featuredMatch");
+    const toggleText = featuredCard.querySelector(".big-match-toggle");
+
     featuredCard.classList.toggle("expanded", bigMatchesExpanded);
+    if (toggleText) {
+        toggleText.textContent = bigMatchesExpanded
+            ? "Tap anywhere to close"
+            : "Tap to see all matches";
+    }
 
     if (bigMatches.length > 1) {
         featuredCard.setAttribute("role", "button");
@@ -2254,7 +2280,7 @@ function toggleBigMatches(event) {
     if (!clickedPanel) return;
 
     bigMatchesExpanded = !bigMatchesExpanded;
-    renderBigMatches();
+    updateBigMatchesExpandedState();
 }
 
 bigMatchesPanel.addEventListener("click", toggleBigMatches);
