@@ -263,7 +263,41 @@
         }
 
         .big-match-stack {
+            position: relative;
             margin-top: 4px;
+            margin-bottom: 16px;
+            isolation: isolate;
+        }
+
+        .big-match-stack::before,
+        .big-match-stack::after {
+            content: "";
+            position: absolute;
+            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 0 0 16px 16px;
+            background: #10283a;
+        }
+
+        .big-match-stack::before {
+            z-index: -1;
+            inset: 8px 10px -8px;
+            opacity: 0.86;
+        }
+
+        .big-match-stack::after {
+            z-index: -2;
+            inset: 16px 20px -16px;
+            opacity: 0.62;
+        }
+
+        .featured-match.expanded .big-match-stack {
+            margin-bottom: 0;
+        }
+
+        .featured-match.expanded .big-match-stack::before,
+        .featured-match.expanded .big-match-stack::after {
+            display: none;
         }
 
         .big-match-card {
@@ -271,7 +305,7 @@
             cursor: pointer;
         }
 
-        .big-match-card:nth-child(n + 3) {
+        .big-match-card:not(:first-child) {
             display: none;
         }
 
@@ -1111,7 +1145,7 @@ function renderBigMatches() {
         const start = getMatchStart(match);
 
         return `
-            <article class="big-match-card" data-big-match-index="${index}">
+            <article class="big-match-card" data-big-match-index="${index}" ${index === 0 && bigMatches.length > 1 && !bigMatchesExpanded ? 'role="button" tabindex="0" aria-label="Show all upcoming big matches"' : ''}>
                 <div class="featured-teams">${escapeHtml(match.team1)} <span class="vs">VS</span> ${escapeHtml(match.team2)}</div>
                 <div class="featured-meta">
                     <span>${escapeHtml(match.competition || "Cricket match")}</span>
@@ -1129,12 +1163,10 @@ function renderBigMatches() {
     featuredCard.classList.add("visible");
     featuredCard.classList.toggle("expanded", bigMatchesExpanded);
 
-    if (bigMatches.length > 2) {
+    if (bigMatches.length > 1 && bigMatchesExpanded) {
         featuredCard.setAttribute("role", "button");
         featuredCard.setAttribute("tabindex", "0");
-        featuredCard.setAttribute("aria-label", bigMatchesExpanded
-            ? "Close upcoming big matches list"
-            : "Show all upcoming big matches");
+        featuredCard.setAttribute("aria-label", "Close upcoming big matches list");
     } else {
         featuredCard.removeAttribute("role");
         featuredCard.removeAttribute("tabindex");
@@ -1542,7 +1574,11 @@ document.addEventListener("click", event => {
 });
 
 function toggleBigMatches(event) {
-    if (!event.target.closest("#featuredMatch") || bigMatches.length < 3) return;
+    if (bigMatches.length < 2) return;
+
+    const clickedPanel = event.target.closest("#featuredMatch");
+    const clickedFirstMatch = event.target.closest('[data-big-match-index="0"]');
+    if (!clickedPanel || (!bigMatchesExpanded && !clickedFirstMatch)) return;
 
     bigMatchesExpanded = !bigMatchesExpanded;
     renderBigMatches();
