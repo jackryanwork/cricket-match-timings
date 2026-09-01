@@ -125,6 +125,39 @@
             letter-spacing: 0.5px;
         }
 
+        .match-actions {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .match-actions button {
+            width: auto;
+            min-height: 44px;
+            margin-top: 0;
+            padding: 9px 7px;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+
+        .edit-match-button {
+            background: #3d72ff;
+        }
+
+        .big-match-button {
+            background: #9a6700;
+        }
+
+        .delete-match-button {
+            background: #b42318;
+        }
+
+        #cancelEditButton {
+            display: none;
+            background: #475569;
+        }
+
     </style>
 
 
@@ -154,7 +187,7 @@
 
     <!-- ADD MATCH -->
 
-    <div class="card">
+    <div class="card" id="addMatchCard">
 
         <h2>Add New Match</h2>
 
@@ -330,8 +363,12 @@
             <span>⭐ Show in Upcoming Big Matches</span>
         </label>
 
-        <button onclick="saveMatch()">
+        <button id="saveMatchButton" onclick="saveMatch()">
             ➕ Save Match
+        </button>
+
+        <button id="cancelEditButton" onclick="cancelEdit()">
+            Cancel Edit
         </button>
 
     </div>
@@ -389,9 +426,10 @@ const supabaseClient = window.supabase.createClient(
 );
 checkSession();
 
-async function saveMatch() {
+let editingMatchId = null;
+let savedMatchesById = new Map();
 
-    alert("Save button clicked");
+async function saveMatch() {
 
     const team1 = document.getElementById("team1").value.trim();
     const team2 = document.getElementById("team2").value.trim();
@@ -418,53 +456,30 @@ async function saveMatch() {
         return;
     }
 
-    const match = {
-
-        id: Date.now(),
+    const matchPayload = {
         team1: team1,
         team2: team2,
-        date: date,
-        time: time,
+        match_date: date,
+        match_time: time,
         competition: competition,
-        venue: venue
-
+        venue: venue,
+        is_big_match: isBigMatch
     };
 
-const { error } = await supabaseClient
-    .from("matches")
-    .insert([
-        {
-            team1: team1,
-            team2: team2,
-            match_date: date,
-            match_time: time,
-            competition: competition,
-            venue: venue,
-            is_big_match: isBigMatch
-        }
-    ]);
+    const isEditing = editingMatchId !== null;
+    const query = isEditing
+        ? supabaseClient.from("matches").update(matchPayload).eq("id", editingMatchId)
+        : supabaseClient.from("matches").insert([matchPayload]);
+    const { error } = await query;
 
-if (error) {
-    alert("Error saving match: " + error.message);
-    return;
-}
-    
+    if (error) {
+        alert(`Error ${isEditing ? "updating" : "saving"} match: ${error.message}`);
+        return;
+    }
 
-
-    document.getElementById("team1").value = "";
-    document.getElementById("team2").value = "";
-    document.getElementById("matchDate").value = "";
-    document.getElementById("matchTime").value = "";
-    document.getElementById("matchPeriod").value = "AM";
-    document.getElementById("customCompetition").value = "";
-    document.getElementById("venue").value = "";
-    document.getElementById("isBigMatch").checked = false;
-
-
+    cancelEdit();
     loadSavedMatches();
-
-    alert("Match saved successfully!");
-
+    alert(isEditing ? "Match updated successfully! ✅" : "Match saved successfully!");
 }
 
 function convertTo24HourTime(timeInput, period) {
@@ -479,6 +494,80 @@ function convertTo24HourTime(timeInput, period) {
 
     const hours24 = (hours % 12) + (period === "PM" ? 12 : 0);
     return `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function convertFrom24HourTime(timeValue) {
+    const [hoursText, minutes = "00"] = String(timeValue || "").slice(0, 5).split(":");
+    const hours24 = Number(hoursText);
+    const period = hours24 >= 12 ? "PM" : "AM";
+    const hours12 = hours24 % 12 || 12;
+
+    return {
+        time: `${hours12}:${minutes}`,
+        period: period
+    };
+}
+
+function resetMatchForm() {
+    document.getElementById("team1").value = "";
+    document.getElementById("team2").value = "";
+    document.getElementById("matchDate").value = "";
+    document.getElementById("matchTime").value = "";
+    document.getElementById("matchPeriod").value = "AM";
+    document.getElementById("competition").value = "T20 International";
+    document.getElementById("customCompetition").value = "";
+    document.getElementById("venue").value = "";
+    document.getElementById("isBigMatch").checked = false;
+}
+
+function cancelEdit() {
+    editingMatchId = null;
+    resetMatchForm();
+    document.getElementById("saveMatchButton").textContent = "➕ Save Match";
+    document.getElementById("cancelEditButton").style.display = "none";
+}
+
+function editMatch(id) {
+    const match = savedMatchesById.get(Number(id));
+    if (!match) return;
+
+    editingMatchId = Number(id);
+    document.getElementById("team1").value = match.team1 || "";
+    document.getElementById("team2").value = match.team2 || "";
+    document.getElementById("matchDate").value = match.match_date || "";
+
+    const convertedTime = convertFrom24HourTime(match.match_time);
+    document.getElementById("matchTime").value = convertedTime.time;
+    document.getElementById("matchPeriod").value = convertedTime.period;
+
+    const competitionSelect = document.getElementById("competition");
+    const competitionExists = [...competitionSelect.options]
+        .some(option => option.value === (match.competition || ""));
+    competitionSelect.value = competitionExists ? match.competition : "Other";
+    document.getElementById("customCompetition").value = competitionExists ? "" : (match.competition || "");
+    document.getElementById("venue").value = match.venue || "";
+    document.getElementById("isBigMatch").checked = Boolean(match.is_big_match);
+
+    document.getElementById("saveMatchButton").textContent = "✅ Update Match";
+    document.getElementById("cancelEditButton").style.display = "block";
+    document.getElementById("addMatchCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function toggleBigMatch(id, isCurrentlyBig) {
+    const { error } = await supabaseClient
+        .from("matches")
+        .update({ is_big_match: !isCurrentlyBig })
+        .eq("id", id);
+
+    if (error) {
+        alert("Error changing Big Match status: " + error.message);
+        return;
+    }
+
+    alert(isCurrentlyBig
+        ? "Match removed from Upcoming Big Matches."
+        : "Match added to Upcoming Big Matches! ⭐");
+    loadSavedMatches();
 }
 
 function escapeHtml(value) {
@@ -544,6 +633,7 @@ async function loadSavedMatches() {
     }
 
     populateCompetitionOptions(matches || []);
+    savedMatchesById = new Map((matches || []).map(match => [Number(match.id), match]));
 
     if (!matches || matches.length === 0) {
 
@@ -584,9 +674,19 @@ async function loadSavedMatches() {
 
                 ${match.is_big_match ? '<br><span class="big-match-badge">⭐ BIG MATCH</span>' : ''}
 
-                <button onclick="deleteMatch(${Number(match.id)})">
-                    🗑️ Delete Match
-                </button>
+                <div class="match-actions">
+                    <button class="edit-match-button" onclick="editMatch(${Number(match.id)})">
+                        ✏️ Edit
+                    </button>
+
+                    <button class="big-match-button" onclick="toggleBigMatch(${Number(match.id)}, ${Boolean(match.is_big_match)})">
+                        ${match.is_big_match ? "⭐ Remove Big Match" : "⭐ Add to Big Match"}
+                    </button>
+
+                    <button class="delete-match-button" onclick="deleteMatch(${Number(match.id)})">
+                        🗑️ Delete Match
+                    </button>
+                </div>
 
             </div>
 
