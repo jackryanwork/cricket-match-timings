@@ -104,6 +104,7 @@
         }
 
         .notification {
+            position: relative;
             width: 40px;
             height: 40px;
             border: 1px solid var(--border);
@@ -111,6 +112,30 @@
             background: var(--card);
             color: var(--text);
             font-size: 18px;
+            cursor: pointer;
+        }
+
+        .notification-badge {
+            display: none;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--bg);
+            border-radius: 99px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .notification-badge.visible {
+            display: flex;
         }
 
         .header-actions {
@@ -703,6 +728,65 @@
             opacity: 0.72;
         }
 
+        .reminder-heading {
+            margin: 0 42px 5px 0;
+            font-size: 20px;
+        }
+
+        .reminder-intro,
+        .reminder-state {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .reminder-list {
+            display: grid;
+            gap: 10px;
+            max-height: min(55vh, 440px);
+            margin-top: 18px;
+            overflow-y: auto;
+        }
+
+        .reminder-item {
+            padding: 13px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--card-light);
+        }
+
+        .reminder-item-title {
+            margin-bottom: 5px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .reminder-item-meta {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .reminder-cancel {
+            width: 100%;
+            margin-top: 10px;
+            padding: 9px;
+            border: 1px solid rgba(239, 68, 68, 0.28);
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.08);
+            color: #fca5a5;
+            font: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .reminder-cancel:disabled {
+            cursor: wait;
+            opacity: 0.65;
+        }
+
         .welcome-celebration {
             display: none;
             position: fixed;
@@ -987,13 +1071,15 @@
         </div>
 
         <div class="header-actions">
-            <button class="notification" type="button" aria-label="Notifications">🔔</button>
+            <button class="notification" id="notificationButton" type="button" aria-label="Match reminders">
+                🔔<span class="notification-badge" id="notificationBadge" aria-hidden="true"></span>
+            </button>
             <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false">☰</button>
 
             <div class="menu-panel" id="menuPanel" aria-label="Menu">
                 <div class="menu-title">Menu</div>
                 <button class="menu-item" type="button"><span>⭐ My favourites</span><span>Coming soon</span></button>
-                <button class="menu-item" type="button"><span>🔔 Match reminders</span><span>Coming soon</span></button>
+                <button class="menu-item" id="remindersMenuButton" type="button"><span>🔔 Match reminders</span><span>Open</span></button>
                 <button class="menu-item" type="button"><span>ℹ️ About this app</span><span>Coming soon</span></button>
             </div>
         </div>
@@ -1071,6 +1157,18 @@
         <div class="modal-handle"></div>
         <button class="modal-close" id="modalClose" type="button" aria-label="Close match details">×</button>
         <div id="matchDetailContent"></div>
+    </div>
+</div>
+
+<div class="match-modal" id="reminderModal" role="dialog" aria-modal="true" aria-label="Match reminders">
+    <div class="match-modal-sheet">
+        <div class="modal-handle"></div>
+        <button class="modal-close" id="reminderModalClose" type="button" aria-label="Close match reminders">×</button>
+        <h2 class="reminder-heading">Match Reminders</h2>
+        <p class="reminder-intro">Your scheduled 30-minute Telegram alerts.</p>
+        <div class="reminder-list" id="reminderList" aria-live="polite">
+            <p class="reminder-state">Loading reminders…</p>
+        </div>
     </div>
 </div>
 
@@ -1254,6 +1352,97 @@ function openMatchDetails(match) {
     matchModal.classList.add("open");
 }
 
+async function requestReminderAction(action, matchId) {
+    const initData = getTelegramInitData();
+    if (!initData) {
+        throw new Error("Open from the bot’s 📲 Open App button");
+    }
+
+    const payload = { initData, action };
+    if (Number.isSafeInteger(matchId) && matchId > 0) payload.matchId = matchId;
+
+    const response = await fetch(REMINDER_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(result.error || "Reminder request failed.");
+    }
+
+    return result;
+}
+
+function setReminderBadge(count) {
+    const badge = document.getElementById("notificationBadge");
+    const safeCount = Math.max(0, Number(count) || 0);
+    badge.textContent = safeCount > 9 ? "9+" : String(safeCount);
+    badge.classList.toggle("visible", safeCount > 0);
+    badge.setAttribute("aria-hidden", String(safeCount === 0));
+}
+
+function renderReminderList(reminders) {
+    const reminderList = document.getElementById("reminderList");
+    setReminderBadge(reminders.length);
+
+    if (reminders.length === 0) {
+        reminderList.innerHTML = '<p class="reminder-state">No match reminders set. Open a match and tap Remind me.</p>';
+        return;
+    }
+
+    reminderList.innerHTML = reminders.map(reminder => `
+        <div class="reminder-item">
+            <div class="reminder-item-title">${escapeHtml(reminder.team1)} vs ${escapeHtml(reminder.team2)}</div>
+            <div class="reminder-item-meta">
+                ${escapeHtml(reminder.competition || "Cricket match")}<br>
+                ${escapeHtml(formatMatchDate(reminder.match_date))} · ${escapeHtml(formatMatchTime(reminder.match_time))} IST
+            </div>
+            <button class="reminder-cancel" type="button" data-cancel-reminder-id="${Number(reminder.id)}">Cancel reminder</button>
+        </div>
+    `).join("");
+}
+
+async function loadReminderCenter(showModal = true) {
+    const reminderModal = document.getElementById("reminderModal");
+    const reminderList = document.getElementById("reminderList");
+
+    if (showModal) reminderModal.classList.add("open");
+    if (!getTelegramInitData()) {
+        setReminderBadge(0);
+        reminderList.innerHTML = '<p class="reminder-state">Open this Mini App from the bot’s 📲 Open App button to view reminders.</p>';
+        return;
+    }
+
+    if (showModal) reminderList.innerHTML = '<p class="reminder-state">Loading reminders…</p>';
+
+    try {
+        const result = await requestReminderAction("list");
+        renderReminderList(Array.isArray(result.reminders) ? result.reminders : []);
+    } catch (error) {
+        if (showModal) {
+            reminderList.innerHTML = `<p class="reminder-state">${escapeHtml(error.message || "Could not load reminders.")}</p>`;
+        }
+    }
+}
+
+async function cancelReminder(button) {
+    const matchId = Number(button.dataset.cancelReminderId);
+    if (!Number.isSafeInteger(matchId) || matchId <= 0) return;
+
+    button.disabled = true;
+    button.textContent = "Cancelling…";
+
+    try {
+        await requestReminderAction("cancel", matchId);
+        await loadReminderCenter(false);
+    } catch (error) {
+        button.disabled = false;
+        button.textContent = error.message || "Try again";
+    }
+}
+
 async function subscribeToReminder(button) {
     const matchId = Number(button.dataset.reminderMatchId);
     const initData = getTelegramInitData();
@@ -1269,20 +1458,12 @@ async function subscribeToReminder(button) {
     button.textContent = "Setting reminder…";
 
     try {
-        const response = await fetch(REMINDER_FUNCTION_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData, matchId })
-        });
-        const result = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-            throw new Error(result.error || "Could not set the reminder.");
-        }
+        const result = await requestReminderAction("set", matchId);
 
         button.textContent = result.alreadyExists
             ? "🔔 Reminder already set"
             : "✓ Reminder set for 30 minutes before";
+        await loadReminderCenter(false);
     } catch (error) {
         button.disabled = false;
         button.textContent = error.message || "Try setting the reminder again";
@@ -1732,6 +1913,11 @@ const matchContent = document.getElementById("matchContent");
 const bigMatchesPanel = document.getElementById("featuredMatch");
 const matchModal = document.getElementById("matchModal");
 const modalClose = document.getElementById("modalClose");
+const notificationButton = document.getElementById("notificationButton");
+const remindersMenuButton = document.getElementById("remindersMenuButton");
+const reminderModal = document.getElementById("reminderModal");
+const reminderModalClose = document.getElementById("reminderModalClose");
+const reminderList = document.getElementById("reminderList");
 const welcomeCelebration = document.getElementById("welcomeCelebration");
 const celebrationSkip = document.getElementById("celebrationSkip");
 let celebrationTimer;
@@ -1807,8 +1993,25 @@ matchModal.addEventListener("click", event => {
         subscribeToReminder(reminderButton);
     }
 });
+
+notificationButton.addEventListener("click", () => loadReminderCenter(true));
+remindersMenuButton.addEventListener("click", () => {
+    menuPanel.classList.remove("open");
+    menuButton.setAttribute("aria-expanded", "false");
+    loadReminderCenter(true);
+});
+reminderModalClose.addEventListener("click", () => reminderModal.classList.remove("open"));
+reminderModal.addEventListener("click", event => {
+    if (event.target === reminderModal) reminderModal.classList.remove("open");
+
+    const cancelButton = event.target.closest("[data-cancel-reminder-id]");
+    if (cancelButton && !cancelButton.disabled) cancelReminder(cancelButton);
+});
 document.addEventListener("keydown", event => {
-    if (event.key === "Escape") closeMatchDetails();
+    if (event.key === "Escape") {
+        closeMatchDetails();
+        reminderModal.classList.remove("open");
+    }
 });
 
 refreshButton.addEventListener("click", () => {
@@ -1816,6 +2019,7 @@ refreshButton.addEventListener("click", () => {
 });
 
 setInterval(updateLastUpdated, 30000);
+loadReminderCenter(false);
 
 const pullIndicator = document.getElementById("pullIndicator");
 const pullThreshold = 72;

@@ -88,7 +88,7 @@ export default {
       return Response.json({ error: "Reminder service is not configured." }, { status: 500 });
     }
 
-    let body: { initData?: unknown; matchId?: unknown };
+    let body: { initData?: unknown; matchId?: unknown; action?: unknown };
     try {
       body = await req.json();
     } catch {
@@ -100,10 +100,73 @@ export default {
     }
 
     const telegramUserId = await verifyTelegramInitData(body.initData, botToken);
+    const action = typeof body.action === "string" ? body.action : "set";
     const matchId = Number(body.matchId);
 
-    if (!telegramUserId || !Number.isSafeInteger(matchId) || matchId <= 0) {
+    if (!telegramUserId) {
       return Response.json({ error: "Invalid reminder request." }, { status: 400 });
+    }
+
+    if (action === "list") {
+      const { data: reminderRows, error: reminderError } = await ctx.supabaseAdmin
+        .from("match_reminders")
+        .select("match_id, remind_at")
+        .eq("telegram_user_id", telegramUserId)
+        .gte("remind_at", new Date().toISOString())
+        .order("remind_at", { ascending: true });
+
+      if (reminderError) {
+        console.error("Unable to list reminders", reminderError.code, reminderError.message);
+        return Response.json({ error: "Could not load reminders." }, { status: 500 });
+      }
+
+      const matchIds = [...new Set((reminderRows || []).map((row) => Number(row.match_id)))]
+        .filter((id) => Number.isSafeInteger(id) && id > 0);
+
+      if (matchIds.length === 0) {
+        return Response.json({ success: true, reminders: [] });
+      }
+
+      const { data: matches, error: matchesError } = await ctx.supabase
+        .from("matches")
+        .select("id, team1, team2, competition, match_date, match_time, venue")
+        .in("id", matchIds);
+
+      if (matchesError) {
+        console.error("Unable to load reminder matches", matchesError.code, matchesError.message);
+        return Response.json({ error: "Could not load reminder matches." }, { status: 500 });
+      }
+
+      const matchesById = new Map((matches || []).map((match) => [Number(match.id), match]));
+      const reminders = (reminderRows || []).flatMap((row) => {
+        const reminderMatch = matchesById.get(Number(row.match_id));
+        return reminderMatch ? [{ ...reminderMatch, remind_at: row.remind_at }] : [];
+      });
+
+      return Response.json({ success: true, reminders });
+    }
+
+    if (!Number.isSafeInteger(matchId) || matchId <= 0) {
+      return Response.json({ error: "Invalid reminder request." }, { status: 400 });
+    }
+
+    if (action === "cancel") {
+      const { error: cancelError } = await ctx.supabaseAdmin
+        .from("match_reminders")
+        .delete()
+        .eq("telegram_user_id", telegramUserId)
+        .eq("match_id", matchId);
+
+      if (cancelError) {
+        console.error("Unable to cancel reminder", cancelError.code, cancelError.message);
+        return Response.json({ error: "Could not cancel reminder." }, { status: 500 });
+      }
+
+      return Response.json({ success: true, cancelled: true });
+    }
+
+    if (action !== "set") {
+      return Response.json({ error: "Unknown reminder action." }, { status: 400 });
     }
 
     const { data: match, error: matchError } = await ctx.supabase
