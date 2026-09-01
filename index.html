@@ -1792,6 +1792,24 @@ function formatMatchDate(matchDate) {
     }).format(new Date(`${matchDate}T00:00:00+05:30`));
 }
 
+function formatTournamentName(match) {
+    const competition = String(match.competition || "Cricket match").trim();
+    const escapePattern = value => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pairPatterns = [
+        `${escapePattern(match.team1)}\\s+(?:vs\\.?|v)\\s+${escapePattern(match.team2)}`,
+        `${escapePattern(match.team2)}\\s+(?:vs\\.?|v)\\s+${escapePattern(match.team1)}`
+    ];
+
+    for (const pairPattern of pairPatterns) {
+        const cleaned = competition
+            .replace(new RegExp(`^${pairPattern}\\s*[-–—:|]*\\s*`, "i"), "")
+            .trim();
+        if (cleaned !== competition) return cleaned || "Cricket match";
+    }
+
+    return competition;
+}
+
 function openMatchDetails(match) {
     const detailContent = document.getElementById("matchDetailContent");
     const matchModal = document.getElementById("matchModal");
@@ -2049,7 +2067,7 @@ function renderBigMatches() {
             <article class="big-match-card" data-big-match-index="${index}">
                 <div class="featured-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
                 <div class="featured-meta">
-                    <span>${escapeHtml(match.competition || "Cricket match")}</span>
+                    <span>${escapeHtml(formatTournamentName(match))}</span>
                     <span>${escapeHtml(formatMatchDate(match.match_date))}<br>${escapeHtml(formatMatchTime(match.match_time))} IST</span>
                 </div>
                 <div class="featured-countdown" data-big-countdown-index="${index}">${formatCountdown(start)}</div>
