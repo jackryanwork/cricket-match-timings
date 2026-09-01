@@ -1006,8 +1006,141 @@
             to { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
         }
 
+        /* CRICKET BUDDY */
+        .cricket-buddy {
+            position: fixed;
+            z-index: 15;
+            right: max(12px, env(safe-area-inset-right));
+            bottom: max(14px, env(safe-area-inset-bottom));
+            width: 76px;
+            height: 108px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            filter: drop-shadow(0 10px 13px rgba(0, 0, 0, 0.32));
+            transition: transform 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .cricket-buddy:active { transform: scale(0.94); }
+        .buddy-antenna {
+            position: absolute;
+            top: 0;
+            left: 36px;
+            width: 4px;
+            height: 13px;
+            border-radius: 4px;
+            background: #8ca1b8;
+        }
+        .buddy-antenna::before {
+            content: "";
+            position: absolute;
+            top: -4px;
+            left: -3px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 9px rgba(25, 195, 125, 0.75);
+        }
+        .buddy-head {
+            position: absolute;
+            z-index: 3;
+            top: 11px;
+            left: 14px;
+            width: 50px;
+            height: 39px;
+            border: 2px solid #9fb1c5;
+            border-radius: 15px;
+            background: linear-gradient(145deg, #f4f8fb, #aab9c8);
+            box-shadow: inset 0 -5px 8px rgba(44, 65, 86, 0.18);
+        }
+        .buddy-face {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 11px;
+            position: absolute;
+            inset: 8px 6px;
+            border-radius: 9px;
+            background: #102238;
+        }
+        .buddy-eye {
+            width: 6px;
+            height: 8px;
+            border-radius: 50%;
+            background: #67efb4;
+            box-shadow: 0 0 6px rgba(103, 239, 180, 0.9);
+            animation: buddy-blink 4.8s infinite;
+        }
+        .buddy-body {
+            position: absolute;
+            z-index: 2;
+            top: 52px;
+            left: 19px;
+            width: 40px;
+            height: 38px;
+            border: 2px solid #8fa3b8;
+            border-radius: 11px 11px 15px 15px;
+            background: linear-gradient(145deg, #dce6ee, #8296aa);
+        }
+        .buddy-body::after {
+            content: "🏏";
+            display: grid;
+            place-items: center;
+            position: absolute;
+            inset: 7px 8px;
+            border-radius: 7px;
+            background: #102238;
+            font-size: 12px;
+        }
+        .buddy-arm, .buddy-leg {
+            position: absolute;
+            border: 2px solid #8fa3b8;
+            background: #c7d3dd;
+        }
+        .buddy-arm {
+            z-index: 1;
+            top: 56px;
+            width: 13px;
+            height: 34px;
+            border-radius: 9px;
+            transform-origin: 50% 6px;
+        }
+        .buddy-arm-left { left: 9px; transform: rotate(10deg); }
+        .buddy-arm-right {
+            right: 7px;
+            transform: rotate(-12deg);
+            animation: buddy-wave 6s ease-in-out infinite;
+        }
+        .buddy-leg {
+            z-index: 1;
+            top: 84px;
+            width: 13px;
+            height: 22px;
+            border-radius: 0 0 8px 8px;
+        }
+        .buddy-leg-left { left: 23px; }
+        .buddy-leg-right { right: 20px; }
+        .cricket-buddy.user-wave .buddy-arm-right { animation: buddy-tap-wave 0.75s ease-in-out; }
+        @keyframes buddy-wave {
+            0%, 5%, 18%, 100% { transform: rotate(-12deg); }
+            8%, 14% { transform: rotate(-142deg); }
+            11%, 17% { transform: rotate(-105deg); }
+        }
+        @keyframes buddy-tap-wave {
+            0%, 100% { transform: rotate(-12deg); }
+            25%, 70% { transform: rotate(-142deg); }
+            48% { transform: rotate(-102deg); }
+        }
+        @keyframes buddy-blink {
+            0%, 45%, 49%, 100% { transform: scaleY(1); }
+            47% { transform: scaleY(0.12); }
+        }
+
         @media (prefers-reduced-motion: reduce) {
-            .celebration-player {
+            .celebration-player, .buddy-eye, .buddy-arm-right {
                 animation: none;
             }
         }
@@ -1322,6 +1455,16 @@
         <button class="celebration-skip" id="celebrationSkip" type="button">Enter Match Center</button>
     </div>
 </div>
+
+<button class="cricket-buddy" id="cricketBuddy" type="button" aria-label="Wave to Cricket Buddy">
+    <span class="buddy-antenna" aria-hidden="true"></span>
+    <span class="buddy-head" aria-hidden="true"><span class="buddy-face"><span class="buddy-eye"></span><span class="buddy-eye"></span></span></span>
+    <span class="buddy-arm buddy-arm-left" aria-hidden="true"></span>
+    <span class="buddy-arm buddy-arm-right" aria-hidden="true"></span>
+    <span class="buddy-body" aria-hidden="true"></span>
+    <span class="buddy-leg buddy-leg-left" aria-hidden="true"></span>
+    <span class="buddy-leg buddy-leg-right" aria-hidden="true"></span>
+</button>
 
 </body>
 
@@ -2254,7 +2397,15 @@ const aboutModal = document.getElementById("aboutModal");
 const aboutModalClose = document.getElementById("aboutModalClose");
 const welcomeCelebration = document.getElementById("welcomeCelebration");
 const celebrationSkip = document.getElementById("celebrationSkip");
+const cricketBuddy = document.getElementById("cricketBuddy");
 let celebrationTimer;
+
+cricketBuddy.addEventListener("click", () => {
+    cricketBuddy.classList.remove("user-wave");
+    void cricketBuddy.offsetWidth;
+    cricketBuddy.classList.add("user-wave");
+    window.setTimeout(() => cricketBuddy.classList.remove("user-wave"), 800);
+});
 
 function closeWelcomeCelebration() {
     welcomeCelebration.classList.remove("open");
