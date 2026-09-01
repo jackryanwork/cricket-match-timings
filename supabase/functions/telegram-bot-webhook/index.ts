@@ -8,7 +8,7 @@ type TelegramUpdate = {
   message?: {
     text?: string;
     chat?: { id?: number };
-    from?: { id?: number; first_name?: string };
+    from?: { id?: number; first_name?: string; username?: string };
   };
 };
 
@@ -122,13 +122,37 @@ export default {
       return new Response("OK");
     }
 
+    if (Number.isSafeInteger(telegramUserId)) {
+      const { error: botUserError } = await ctx.supabaseAdmin
+        .from("telegram_bot_users")
+        .upsert(
+          {
+            telegram_user_id: telegramUserId,
+            chat_id: chatId,
+            first_name: update.message?.from?.first_name?.trim() || null,
+            username: update.message?.from?.username?.trim() || null,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "telegram_user_id" },
+        );
+
+      if (botUserError) {
+        console.error("Unable to save bot user", botUserError.code, botUserError.message);
+      }
+    }
+
     if (text === "/start" || text.startsWith("/start ")) {
-      const name = update.message?.from?.first_name;
-      const greeting = name ? `Welcome, ${name}!` : "Welcome!";
+      const name = update.message?.from?.first_name?.trim();
+      const welcome = name ? `🏏 Welcome, ${name}!` : "🏏 Welcome!";
       await sendMessage(
         botToken,
         chatId,
-        `${greeting}\n\nUse the buttons below to check cricket matches or manage alerts.`,
+        `${welcome}\n\n` +
+          "Get today’s, tomorrow’s, and upcoming big-match schedules in India Standard Time.\n\n" +
+          "🔔 Enable alerts to receive match reminders.\n" +
+          "📲 Tap Open App for the complete match list and details.\n\n" +
+          "Choose an option below to begin.",
       );
       return new Response("OK");
     }

@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.setup-telegram-bot]
 verify_jwt = false
+
+[functions.broadcast-telegram-message]
+verify_jwt = false

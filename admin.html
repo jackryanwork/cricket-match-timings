@@ -51,7 +51,8 @@
         }
 
         input,
-        select {
+        select,
+        textarea {
             width: 100%;
             padding: 12px;
             border-radius: 8px;
@@ -59,6 +60,29 @@
             background: #0c1324;
             color: white;
             font-size: 15px;
+        }
+
+        textarea {
+            min-height: 130px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .broadcast-note,
+        .broadcast-status {
+            margin-top: 10px;
+            color: #9aa4b5;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .broadcast-status.success {
+            color: #54d99b;
+        }
+
+        .broadcast-status.error {
+            color: #ff8585;
         }
 
         button {
@@ -374,6 +398,34 @@
     </div>
 
 
+    <!-- TELEGRAM BROADCAST -->
+
+    <div class="card">
+
+        <h2>📣 Telegram Broadcast</h2>
+
+        <label>Send to</label>
+        <select id="broadcastAudience">
+            <option value="all">All bot users</option>
+            <option value="alerts">Alert-enabled users only</option>
+        </select>
+
+        <label>Message</label>
+        <textarea id="broadcastMessage" maxlength="4000" placeholder="Write the Telegram message here..."></textarea>
+
+        <div class="broadcast-note">
+            Only users who started the bot can receive messages. Telegram users who blocked the bot will be skipped.
+        </div>
+
+        <button id="broadcastButton" onclick="sendBroadcast()">
+            📣 Send Broadcast
+        </button>
+
+        <div class="broadcast-status" id="broadcastStatus" aria-live="polite"></div>
+
+    </div>
+
+
     <!-- SAVED MATCHES -->
 
     <div class="card">
@@ -419,6 +471,7 @@ async function checkSession() {
 
     const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
+const BROADCAST_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/broadcast-telegram-message`;
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -428,6 +481,62 @@ checkSession();
 
 let editingMatchId = null;
 let savedMatchesById = new Map();
+
+async function sendBroadcast() {
+    const message = document.getElementById("broadcastMessage").value.trim();
+    const audience = document.getElementById("broadcastAudience").value;
+    const button = document.getElementById("broadcastButton");
+    const status = document.getElementById("broadcastStatus");
+
+    status.className = "broadcast-status";
+    if (!message) {
+        status.textContent = "Write a message before sending.";
+        status.classList.add("error");
+        return;
+    }
+
+    const audienceLabel = audience === "alerts"
+        ? "all alert-enabled users"
+        : "all bot users";
+    if (!confirm(`Send this message to ${audienceLabel}?`)) return;
+
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+        status.textContent = "Your admin session expired. Please log in again.";
+        status.classList.add("error");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Sending...";
+    status.textContent = "Broadcast is being delivered. Keep this page open.";
+
+    try {
+        const response = await fetch(BROADCAST_FUNCTION_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`,
+                "apikey": SUPABASE_KEY
+            },
+            body: JSON.stringify({ message, audience })
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) throw new Error(result.error || "Broadcast failed.");
+
+        status.textContent = `Complete: ${result.sent} sent, ${result.failed} failed, ${result.blocked} blocked.`;
+        status.classList.add("success");
+        if (result.sent > 0) document.getElementById("broadcastMessage").value = "";
+    } catch (error) {
+        status.textContent = error.message || "Broadcast failed.";
+        status.classList.add("error");
+    } finally {
+        button.disabled = false;
+        button.textContent = "📣 Send Broadcast";
+    }
+}
 
 async function saveMatch() {
 
