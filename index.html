@@ -251,6 +251,10 @@
             font-size: 12px;
         }
 
+        .featured-meta span:last-child {
+            text-align: right;
+        }
+
         .featured-countdown {
             margin: 0 12px 12px;
             padding: 12px;
@@ -298,6 +302,15 @@
         .featured-match.expanded .big-match-stack::before,
         .featured-match.expanded .big-match-stack::after {
             display: none;
+        }
+
+        .big-match-toggle {
+            display: block;
+            margin: 2px 16px 13px;
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 800;
+            text-align: center;
         }
 
         .big-match-card {
@@ -1145,11 +1158,11 @@ function renderBigMatches() {
         const start = getMatchStart(match);
 
         return `
-            <article class="big-match-card" data-big-match-index="${index}" ${index === 0 && bigMatches.length > 1 && !bigMatchesExpanded ? 'role="button" tabindex="0" aria-label="Show all upcoming big matches"' : ''}>
+            <article class="big-match-card" data-big-match-index="${index}">
                 <div class="featured-teams">${escapeHtml(match.team1)} <span class="vs">VS</span> ${escapeHtml(match.team2)}</div>
                 <div class="featured-meta">
                     <span>${escapeHtml(match.competition || "Cricket match")}</span>
-                    <span>${escapeHtml(formatMatchTime(match.match_time))} IST</span>
+                    <span>${escapeHtml(formatMatchDate(match.match_date))}<br>${escapeHtml(formatMatchTime(match.match_time))} IST</span>
                 </div>
                 <div class="featured-countdown" data-big-countdown-index="${index}">${formatCountdown(start)}</div>
             </article>
@@ -1159,14 +1172,19 @@ function renderBigMatches() {
     featuredContent.innerHTML = `
         <div class="featured-label">Upcoming Big Matches</div>
         <div class="big-match-stack">${matchCards}</div>
+        ${bigMatches.length > 1 && !bigMatchesExpanded
+            ? '<span class="big-match-toggle">Tap to see all matches</span>'
+            : ''}
     `;
     featuredCard.classList.add("visible");
     featuredCard.classList.toggle("expanded", bigMatchesExpanded);
 
-    if (bigMatches.length > 1 && bigMatchesExpanded) {
+    if (bigMatches.length > 1) {
         featuredCard.setAttribute("role", "button");
         featuredCard.setAttribute("tabindex", "0");
-        featuredCard.setAttribute("aria-label", "Close upcoming big matches list");
+        featuredCard.setAttribute("aria-label", bigMatchesExpanded
+            ? "Close upcoming big matches list"
+            : "Show all upcoming big matches");
     } else {
         featuredCard.removeAttribute("role");
         featuredCard.removeAttribute("tabindex");
@@ -1577,8 +1595,7 @@ function toggleBigMatches(event) {
     if (bigMatches.length < 2) return;
 
     const clickedPanel = event.target.closest("#featuredMatch");
-    const clickedFirstMatch = event.target.closest('[data-big-match-index="0"]');
-    if (!clickedPanel || (!bigMatchesExpanded && !clickedFirstMatch)) return;
+    if (!clickedPanel) return;
 
     bigMatchesExpanded = !bigMatchesExpanded;
     renderBigMatches();
