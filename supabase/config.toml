@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.broadcast-telegram-message]
 verify_jwt = false
+
+[functions.send-match-reminders]
+verify_jwt = false
