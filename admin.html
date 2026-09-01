@@ -413,8 +413,11 @@
         <label>Message</label>
         <textarea id="broadcastMessage" maxlength="4000" placeholder="Write the Telegram message here..."></textarea>
 
+        <label>Media attachment (optional)</label>
+        <input id="broadcastMedia" type="file" accept="image/*,video/mp4,.pdf,.zip,.doc,.docx,.xls,.xlsx,.txt">
+
         <div class="broadcast-note">
-            Only users who started the bot can receive messages. Telegram users who blocked the bot will be skipped.
+            Attach an image, MP4 video, PDF, ZIP or document up to 8 MB. Media captions can contain up to 1,024 characters. Only users who started the bot can receive broadcasts.
         </div>
 
         <button id="broadcastButton" onclick="sendBroadcast()">
@@ -484,13 +487,27 @@ let savedMatchesById = new Map();
 
 async function sendBroadcast() {
     const message = document.getElementById("broadcastMessage").value.trim();
+    const mediaInput = document.getElementById("broadcastMedia");
+    const media = mediaInput.files[0] || null;
     const audience = document.getElementById("broadcastAudience").value;
     const button = document.getElementById("broadcastButton");
     const status = document.getElementById("broadcastStatus");
 
     status.className = "broadcast-status";
-    if (!message) {
-        status.textContent = "Write a message before sending.";
+    if (!message && !media) {
+        status.textContent = "Write a message or attach a media file before sending.";
+        status.classList.add("error");
+        return;
+    }
+
+    if (media && media.size > 8 * 1024 * 1024) {
+        status.textContent = "Media must be 8 MB or smaller.";
+        status.classList.add("error");
+        return;
+    }
+
+    if (media && message.length > 1024) {
+        status.textContent = "A media caption must be 1,024 characters or fewer.";
         status.classList.add("error");
         return;
     }
@@ -513,14 +530,18 @@ async function sendBroadcast() {
     status.textContent = "Broadcast is being delivered. Keep this page open.";
 
     try {
+        const formData = new FormData();
+        formData.append("message", message);
+        formData.append("audience", audience);
+        if (media) formData.append("media", media, media.name);
+
         const response = await fetch(BROADCAST_FUNCTION_URL, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
                 "Authorization": `Bearer ${accessToken}`,
                 "apikey": SUPABASE_KEY
             },
-            body: JSON.stringify({ message, audience })
+            body: formData
         });
         const result = await response.json().catch(() => ({}));
 
@@ -528,7 +549,10 @@ async function sendBroadcast() {
 
         status.textContent = `Complete: ${result.sent} sent, ${result.failed} failed, ${result.blocked} blocked.`;
         status.classList.add("success");
-        if (result.sent > 0) document.getElementById("broadcastMessage").value = "";
+        if (result.sent > 0) {
+            document.getElementById("broadcastMessage").value = "";
+            mediaInput.value = "";
+        }
     } catch (error) {
         status.textContent = error.message || "Broadcast failed.";
         status.classList.add("error");
