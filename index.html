@@ -39,6 +39,24 @@
             font-family: inherit;
         }
 
+        .icon-sprite {
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .ui-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
         .app {
             max-width: 600px;
             margin: auto;
@@ -105,6 +123,8 @@
 
         .notification {
             position: relative;
+            display: grid;
+            place-items: center;
             width: 40px;
             height: 40px;
             border: 1px solid var(--border);
@@ -113,6 +133,12 @@
             color: var(--text);
             font-size: 18px;
             cursor: pointer;
+        }
+
+        .notification .ui-icon,
+        .menu-button .ui-icon {
+            width: 20px;
+            height: 20px;
         }
 
         .notification-badge {
@@ -146,6 +172,8 @@
         }
 
         .menu-button {
+            display: grid;
+            place-items: center;
             width: 40px;
             height: 40px;
             border: 1px solid var(--border);
@@ -207,6 +235,18 @@
             color: var(--muted);
             font-size: 11px;
             white-space: nowrap;
+        }
+
+        .menu-item-label,
+        .heading-with-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .menu-item-label .ui-icon,
+        .heading-with-icon .ui-icon {
+            color: var(--accent);
         }
 
         /* WELCOME */
@@ -703,6 +743,8 @@
 
         .modal-close {
             float: right;
+            display: grid;
+            place-items: center;
             width: 34px;
             height: 34px;
             border: 1px solid var(--border);
@@ -711,6 +753,24 @@
             color: var(--text);
             font-size: 18px;
         }
+
+        .modal-close .ui-icon {
+            width: 17px;
+            height: 17px;
+        }
+
+        .detail-reminder,
+        .refresh-button,
+        .venue {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+
+        .venue { justify-content: flex-end; }
+        .venue .ui-icon { width: 13px; height: 13px; color: var(--accent); }
+        .detail-reminder .ui-icon { width: 16px; height: 16px; }
 
         .detail-tournament {
             margin: 0 42px 7px 0;
@@ -1086,14 +1146,18 @@
             background: linear-gradient(145deg, #dce6ee, #8296aa);
         }
         .buddy-body::after {
-            content: "🏏";
-            display: grid;
-            place-items: center;
+            content: "";
             position: absolute;
-            inset: 7px 8px;
-            border-radius: 7px;
-            background: #102238;
-            font-size: 12px;
+            top: 10px;
+            left: 11px;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ffd2d2;
+            border-radius: 50%;
+            background:
+                linear-gradient(72deg, transparent 43%, #fff 44% 49%, transparent 50% 54%, #fff 55% 59%, transparent 60%),
+                #b91c1c;
+            box-shadow: 0 0 0 4px #102238;
         }
         .buddy-arm, .buddy-leg {
             position: absolute;
@@ -1298,6 +1362,21 @@
 
 <body>
 
+<svg class="icon-sprite" aria-hidden="true">
+    <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="icon-star" viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></symbol>
+    <symbol id="icon-megaphone" viewBox="0 0 24 24"><path d="m3 11 15-6v14L3 13Z"/><path d="M11.6 16 13 21H8l-1.2-6.5M21 9v6"/></symbol>
+    <symbol id="icon-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.3 10.8 7.4-4.5M8.3 13.2l7.4 4.5"/></symbol>
+    <symbol id="icon-message" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-8 8H5l-3 2 1-5a9 9 0 1 1 18-5Z"/></symbol>
+    <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+    <symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M6.1 9A7 7 0 0 1 18 6l2 5M17.9 15A7 7 0 0 1 6 18l-2-5"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="icon-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="icon-phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 5h4M11 19h2"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+</svg>
+
 <div class="app">
 
     <div class="pull-indicator" id="pullIndicator" aria-live="polite">↓ Pull down to refresh</div>
@@ -1316,18 +1395,18 @@
 
         <div class="header-actions">
             <button class="notification" id="notificationButton" type="button" aria-label="Match reminders">
-                🔔<span class="notification-badge" id="notificationBadge" aria-hidden="true"></span>
+                <svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg><span class="notification-badge" id="notificationBadge" aria-hidden="true"></span>
             </button>
-            <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false">☰</button>
+            <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
 
             <div class="menu-panel" id="menuPanel" aria-label="Menu">
                 <div class="menu-title">Menu</div>
-                <button class="menu-item" id="myTeamsMenuButton" type="button"><span>⭐ My Teams</span><span id="myTeamsMenuCount">Select</span></button>
-                <button class="menu-item" id="remindersMenuButton" type="button"><span>🔔 Match reminders</span><span>Open</span></button>
-                <button class="menu-item" id="channelMenuButton" type="button"><span>📢 Join Our Channel</span><span>Open</span></button>
-                <button class="menu-item" id="shareMenuButton" type="button"><span>📤 Share App</span><span>Share</span></button>
-                <button class="menu-item" id="contactMenuButton" type="button"><span>💬 Contact Us</span><span>Open</span></button>
-                <button class="menu-item" id="aboutMenuButton" type="button"><span>ℹ️ About</span><span>View</span></button>
+                <button class="menu-item" id="myTeamsMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</span><span id="myTeamsMenuCount">Select</span></button>
+                <button class="menu-item" id="remindersMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Match reminders</span><span>Open</span></button>
+                <button class="menu-item" id="channelMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Join Our Channel</span><span>Open</span></button>
+                <button class="menu-item" id="shareMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-share"></use></svg>Share App</span><span>Share</span></button>
+                <button class="menu-item" id="contactMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-message"></use></svg>Contact Us</span><span>Open</span></button>
+                <button class="menu-item" id="aboutMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-info"></use></svg>About</span><span>View</span></button>
             </div>
         </div>
 
@@ -1375,7 +1454,7 @@
 
     <div class="match-tools">
         <span class="last-updated" id="lastUpdated">Loading matches…</span>
-        <button class="refresh-button" id="refreshButton" type="button">↻ Refresh</button>
+        <button class="refresh-button" id="refreshButton" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>Refresh</button>
     </div>
 
     <!-- MATCH CONTENT -->
@@ -1402,7 +1481,7 @@
 <div class="match-modal" id="matchModal" role="dialog" aria-modal="true" aria-label="Match details">
     <div class="match-modal-sheet">
         <div class="modal-handle"></div>
-        <button class="modal-close" id="modalClose" type="button" aria-label="Close match details">×</button>
+        <button class="modal-close" id="modalClose" type="button" aria-label="Close match details"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
         <div id="matchDetailContent"></div>
     </div>
 </div>
@@ -1410,7 +1489,7 @@
 <div class="match-modal" id="reminderModal" role="dialog" aria-modal="true" aria-label="Match reminders">
     <div class="match-modal-sheet">
         <div class="modal-handle"></div>
-        <button class="modal-close" id="reminderModalClose" type="button" aria-label="Close match reminders">×</button>
+        <button class="modal-close" id="reminderModalClose" type="button" aria-label="Close match reminders"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
         <h2 class="reminder-heading">Match Reminders</h2>
         <p class="reminder-intro">Your scheduled 30-minute Telegram alerts.</p>
         <div class="reminder-list" id="reminderList" aria-live="polite">
@@ -1422,8 +1501,8 @@
 <div class="match-modal" id="myTeamsModal" role="dialog" aria-modal="true" aria-label="My Teams">
     <div class="match-modal-sheet">
         <div class="modal-handle"></div>
-        <button class="modal-close" id="myTeamsModalClose" type="button" aria-label="Close My Teams">×</button>
-        <h2 class="feature-heading">⭐ My Teams</h2>
+        <button class="modal-close" id="myTeamsModalClose" type="button" aria-label="Close My Teams"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
+        <h2 class="feature-heading heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</h2>
         <p class="feature-copy">Select your teams. Their matches will appear first and be highlighted.</p>
         <div class="team-picker" id="teamPicker"><p class="reminder-state">Loading teams…</p></div>
         <button class="feature-primary" id="saveMyTeamsButton" type="button">Save My Teams</button>
@@ -1433,14 +1512,14 @@
 <div class="match-modal" id="aboutModal" role="dialog" aria-modal="true" aria-label="About Cricket Match Timings">
     <div class="match-modal-sheet">
         <div class="modal-handle"></div>
-        <button class="modal-close" id="aboutModalClose" type="button" aria-label="Close About">×</button>
+        <button class="modal-close" id="aboutModalClose" type="button" aria-label="Close About"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
         <h2 class="feature-heading">About</h2>
         <p class="feature-copy">Cricket Match Timings helps you follow international cricket schedules without missing an important game.</p>
         <ul class="about-list">
             <li>🕒 All match times are displayed in India Standard Time (IST).</li>
-            <li>🔔 Set a personal Telegram reminder for 30 minutes before a match.</li>
-            <li>⭐ Select My Teams to bring their matches to the top.</li>
-            <li>📢 Follow our channel for cricket match updates.</li>
+            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Set a personal Telegram reminder for 30 minutes before a match.</span></li>
+            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Select My Teams to bring their matches to the top.</span></li>
+            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Follow our channel for cricket match updates.</span></li>
         </ul>
     </div>
 </div>
@@ -1633,6 +1712,10 @@ function escapeHtml(value) {
     })[character]);
 }
 
+function uiIcon(name) {
+    return `<svg class="ui-icon" aria-hidden="true"><use href="#icon-${name}"></use></svg>`;
+}
+
 function formatIndiaDate(date) {
     const parts = new Intl.DateTimeFormat("en-GB", {
         timeZone: "Asia/Kolkata",
@@ -1714,7 +1797,7 @@ function openMatchDetails(match) {
     const matchModal = document.getElementById("matchModal");
     const matchId = Number(match.id);
     const reminderButton = Number.isSafeInteger(matchId) && matchId > 0
-        ? `<button class="detail-reminder" type="button" data-reminder-match-id="${matchId}">🔔 Remind me 30 minutes before</button>`
+        ? `<button class="detail-reminder" type="button" data-reminder-match-id="${matchId}">${uiIcon("bell")}Remind me 30 minutes before</button>`
         : "";
 
     detailContent.innerHTML = `
@@ -1731,7 +1814,7 @@ function openMatchDetails(match) {
 async function requestReminderAction(action, matchId) {
     const initData = getTelegramInitData();
     if (!initData) {
-        throw new Error("Open from the bot’s 📲 Open App button");
+        throw new Error("Open from the bot’s Open App button");
     }
 
     const payload = { initData, action };
@@ -1787,7 +1870,7 @@ async function loadReminderCenter(showModal = true) {
     if (showModal) reminderModal.classList.add("open");
     if (!getTelegramInitData()) {
         setReminderBadge(0);
-        reminderList.innerHTML = '<p class="reminder-state">Open this Mini App from the bot’s 📲 Open App button to view reminders.</p>';
+        reminderList.innerHTML = `<p class="reminder-state">${uiIcon("phone")} Open this Mini App from the bot’s Open App button to view reminders.</p>`;
         return;
     }
 
@@ -1824,7 +1907,7 @@ async function subscribeToReminder(button) {
     const initData = getTelegramInitData();
 
     if (!initData) {
-        button.textContent = "Open from the bot’s 📲 Open App button";
+        button.innerHTML = `${uiIcon("phone")}Open from the bot’s Open App button`;
         return;
     }
 
@@ -1836,9 +1919,9 @@ async function subscribeToReminder(button) {
     try {
         const result = await requestReminderAction("set", matchId);
 
-        button.textContent = result.alreadyExists
-            ? "🔔 Reminder already set"
-            : "✓ Reminder set for 30 minutes before";
+        button.innerHTML = result.alreadyExists
+            ? `${uiIcon("bell")}Reminder already set`
+            : `${uiIcon("check")}Reminder set for 30 minutes before`;
         await loadReminderCenter(false);
     } catch (error) {
         button.disabled = false;
@@ -2055,7 +2138,7 @@ async function refreshMatches(type = currentMatchType) {
     }
 
     refreshButton.disabled = false;
-    refreshButton.textContent = "↻ Refresh";
+    refreshButton.innerHTML = `${uiIcon("refresh")}Refresh`;
 }
 
     async function showMatches(type) {
@@ -2148,7 +2231,7 @@ if (todayMatches.length === 0) {
                     </div>
 
                     <div class="venue">
-                        🏟️ ${escapeHtml(match.venue || "Stadium")}
+                        ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
                     </div>
 
                 </div>
@@ -2250,7 +2333,7 @@ if (tomorrowMatches.length === 0) {
                     </div>
 
                     <div class="venue">
-                        🏟️ ${escapeHtml(match.venue || "Stadium")}
+                        ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
                     </div>
 
                 </div>
@@ -2353,7 +2436,7 @@ if (upcomingMatches.length === 0) {
                     </div>
 
                     <div class="venue">
-                        🏟️ ${escapeHtml(match.venue || "Stadium")}
+                        ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
                     </div>
 
                 </div>
