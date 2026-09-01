@@ -233,8 +233,8 @@ export default {
         botToken,
         chatId,
         `${welcome}\n\n` +
-          "Get today’s, tomorrow’s, and upcoming big-match schedules in India Standard Time.\n\n" +
-          "🔔 Match alerts and reminders are enabled automatically.\n" +
+          "Get today’s, tomorrow’s and upcoming big-match schedules in India Standard Time.\n\n" +
+          "🔔 Open any match and set a Telegram reminder for 30 minutes before it starts.\n" +
           "📲 Tap Open App for the complete match list and details.\n\n" +
           "Choose an option below to begin.",
       );
