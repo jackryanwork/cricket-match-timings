@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.send-match-reminders]
 verify_jwt = false
+
+[functions.track-mini-app-open]
+verify_jwt = false

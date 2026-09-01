@@ -1317,6 +1317,7 @@
 const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-reminder`;
+const MINI_APP_TRACKING_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/track-mini-app-open`;
 const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
 const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
 const MINI_APP_PUBLIC_URL = "https://jackryanwork.github.io/cricket-match-timings/";
@@ -1430,6 +1431,22 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
 );
+
+async function trackFirstMiniAppOpen() {
+    const initData = getTelegramInitData();
+    if (!initData) return;
+    try {
+        await fetch(MINI_APP_TRACKING_FUNCTION_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+            body: JSON.stringify({ initData })
+        });
+    } catch (error) {
+        console.warn("Unable to record Mini App open.", error);
+    }
+}
+
+trackFirstMiniAppOpen();
 
     function formatLocalDate(date) {
     const year = date.getFullYear();

@@ -24,7 +24,7 @@ const keyboard = {
   keyboard: [
     [{ text: "🏏 Today’s Matches" }],
     [{ text: "📅 Tomorrow" }, { text: "⭐ Big Matches" }],
-    [{ text: "💬 Contact Us" }],
+    [{ text: "📢 Join our channel" }, { text: "💬 Contact Us" }],
     [{ text: "📲 Open App", web_app: { url: MINI_APP_URL } }],
   ],
   resize_keyboard: true,
@@ -91,6 +91,19 @@ async function sendMessage(botToken: string, chatId: number, text: string) {
   }
 }
 
+async function sendAdminNotification(botToken: string, adminChatId: number, text: string) {
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: adminChatId, text, disable_web_page_preview: true }),
+    });
+    if (!response.ok) console.error("Unable to send new bot user notification.");
+  } catch {
+    console.error("New bot user notification request failed.");
+  }
+}
+
 async function sendContactMessage(botToken: string, chatId: number) {
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -113,6 +126,28 @@ async function sendContactMessage(botToken: string, chatId: number) {
   }
 }
 
+async function sendChannelMessage(botToken: string, chatId: number) {
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: "Join our channel for cricket match updates.",
+        reply_markup: {
+          inline_keyboard: [[{
+            text: "📢 Join our channel",
+            url: "https://t.me/cricketmatchupdatesicc",
+          }]],
+        },
+        disable_web_page_preview: true,
+      }),
+    });
+  } catch {
+    console.error("Unable to send channel link.");
+  }
+}
+
 export default {
   fetch: withSupabase({ auth: "none" }, async (request, ctx) => {
     if (request.method !== "POST") {
@@ -121,6 +156,7 @@ export default {
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     const webhookSecret = Deno.env.get("TELEGRAM_WEBHOOK_SECRET");
+    const adminChatId = Number(Deno.env.get("ADMIN_TELEGRAM_CHAT_ID"));
     const receivedSecret = request.headers.get("x-telegram-bot-api-secret-token");
 
     if (!botToken || !webhookSecret) {
@@ -144,7 +180,19 @@ export default {
       return new Response("OK");
     }
 
+    let isNewBotUser = false;
     if (Number.isSafeInteger(telegramUserId)) {
+      const { data: existingBotUser, error: lookupError } = await ctx.supabaseAdmin
+        .from("telegram_bot_users")
+        .select("telegram_user_id")
+        .eq("telegram_user_id", telegramUserId)
+        .maybeSingle();
+      if (lookupError) {
+        console.error("Unable to check bot user", lookupError.code, lookupError.message);
+      } else {
+        isNewBotUser = !existingBotUser;
+      }
+
       const { error: botUserError } = await ctx.supabaseAdmin
         .from("telegram_bot_users")
         .upsert(
@@ -190,11 +238,27 @@ export default {
           "📲 Tap Open App for the complete match list and details.\n\n" +
           "Choose an option below to begin.",
       );
+      if (isNewBotUser && Number.isSafeInteger(adminChatId)) {
+        const firstName = update.message?.from?.first_name?.trim() || "Not provided";
+        const username = update.message?.from?.username?.trim();
+        await sendAdminNotification(
+          botToken,
+          adminChatId,
+          `🆕 New bot user\n\nName: ${firstName}\n` +
+            `Username: ${username ? `@${username}` : "Not provided"}\n` +
+            `User ID: ${telegramUserId}\nSource: Bot /start`,
+        );
+      }
       return new Response("OK");
     }
 
     if (text === "💬 Contact Us") {
       await sendContactMessage(botToken, chatId);
+      return new Response("OK");
+    }
+
+    if (text === "📢 Join our channel") {
+      await sendChannelMessage(botToken, chatId);
       return new Response("OK");
     }
 
