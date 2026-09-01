@@ -1,0 +1,16 @@
+{
+  "name": "Cricket Match Timings",
+  "short_name": "Cricket Timings",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#ddf3fa",
+  "icons": [
+    {
+      "src": "assets/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
