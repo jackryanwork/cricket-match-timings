@@ -984,114 +984,6 @@
             line-height: 1.5;
         }
 
-        .welcome-celebration {
-            display: none;
-            position: fixed;
-            z-index: 30;
-            inset: 0;
-            align-items: center;
-            justify-content: center;
-            padding: 22px;
-            background: rgba(2, 8, 16, 0.78);
-        }
-
-        .welcome-celebration.open {
-            display: flex;
-        }
-
-        .welcome-celebration-card {
-            position: relative;
-            overflow: hidden;
-            width: min(330px, 100%);
-            padding: 26px 22px 20px;
-            border: 1px solid rgba(8, 120, 232, 0.24);
-            border-radius: 24px;
-            background: radial-gradient(circle at 50% 0%, #e6f5ff 0%, #ffffff 52%, #eaf3ff 100%);
-            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.38);
-            text-align: center;
-        }
-
-        .welcome-celebration-card::after {
-            content: "";
-            position: absolute;
-            inset: auto 0 0;
-            height: 44px;
-            background: linear-gradient(180deg, transparent, rgba(8, 78, 145, 0.10));
-            pointer-events: none;
-        }
-
-        .celebration-scene {
-            position: relative;
-            z-index: 1;
-            height: 176px;
-            margin: -16px 0 4px;
-        }
-
-        .celebration-scene::before,
-        .celebration-scene::after {
-            content: "";
-            position: absolute;
-            top: -34px;
-            width: 115px;
-            height: 225px;
-            opacity: 0.68;
-            filter: blur(2px);
-            pointer-events: none;
-        }
-
-        .celebration-scene::before {
-            left: -18px;
-            background: linear-gradient(145deg, rgba(255, 245, 188, 0.63), transparent 68%);
-            transform: rotate(-16deg);
-        }
-
-        .celebration-scene::after {
-            right: -18px;
-            background: linear-gradient(215deg, rgba(181, 255, 218, 0.48), transparent 68%);
-            transform: rotate(16deg);
-        }
-
-        .celebration-player {
-            position: relative;
-            z-index: 1;
-            width: 160px;
-            height: 190px;
-            object-fit: contain;
-            animation: player-entrance 0.85s cubic-bezier(0.2, 0.85, 0.3, 1) both;
-        }
-
-        .welcome-celebration h2 {
-            position: relative;
-            z-index: 1;
-            margin: 2px 0 7px;
-            font-size: 25px;
-        }
-
-        .welcome-celebration p {
-            position: relative;
-            z-index: 1;
-            margin: 0;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .celebration-skip {
-            position: relative;
-            z-index: 1;
-            margin-top: 18px;
-            border: 0;
-            background: transparent;
-            color: var(--accent);
-            font: inherit;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        @keyframes player-entrance {
-            from { opacity: 0; transform: translateX(52px) translateY(10px) scale(0.90); }
-            to { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
-        }
-
         /* CRICKET BUDDY */
         .cricket-buddy {
             position: fixed;
@@ -1230,7 +1122,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .celebration-player, .buddy-eye, .buddy-arm-right {
+            .buddy-eye, .buddy-arm-right {
                 animation: none;
             }
         }
@@ -1554,17 +1446,6 @@
             <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Select My Teams to bring their matches to the top.</span></li>
             <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Follow our channel for cricket match updates.</span></li>
         </ul>
-    </div>
-</div>
-
-<div class="welcome-celebration" id="welcomeCelebration" role="dialog" aria-modal="true" aria-label="Welcome">
-    <div class="welcome-celebration-card">
-        <div class="celebration-scene" aria-hidden="true">
-            <img class="celebration-player" src="assets/welcome-cricketer.png" alt="">
-        </div>
-        <h2>Welcome, Buddy!</h2>
-        <p>Your cricket schedule is ready.</p>
-        <button class="celebration-skip" id="celebrationSkip" type="button">Enter Match Center</button>
     </div>
 </div>
 
@@ -2529,10 +2410,7 @@ const myTeamsModalClose = document.getElementById("myTeamsModalClose");
 const saveMyTeamsButton = document.getElementById("saveMyTeamsButton");
 const aboutModal = document.getElementById("aboutModal");
 const aboutModalClose = document.getElementById("aboutModalClose");
-const welcomeCelebration = document.getElementById("welcomeCelebration");
-const celebrationSkip = document.getElementById("celebrationSkip");
 const cricketBuddy = document.getElementById("cricketBuddy");
-let celebrationTimer;
 
 cricketBuddy.addEventListener("click", () => {
     cricketBuddy.classList.remove("user-wave");
@@ -2540,18 +2418,6 @@ cricketBuddy.addEventListener("click", () => {
     cricketBuddy.classList.add("user-wave");
     window.setTimeout(() => cricketBuddy.classList.remove("user-wave"), 800);
 });
-
-function closeWelcomeCelebration() {
-    welcomeCelebration.classList.remove("open");
-    clearTimeout(celebrationTimer);
-}
-
-setTimeout(() => {
-    welcomeCelebration.classList.add("open");
-    celebrationTimer = setTimeout(closeWelcomeCelebration, 2200);
-}, 250);
-
-celebrationSkip.addEventListener("click", closeWelcomeCelebration);
 
 menuButton.addEventListener("click", () => {
     const isOpen = menuPanel.classList.toggle("open");
