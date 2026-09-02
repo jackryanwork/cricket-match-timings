@@ -1,6 +1,6 @@
 {
-  "name": "Cricket Match Timings",
-  "short_name": "Cricket Timings",
+  "name": "CricNivo",
+  "short_name": "CricNivo",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#07111f",
@@ -8,9 +8,9 @@
   "icons": [
     {
       "src": "assets/app-icon.png",
-      "sizes": "512x512",
+      "sizes": "560x560",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
