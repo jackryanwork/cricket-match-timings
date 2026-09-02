@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "jsr:@supabase/server@^1";
 
-const MINI_APP_URL = "https://jackryanwork.github.io/cricket-match-timings/?v=2";
+const MINI_APP_URL = "https://www.cricnivo.com/?v=3";
 
 async function callTelegram(
   botToken: string,

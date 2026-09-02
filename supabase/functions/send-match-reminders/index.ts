@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "jsr:@supabase/server@^1";
 
-const MINI_APP_URL = "https://jackryanwork.github.io/cricket-match-timings/";
+const MINI_APP_URL = "https://www.cricnivo.com/";
 const INDIA_TIME_ZONE = "Asia/Kolkata";
 const RETRY_WINDOW_MINUTES = 10;
 
