@@ -19,19 +19,24 @@
         }
 
         :root {
-            --bg: #07111f;
-            --card: #0d1b2d;
-            --card-light: #12243a;
-            --text: #ffffff;
-            --muted: #91a0b5;
-            --accent: #19c37d;
-            --border: rgba(255,255,255,0.08);
+            color-scheme: light;
+            --bg: #eef7ff;
+            --card: #ffffff;
+            --card-light: #f3f8ff;
+            --text: #071b3d;
+            --muted: #60718a;
+            --accent: #0878e8;
+            --accent-soft: #e4f2ff;
+            --success: #0f9f6e;
+            --border: rgba(16, 61, 112, 0.13);
         }
 
         body {
             margin: 0;
-            background: var(--bg);
-            color: white;
+            background:
+                radial-gradient(circle at 12% 0%, rgba(8, 120, 232, 0.10), transparent 32%),
+                linear-gradient(180deg, #f8fcff 0%, var(--bg) 100%);
+            color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
@@ -182,8 +187,8 @@
             overflow-y: auto;
             border: 1px solid var(--border);
             border-radius: 18px;
-            background: #102238;
-            box-shadow: 0 18px 35px rgba(0, 0, 0, 0.30);
+            background: #ffffff;
+            box-shadow: 0 18px 35px rgba(28, 67, 108, 0.18);
         }
 
         .menu-panel.open {
@@ -234,11 +239,16 @@
             color: var(--accent);
         }
 
+        .menu-item:hover,
+        .menu-item:focus-visible {
+            background: var(--accent-soft);
+        }
+
         /* WELCOME */
 
         .welcome {
-            background: linear-gradient(135deg, #0d2d28, #0d1b2d);
-            border: 1px solid rgba(25,195,125,0.15);
+            background: linear-gradient(135deg, #ffffff, #e6f3ff);
+            border: 1px solid rgba(8, 120, 232, 0.18);
             border-radius: 20px;
             padding: 20px;
             margin-bottom: 18px;
@@ -270,10 +280,10 @@
             display: none;
             overflow: hidden;
             margin-bottom: 18px;
-            border: 1px solid rgba(25, 195, 125, 0.28);
+            border: 1px solid rgba(8, 120, 232, 0.24);
             border-radius: 20px;
-            background: linear-gradient(135deg, #123a31, #102238 68%);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+            background: linear-gradient(135deg, #ffffff, #e7f3ff 68%);
+            box-shadow: 0 12px 28px rgba(32, 83, 132, 0.12);
         }
 
         .featured-match.visible {
@@ -285,7 +295,7 @@
             margin: 14px 14px 0;
             padding: 6px 9px;
             border-radius: 999px;
-            background: rgba(25, 195, 125, 0.16);
+            background: rgba(8, 120, 232, 0.12);
             color: var(--accent);
             font-size: 10px;
             font-weight: 800;
@@ -317,7 +327,7 @@
             margin: 0 12px 12px;
             padding: 12px;
             border-radius: 13px;
-            background: rgba(7, 17, 31, 0.38);
+            background: #dceeff;
             color: var(--text);
             font-size: 13px;
             font-weight: 700;
@@ -337,9 +347,9 @@
             content: "";
             position: absolute;
             pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(16, 61, 112, 0.12);
             border-radius: 0 0 16px 16px;
-            background: #10283a;
+            background: #dcecff;
             transform-origin: top center;
             transition: opacity 0.22s ease, transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
         }
@@ -376,7 +386,7 @@
         }
 
         .big-match-card {
-            border-top: 1px solid rgba(255, 255, 255, 0.10);
+            border-top: 1px solid rgba(16, 61, 112, 0.12);
             cursor: pointer;
         }
 
@@ -398,7 +408,7 @@
 
         .featured-match.expanded .big-match-card:not(:first-child) {
             max-height: 240px;
-            border-top-color: rgba(255, 255, 255, 0.10);
+            border-top-color: rgba(16, 61, 112, 0.12);
             opacity: 1;
             pointer-events: auto;
             transform: translateY(0) scale(1);
@@ -426,24 +436,24 @@
         }
 
         .filter.active {
-            color: #06140f;
+            color: #ffffff;
         }
 
         .filter.today.active {
-            background: #19c37d;
-            border-color: #19c37d;
+            background: #0878e8;
+            border-color: #0878e8;
         }
 
         .filter.tomorrow.active {
-            background: #64a5ff;
-            border-color: #64a5ff;
-            color: #07111f;
+            background: #21a5e8;
+            border-color: #21a5e8;
+            color: #ffffff;
         }
 
         .filter.upcoming.active {
             background: #b58cff;
             border-color: #b58cff;
-            color: #160d2a;
+            color: #ffffff;
         }
 
         .match-tools {
@@ -496,8 +506,8 @@
         /* LIVE CARD */
 
         .live-card {
-            background: linear-gradient(135deg, #132b27, #0d1b2d);
-            border: 1px solid rgba(25,195,125,0.22);
+            background: linear-gradient(135deg, #ffffff, #e7fbf4);
+            border: 1px solid rgba(15, 159, 110, 0.22);
             border-radius: 18px;
             padding: 16px;
             margin-bottom: 20px;
@@ -583,7 +593,7 @@
 
         .match-card[data-match-id]:active {
             transform: scale(0.985);
-            border-color: rgba(25, 195, 125, 0.45);
+            border-color: rgba(8, 120, 232, 0.45);
         }
 
         .match-card.favourite-match {
@@ -624,13 +634,13 @@
         }
 
         .match-status.today {
-            background: rgba(25,195,125,0.14);
-            color: var(--accent);
+            background: rgba(15, 159, 110, 0.12);
+            color: var(--success);
         }
 
         .match-status.upcoming {
-            background: rgba(145,160,181,0.12);
-            color: #c0cad8;
+            background: rgba(8, 120, 232, 0.09);
+            color: #45627f;
         }
 
         .teams {
@@ -692,7 +702,7 @@
             margin-top: 22px;
             padding-top: 18px;
             border-top: 1px solid var(--border);
-            color: #627188;
+            color: #60718a;
             font-size: 11px;
         }
 
@@ -745,8 +755,8 @@
             padding: 14px 16px 30px;
             border: 1px solid var(--border);
             border-radius: 24px 24px 0 0;
-            background: #0d1b2d;
-            box-shadow: 0 -16px 36px rgba(0, 0, 0, 0.28);
+            background: #ffffff;
+            box-shadow: 0 -16px 36px rgba(17, 55, 94, 0.20);
         }
 
         .modal-handle {
@@ -754,7 +764,7 @@
             height: 4px;
             margin: 0 auto 14px;
             border-radius: 99px;
-            background: rgba(255, 255, 255, 0.20);
+            background: rgba(7, 27, 61, 0.20);
         }
 
         .modal-close {
@@ -823,10 +833,10 @@
         .detail-reminder {
             width: 100%;
             margin-top: 18px;
-            border: 1px solid rgba(25, 195, 125, 0.22);
+            border: 1px solid rgba(8, 120, 232, 0.22);
             border-radius: 12px;
             padding: 12px;
-            background: rgba(25, 195, 125, 0.08);
+            background: rgba(8, 120, 232, 0.07);
             color: var(--muted);
             font: inherit;
             font-size: 12px;
@@ -886,7 +896,7 @@
             border: 1px solid rgba(239, 68, 68, 0.28);
             border-radius: 10px;
             background: rgba(239, 68, 68, 0.08);
-            color: #fca5a5;
+            color: #c53030;
             font: inherit;
             font-size: 11px;
             font-weight: 700;
@@ -949,7 +959,7 @@
             border: 0;
             border-radius: 12px;
             background: var(--accent);
-            color: #03130d;
+            color: #ffffff;
             font: inherit;
             font-size: 12px;
             font-weight: 800;
@@ -994,9 +1004,9 @@
             overflow: hidden;
             width: min(330px, 100%);
             padding: 26px 22px 20px;
-            border: 1px solid rgba(25, 195, 125, 0.30);
+            border: 1px solid rgba(8, 120, 232, 0.24);
             border-radius: 24px;
-            background: radial-gradient(circle at 50% 0%, #1b4b3d 0%, #0d1b2d 48%, #07111f 100%);
+            background: radial-gradient(circle at 50% 0%, #e6f5ff 0%, #ffffff 52%, #eaf3ff 100%);
             box-shadow: 0 22px 50px rgba(0, 0, 0, 0.38);
             text-align: center;
         }
@@ -1006,7 +1016,7 @@
             position: absolute;
             inset: auto 0 0;
             height: 44px;
-            background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.34));
+            background: linear-gradient(180deg, transparent, rgba(8, 78, 145, 0.10));
             pointer-events: none;
         }
 
@@ -1118,7 +1128,7 @@
             height: 10px;
             border-radius: 50%;
             background: var(--accent);
-            box-shadow: 0 0 9px rgba(25, 195, 125, 0.75);
+            box-shadow: 0 0 9px rgba(8, 120, 232, 0.65);
         }
         .buddy-head {
             position: absolute;
@@ -1246,8 +1256,8 @@
             body {
                 min-height: 100vh;
                 background:
-                    radial-gradient(circle at 12% 0%, rgba(25, 195, 125, 0.10), transparent 30%),
-                    radial-gradient(circle at 88% 8%, rgba(100, 165, 255, 0.09), transparent 28%),
+                    radial-gradient(circle at 12% 0%, rgba(8, 120, 232, 0.12), transparent 30%),
+                    radial-gradient(circle at 88% 8%, rgba(33, 165, 232, 0.11), transparent 28%),
                     var(--bg);
             }
 
@@ -1282,8 +1292,8 @@
                 padding: 28px 32px;
                 margin-bottom: 28px;
                 background:
-                    radial-gradient(circle at 86% 35%, rgba(25, 195, 125, 0.16), transparent 28%),
-                    linear-gradient(125deg, #0d352e, #0d1b2d 62%);
+                    radial-gradient(circle at 86% 35%, rgba(33, 165, 232, 0.16), transparent 28%),
+                    linear-gradient(125deg, #ffffff, #e6f3ff 62%);
             }
 
             .welcome h2 {
@@ -1341,8 +1351,8 @@
 
             .match-card[data-match-id]:hover {
                 transform: translateY(-3px);
-                border-color: rgba(25, 195, 125, 0.38);
-                box-shadow: 0 14px 28px rgba(0, 0, 0, 0.20);
+                border-color: rgba(8, 120, 232, 0.38);
+                box-shadow: 0 14px 28px rgba(32, 83, 132, 0.14);
             }
 
             .match-modal {
