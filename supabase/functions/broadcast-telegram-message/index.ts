@@ -24,7 +24,7 @@ const keyboard = {
 };
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://jackryanwork.github.io",
+  "Access-Control-Allow-Origin": "https://www.cricnivo.com",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
