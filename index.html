@@ -10,16 +10,23 @@
     <link rel="apple-touch-icon" href="assets/app-icon.png?v=2">
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#ddf3fa">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light">
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
+        html {
+            color-scheme: light only;
+            background: #eef7ff;
+        }
+
         * {
             box-sizing: border-box;
         }
 
         :root {
-            color-scheme: light;
+            color-scheme: light only;
             --bg: #eef7ff;
             --card: #ffffff;
             --card-light: #f3f8ff;
@@ -33,6 +40,7 @@
 
         body {
             margin: 0;
+            forced-color-adjust: none;
             background:
                 radial-gradient(circle at 12% 0%, rgba(8, 120, 232, 0.10), transparent 32%),
                 linear-gradient(180deg, #f8fcff 0%, var(--bg) 100%);
@@ -1574,6 +1582,15 @@ function getTelegramInitData() {
 if (window.Telegram?.WebApp) {
     window.Telegram.WebApp.ready();
     window.Telegram.WebApp.expand();
+    try {
+        window.Telegram.WebApp.setHeaderColor("#f8fcff");
+        window.Telegram.WebApp.setBackgroundColor("#eef7ff");
+        if (typeof window.Telegram.WebApp.setBottomBarColor === "function") {
+            window.Telegram.WebApp.setBottomBarColor("#eef7ff");
+        }
+    } catch {
+        // Older Telegram clients may not support custom interface colors.
+    }
     getTelegramInitData();
 }
 
