@@ -345,9 +345,10 @@
             <option value="PM">PM</option>
         </select>
 
-        <label>Match format</label>
+        <label>Match format (optional)</label>
 
         <select id="competition">
+            <option value="">No format selected</option>
             <option value="T20 International">T20 International</option>
             <option value="ODI">ODI</option>
             <option value="Test">Test</option>
@@ -648,7 +649,7 @@ function resetMatchForm() {
     document.getElementById("matchDate").value = "";
     document.getElementById("matchTime").value = "";
     document.getElementById("matchPeriod").value = "AM";
-    document.getElementById("competition").value = "T20 International";
+    document.getElementById("competition").value = "";
     document.getElementById("customCompetition").value = "";
     document.getElementById("venue").value = "";
     document.getElementById("isBigMatch").checked = false;
