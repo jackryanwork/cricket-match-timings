@@ -226,6 +226,7 @@
             color: var(--text);
             font-size: 14px;
             text-align: left;
+            text-decoration: none;
             cursor: pointer;
         }
 
@@ -1330,9 +1331,9 @@
                 <div class="menu-title">Menu</div>
                 <button class="menu-item" id="myTeamsMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</span><span id="myTeamsMenuCount">Select</span></button>
                 <button class="menu-item" id="remindersMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Match reminders</span><span>Open</span></button>
-                <button class="menu-item" id="channelMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Join Our Channel</span><span>Open</span></button>
+                <a class="menu-item" id="channelMenuButton" href="https://t.me/cricketmatchupdatesicc" target="_blank" rel="noopener noreferrer"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Join Our Channel</span><span>Open</span></a>
                 <button class="menu-item" id="shareMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-share"></use></svg>Share App</span><span>Share</span></button>
-                <button class="menu-item" id="contactMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-message"></use></svg>Contact Us</span><span>Open</span></button>
+                <a class="menu-item" id="contactMenuButton" href="https://t.me/MembersHelpDesk" target="_blank" rel="noopener noreferrer"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-message"></use></svg>Contact Us</span><span>Open</span></a>
                 <button class="menu-item" id="aboutMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-info"></use></svg>About</span><span>View</span></button>
             </div>
         </div>
@@ -1882,22 +1883,46 @@ function closeMatchDetails() {
     document.getElementById("matchModal").classList.remove("open");
 }
 
+function isTelegramMiniApp() {
+    const telegramApp = window.Telegram?.WebApp;
+    const platform = String(telegramApp?.platform || "").toLowerCase();
+    return Boolean(getTelegramInitData())
+        || (platform !== "" && platform !== "unknown" && Boolean(telegramApp?.initDataUnsafe?.user));
+}
+
 function openTelegramDestination(url) {
     const telegramApp = window.Telegram?.WebApp;
     const platform = String(telegramApp?.platform || "").toLowerCase();
     const isDesktopClient = ["tdesktop", "macos", "web", "weba", "webk"].includes(platform);
 
-    if (isDesktopClient && typeof telegramApp?.openLink === "function") {
-        telegramApp.openLink(url);
-        return;
+    if (isTelegramMiniApp()) {
+        try {
+            if (isDesktopClient && typeof telegramApp?.openLink === "function") {
+                telegramApp.openLink(url);
+                return;
+            }
+
+            if (typeof telegramApp?.openTelegramLink === "function") {
+                telegramApp.openTelegramLink(url);
+                return;
+            }
+
+            if (typeof telegramApp?.openLink === "function") {
+                telegramApp.openLink(url);
+                return;
+            }
+        } catch {
+            // Continue to the standard browser link below.
+        }
     }
 
-    if (typeof telegramApp?.openTelegramLink === "function") {
-        telegramApp.openTelegramLink(url);
-        return;
-    }
-
-    window.location.href = url;
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
 
 async function openMyTeams() {
@@ -1946,18 +1971,43 @@ async function saveMyTeams() {
 
 async function shareMiniApp() {
     const shareText = "🏏 Check cricket match schedules and IST timings on CricNivo.";
-    if (window.Telegram?.WebApp?.openTelegramLink) {
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(MINI_APP_PUBLIC_URL)}&text=${encodeURIComponent(shareText)}`;
-        window.Telegram.WebApp.openTelegramLink(shareUrl);
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(MINI_APP_PUBLIC_URL)}&text=${encodeURIComponent(shareText)}`;
+
+    if (isTelegramMiniApp()) {
+        try {
+            if (typeof window.Telegram?.WebApp?.openTelegramLink === "function") {
+                window.Telegram.WebApp.openTelegramLink(shareUrl);
+                return;
+            }
+        } catch {
+            // Continue to the shared Telegram/browser fallback.
+        }
+        openTelegramDestination(shareUrl);
         return;
     }
 
     if (navigator.share) {
-        await navigator.share({ title: "CricNivo", text: shareText, url: MINI_APP_PUBLIC_URL });
-        return;
+        try {
+            await navigator.share({ title: "CricNivo", text: shareText, url: MINI_APP_PUBLIC_URL });
+            return;
+        } catch (error) {
+            if (error?.name === "AbortError") return;
+        }
     }
 
-    await navigator.clipboard.writeText(MINI_APP_PUBLIC_URL);
+    try {
+        await navigator.clipboard.writeText(MINI_APP_PUBLIC_URL);
+    } catch {
+        const copyField = document.createElement("textarea");
+        copyField.value = MINI_APP_PUBLIC_URL;
+        copyField.setAttribute("readonly", "");
+        copyField.style.position = "fixed";
+        copyField.style.opacity = "0";
+        document.body.appendChild(copyField);
+        copyField.select();
+        document.execCommand("copy");
+        copyField.remove();
+    }
     window.alert("App link copied.");
 }
 
@@ -2505,8 +2555,16 @@ remindersMenuButton.addEventListener("click", () => {
 myTeamsMenuButton.addEventListener("click", () => {
     openMyTeams();
 });
-channelMenuButton.addEventListener("click", () => openTelegramDestination(CHANNEL_URL));
-contactMenuButton.addEventListener("click", () => openTelegramDestination(CONTACT_URL));
+channelMenuButton.addEventListener("click", event => {
+    if (!isTelegramMiniApp()) return;
+    event.preventDefault();
+    openTelegramDestination(CHANNEL_URL);
+});
+contactMenuButton.addEventListener("click", event => {
+    if (!isTelegramMiniApp()) return;
+    event.preventDefault();
+    openTelegramDestination(CONTACT_URL);
+});
 shareMenuButton.addEventListener("click", () => {
     shareMiniApp().catch(() => {});
 });
