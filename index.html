@@ -1892,16 +1892,11 @@ function isTelegramMiniApp() {
 
 function openTelegramDestination(url) {
     const telegramApp = window.Telegram?.WebApp;
-    const platform = String(telegramApp?.platform || "").toLowerCase();
-    const isDesktopClient = ["tdesktop", "macos", "web", "weba", "webk"].includes(platform);
 
     if (isTelegramMiniApp()) {
         try {
-            if (isDesktopClient && typeof telegramApp?.openLink === "function") {
-                telegramApp.openLink(url);
-                return;
-            }
-
+            // t.me links must stay inside Telegram. Using openLink here sends the
+            // URL to an external browser and is unreliable in desktop/web clients.
             if (typeof telegramApp?.openTelegramLink === "function") {
                 telegramApp.openTelegramLink(url);
                 return;
@@ -1974,14 +1969,6 @@ async function shareMiniApp() {
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(MINI_APP_PUBLIC_URL)}&text=${encodeURIComponent(shareText)}`;
 
     if (isTelegramMiniApp()) {
-        try {
-            if (typeof window.Telegram?.WebApp?.openTelegramLink === "function") {
-                window.Telegram.WebApp.openTelegramLink(shareUrl);
-                return;
-            }
-        } catch {
-            // Continue to the shared Telegram/browser fallback.
-        }
         openTelegramDestination(shareUrl);
         return;
     }
@@ -2556,12 +2543,10 @@ myTeamsMenuButton.addEventListener("click", () => {
     openMyTeams();
 });
 channelMenuButton.addEventListener("click", event => {
-    if (!isTelegramMiniApp()) return;
     event.preventDefault();
     openTelegramDestination(CHANNEL_URL);
 });
 contactMenuButton.addEventListener("click", event => {
-    if (!isTelegramMiniApp()) return;
     event.preventDefault();
     openTelegramDestination(CONTACT_URL);
 });
