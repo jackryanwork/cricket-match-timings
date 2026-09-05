@@ -693,6 +693,18 @@
             font-weight: 800;
         }
 
+        .match-schedule {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .match-date {
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+        }
+
         .timezone {
             color: var(--muted);
             font-size: 9px;
@@ -2211,9 +2223,12 @@ if (todayMatches.length === 0) {
 
                 <div class="match-bottom">
 
-                    <div class="match-time">
-                        ${escapeHtml(formatMatchTime(match.match_time))}
-                        <span class="timezone">IST</span>
+                    <div class="match-schedule">
+                        <div class="match-date">${escapeHtml(formatMatchDate(match.match_date))}</div>
+                        <div class="match-time">
+                            ${escapeHtml(formatMatchTime(match.match_time))}
+                            <span class="timezone">IST</span>
+                        </div>
                     </div>
 
                     <div class="venue">
@@ -2260,7 +2275,7 @@ setDisplayedMatches(tomorrowMatches);
 let html = `
     <div class="section-header">
         <h3>Tomorrow's Matches</h3>
-        <span>${tomorrow}</span>
+        <span>${formatDateLabel(tomorrow)}</span>
     </div>
 `;
 
@@ -2313,9 +2328,12 @@ if (tomorrowMatches.length === 0) {
 
                 <div class="match-bottom">
 
-                    <div class="match-time">
-                        ${escapeHtml(formatMatchTime(match.match_time))}
-                        <span class="timezone">IST</span>
+                    <div class="match-schedule">
+                        <div class="match-date">${escapeHtml(formatMatchDate(match.match_date))}</div>
+                        <div class="match-time">
+                            ${escapeHtml(formatMatchTime(match.match_time))}
+                            <span class="timezone">IST</span>
+                        </div>
                     </div>
 
                     <div class="venue">
@@ -2363,7 +2381,7 @@ setDisplayedMatches(upcomingMatches);
 let html = `
     <div class="section-header">
         <h3>Upcoming Matches</h3>
-        <span>Next Matches</span>
+        <span>Dates shown in IST</span>
     </div>
 `;
 
@@ -2416,9 +2434,12 @@ if (upcomingMatches.length === 0) {
 
                 <div class="match-bottom">
 
-                    <div class="match-time">
-                        ${escapeHtml(formatMatchTime(match.match_time))}
-                        <span class="timezone">IST</span>
+                    <div class="match-schedule">
+                        <div class="match-date">${escapeHtml(formatMatchDate(match.match_date))}</div>
+                        <div class="match-time">
+                            ${escapeHtml(formatMatchTime(match.match_time))}
+                            <span class="timezone">IST</span>
+                        </div>
                     </div>
 
                     <div class="venue">
