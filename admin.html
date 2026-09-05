@@ -183,6 +183,62 @@
             background: #475569;
         }
 
+        .auth-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 15px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            background: #121a2e;
+            border: 1px solid #293552;
+            border-radius: 15px;
+            padding: 24px;
+        }
+
+        .auth-card h2 {
+            margin-top: 0;
+        }
+
+        .auth-help,
+        .auth-status {
+            color: #9aa4b5;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .auth-status.error {
+            color: #ff8585;
+        }
+
+        .mfa-qr {
+            display: block;
+            width: 210px;
+            max-width: 100%;
+            margin: 18px auto;
+            padding: 10px;
+            border-radius: 12px;
+            background: white;
+        }
+
+        .mfa-secret {
+            padding: 10px;
+            border-radius: 8px;
+            background: #0c1324;
+            color: #cbd5e1;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .secondary-button {
+            background: #475569;
+        }
+
     </style>
 
 
@@ -191,23 +247,45 @@
 
 
 <body>
-    <div id="loginScreen">
-    <h2>Admin Login</h2>
+<div class="auth-screen" id="loginScreen">
+    <div class="auth-card">
+        <h2>🔐 Admin Login</h2>
+        <p class="auth-help">Enter your admin email and password.</p>
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Email" autocomplete="username">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+        <button id="loginButton" onclick="login()">Continue</button>
+        <p class="auth-status" id="loginStatus" aria-live="polite"></p>
+    </div>
+</div>
 
-    <input type="email" id="email" placeholder="Email">
-
-    <input type="password" id="password" placeholder="Password">
-
-    <button onclick="login()">Login</button>
+<div class="auth-screen" id="mfaScreen" style="display: none;">
+    <div class="auth-card">
+        <h2 id="mfaTitle">Authenticator verification</h2>
+        <p class="auth-help" id="mfaInstructions"></p>
+        <div id="mfaEnrollment" style="display: none;">
+            <img class="mfa-qr" id="mfaQrCode" alt="Authenticator setup QR code">
+            <p class="auth-help">If scanning is unavailable, enter this setup key manually:</p>
+            <div class="mfa-secret" id="mfaSecret"></div>
+        </div>
+        <label for="mfaCode">6-digit code</label>
+        <input type="text" id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456">
+        <button id="mfaButton" onclick="verifyMfa()">Verify code</button>
+        <button class="secondary-button" onclick="logoutAdmin()">Cancel and sign out</button>
+        <p class="auth-status" id="mfaStatus" aria-live="polite"></p>
+    </div>
 </div>
 
 <div class="container" id="adminPanel" style="display: none;">
 
-    <h1>🔐 TEST ADMIN PANEL 123</h1>
+    <h1>🔐 CricNivo Admin</h1>
 
     <div class="subtitle">
         CricNivo Management
     </div>
+
+    <button class="secondary-button" onclick="logoutAdmin()">Sign out securely</button>
 
 
     <!-- ADD MATCH -->
@@ -448,9 +526,20 @@
 
 
 <script>
-    async function login() {
+const ADMIN_USER_ID = "749c0b4a-ae6d-41cc-b046-1695089f191c";
+const MFA_FACTOR_NAME = "CricNivo Admin";
+let pendingMfaFactorId = null;
+
+async function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    const button = document.getElementById("loginButton");
+    const status = document.getElementById("loginStatus");
+
+    status.textContent = "";
+    status.classList.remove("error");
+    button.disabled = true;
+    button.textContent = "Checking…";
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email,
@@ -458,23 +547,164 @@
     });
 
     if (error) {
-        alert("Login failed: " + error.message);
+        status.textContent = "Login failed: " + error.message;
+        status.classList.add("error");
+        button.disabled = false;
+        button.textContent = "Continue";
         return;
     }
 
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("adminPanel").style.display = "block";
+    await continueAdminLogin(data.user);
+    button.disabled = false;
+    button.textContent = "Continue";
 }
+
 async function checkSession() {
     const { data } = await supabaseClient.auth.getSession();
 
-    if (data.session) {
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("adminPanel").style.display = "block";
-    }
+    if (data.session) await continueAdminLogin(data.session.user);
 }
 
-    const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
+async function continueAdminLogin(user) {
+    const loginStatus = document.getElementById("loginStatus");
+
+    if (!user || user.id !== ADMIN_USER_ID) {
+        await supabaseClient.auth.signOut();
+        loginStatus.textContent = "This account is not authorized to use the admin panel.";
+        loginStatus.classList.add("error");
+        showScreen("login");
+        return;
+    }
+
+    const assurance = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assurance.error) {
+        loginStatus.textContent = "Could not check two-factor authentication: " + assurance.error.message;
+        loginStatus.classList.add("error");
+        showScreen("login");
+        return;
+    }
+
+    if (assurance.data.currentLevel === "aal2") {
+        showAdminPanel();
+        return;
+    }
+
+    const factors = await supabaseClient.auth.mfa.listFactors();
+    if (factors.error) {
+        loginStatus.textContent = "Could not load two-factor authentication: " + factors.error.message;
+        loginStatus.classList.add("error");
+        showScreen("login");
+        return;
+    }
+
+    const verifiedFactor = factors.data.totp[0];
+    if (verifiedFactor) {
+        pendingMfaFactorId = verifiedFactor.id;
+        showMfaChallenge();
+        return;
+    }
+
+    await startMfaEnrollment(factors.data.all || []);
+}
+
+async function startMfaEnrollment(allFactors) {
+    const status = document.getElementById("mfaStatus");
+    status.textContent = "Preparing secure setup…";
+    status.classList.remove("error");
+    showScreen("mfa");
+
+    for (const factor of allFactors) {
+        if (factor.factor_type === "totp" && factor.status === "unverified") {
+            await supabaseClient.auth.mfa.unenroll({ factorId: factor.id });
+        }
+    }
+
+    const enrollment = await supabaseClient.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: MFA_FACTOR_NAME
+    });
+
+    if (enrollment.error) {
+        status.textContent = "Could not start authenticator setup: " + enrollment.error.message;
+        status.classList.add("error");
+        return;
+    }
+
+    pendingMfaFactorId = enrollment.data.id;
+    document.getElementById("mfaTitle").textContent = "Set up two-factor authentication";
+    document.getElementById("mfaInstructions").textContent =
+        "Scan this QR code with an authenticator app, then enter its six-digit code.";
+    document.getElementById("mfaEnrollment").style.display = "block";
+    document.getElementById("mfaQrCode").src = enrollment.data.totp.qr_code;
+    document.getElementById("mfaSecret").textContent = enrollment.data.totp.secret;
+    document.getElementById("mfaCode").value = "";
+    status.textContent = "";
+}
+
+function showMfaChallenge() {
+    document.getElementById("mfaTitle").textContent = "Two-factor authentication";
+    document.getElementById("mfaInstructions").textContent =
+        "Open your authenticator app and enter the current six-digit code.";
+    document.getElementById("mfaEnrollment").style.display = "none";
+    document.getElementById("mfaCode").value = "";
+    document.getElementById("mfaStatus").textContent = "";
+    showScreen("mfa");
+}
+
+async function verifyMfa() {
+    const code = document.getElementById("mfaCode").value.replace(/\D/g, "");
+    const button = document.getElementById("mfaButton");
+    const status = document.getElementById("mfaStatus");
+
+    status.textContent = "";
+    status.classList.remove("error");
+    if (!pendingMfaFactorId || code.length !== 6) {
+        status.textContent = "Enter the six-digit code from your authenticator app.";
+        status.classList.add("error");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Verifying…";
+    const verification = await supabaseClient.auth.mfa.challengeAndVerify({
+        factorId: pendingMfaFactorId,
+        code: code
+    });
+
+    if (verification.error) {
+        status.textContent = "Verification failed: " + verification.error.message;
+        status.classList.add("error");
+        button.disabled = false;
+        button.textContent = "Verify code";
+        return;
+    }
+
+    pendingMfaFactorId = null;
+    button.disabled = false;
+    button.textContent = "Verify code";
+    showAdminPanel();
+}
+
+function showScreen(screen) {
+    document.getElementById("loginScreen").style.display = screen === "login" ? "flex" : "none";
+    document.getElementById("mfaScreen").style.display = screen === "mfa" ? "flex" : "none";
+    document.getElementById("adminPanel").style.display = screen === "admin" ? "block" : "none";
+}
+
+function showAdminPanel() {
+    showScreen("admin");
+    loadSavedMatches();
+}
+
+async function logoutAdmin() {
+    pendingMfaFactorId = null;
+    await supabaseClient.auth.signOut();
+    document.getElementById("password").value = "";
+    document.getElementById("mfaCode").value = "";
+    showScreen("login");
+}
+
+const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const BROADCAST_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/broadcast-telegram-message`;
 
@@ -482,6 +712,13 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
 );
+
+document.getElementById("password").addEventListener("keydown", event => {
+    if (event.key === "Enter") login();
+});
+document.getElementById("mfaCode").addEventListener("keydown", event => {
+    if (event.key === "Enter") verifyMfa();
+});
 checkSession();
 
 let editingMatchId = null;
@@ -844,8 +1081,6 @@ async function loadSavedMatches() {
 
 }
 
-
-loadSavedMatches();
 async function deleteMatch(id) {
 
     const confirmDelete = confirm(

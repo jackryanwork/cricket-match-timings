@@ -119,6 +119,12 @@ export default {
       return json({ error: "You are not authorized to send broadcasts." }, 403);
     }
 
+    const { data: assurance, error: assuranceError } =
+      await ctx.supabaseAdmin.auth.mfa.getAuthenticatorAssuranceLevel(accessToken);
+    if (assuranceError || assurance.currentLevel !== "aal2") {
+      return json({ error: "Two-factor authentication is required." }, 403);
+    }
+
     let message = "";
     let audience: Audience = "all";
     let mediaFile: File | undefined;
