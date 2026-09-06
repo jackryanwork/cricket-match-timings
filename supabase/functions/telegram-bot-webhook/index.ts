@@ -111,11 +111,11 @@ async function sendContactMessage(botToken: string, chatId: number) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
-        text: "Need help? Contact @MembersHelpDesk.",
+        text: "Need help? Contact us on Telegram at @CricNivo or email support@cricnivo.com.",
         reply_markup: {
           inline_keyboard: [[{
-            text: "💬 Open @MembersHelpDesk",
-            url: "https://t.me/MembersHelpDesk",
+            text: "💬 Open @CricNivo",
+            url: "https://t.me/CricNivo",
           }]],
         },
         disable_web_page_preview: true,
