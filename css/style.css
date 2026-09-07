@@ -704,12 +704,6 @@ button {
     font-weight: 700;
 }
 
-.timezone {
-    color: var(--muted);
-    font-size: 9px;
-    margin-left: 3px;
-}
-
 .venue {
     color: var(--muted);
     font-size: 10px;

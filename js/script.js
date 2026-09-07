@@ -233,15 +233,6 @@ function formatVisitorMatchDate(match) {
     return localMatchDateFormatter.format(start);
 }
 
-function formatVisitorTimeZone(date = new Date()) {
-    refreshBrowserTimeZone();
-    const parts = new Intl.DateTimeFormat(undefined, {
-        timeZone: browserTimeZone,
-        timeZoneName: "short"
-    }).formatToParts(date);
-    return parts.find(part => part.type === "timeZoneName")?.value || browserTimeZone || "Local time";
-}
-
 function updateLocalTime() {
     const localTime = document.getElementById("localTime");
     if (!localTime) return;
@@ -358,7 +349,7 @@ function openMatchDetails(match) {
         <div class="detail-tournament">${escapeHtml(match.competition || "Cricket match")}</div>
         <div class="detail-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
         <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatVisitorMatchDate(match))}</strong></div>
-        <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatVisitorMatchTime(match))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</strong></div>
+        <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatVisitorMatchTime(match))}</strong></div>
         <div class="detail-row"><span>Venue</span><strong>${escapeHtml(match.venue || "Venue to be confirmed")}</strong></div>
         ${reminderButton}
     `;
@@ -410,7 +401,7 @@ function renderReminderList(reminders) {
             <div class="reminder-item-title">${escapeHtml(reminder.team1)} vs ${escapeHtml(reminder.team2)}</div>
             <div class="reminder-item-meta">
                 ${escapeHtml(reminder.competition || "Cricket match")}<br>
-                ${escapeHtml(formatVisitorMatchDate(reminder))} · ${escapeHtml(formatVisitorMatchTime(reminder))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(reminder)))}
+                ${escapeHtml(formatVisitorMatchDate(reminder))} · ${escapeHtml(formatVisitorMatchTime(reminder))}
             </div>
             <button class="reminder-cancel" type="button" data-cancel-reminder-id="${Number(reminder.id)}">Cancel reminder</button>
         </div>
@@ -612,7 +603,7 @@ function renderBigMatches() {
                 <div class="featured-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
                 <div class="featured-meta">
                     <span>${escapeHtml(formatTournamentName(match))}</span>
-                    <span>${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
+                    <span>${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))}</span>
                 </div>
                 <div class="featured-countdown" data-big-countdown-index="${index}">${formatCountdown(start)}</div>
             </article>
@@ -792,7 +783,6 @@ if (todayMatches.length === 0) {
                         <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
                         <div class="match-time">
                             ${escapeHtml(formatVisitorMatchTime(match))}
-                            <span class="timezone">${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
                         </div>
                     </div>
 
@@ -900,7 +890,6 @@ if (tomorrowMatches.length === 0) {
                         <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
                         <div class="match-time">
                             ${escapeHtml(formatVisitorMatchTime(match))}
-                            <span class="timezone">${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
                         </div>
                     </div>
 
@@ -1009,7 +998,6 @@ if (upcomingMatches.length === 0) {
                         <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
                         <div class="match-time">
                             ${escapeHtml(formatVisitorMatchTime(match))}
-                            <span class="timezone">${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
                         </div>
                     </div>
 
