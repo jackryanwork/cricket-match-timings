@@ -1025,6 +1025,38 @@ button {
     line-height: 1.5;
 }
 
+.schedule-guide {
+    margin-top: 22px;
+}
+
+.faq-list {
+    display: grid;
+    gap: 9px;
+}
+
+.faq-list details {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+    overflow: hidden;
+}
+
+.faq-list summary {
+    padding: 13px 14px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.faq-list p {
+    margin: 0;
+    padding: 0 14px 14px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
 /* CRICKET BUDDY */
 .cricket-buddy {
     position: fixed;
@@ -1302,6 +1334,11 @@ button {
     .match-tools,
     #matchContent {
         grid-column: 2;
+    }
+
+    .schedule-guide {
+        grid-column: 1 / -1;
+        margin-top: 28px;
     }
 
     .filters {
