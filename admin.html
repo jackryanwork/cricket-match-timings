@@ -110,6 +110,67 @@
             margin-top: 12px;
         }
 
+        .matches-toolbar {
+            margin: 18px 0 4px;
+            padding: 14px;
+            border: 1px solid #293552;
+            border-radius: 10px;
+            background: rgba(12, 19, 36, 0.75);
+        }
+
+        .matches-toolbar-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .match-filters {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .match-filter-button {
+            width: auto;
+            margin: 0;
+            padding: 10px 8px;
+            border: 1px solid #34415e;
+            background: #18233b;
+            color: #cbd5e1;
+            font-size: 13px;
+        }
+
+        .match-filter-button.active {
+            border-color: #3d72ff;
+            background: #3d72ff;
+            color: white;
+        }
+
+        .matches-summary {
+            margin: 12px 2px 0;
+            color: #9aa4b5;
+            font-size: 13px;
+        }
+
+        .match-item.expired {
+            border-color: #4b556b;
+            opacity: 0.82;
+        }
+
+        .expired-badge {
+            display: inline-block;
+            margin-top: 9px;
+            padding: 4px 7px;
+            border-radius: 6px;
+            background: rgba(148, 163, 184, 0.16);
+            color: #aeb8c8;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
         .empty {
             color: #9aa4b5;
             text-align: center;
@@ -240,6 +301,16 @@
 
         .secondary-button {
             background: #475569;
+        }
+
+        @media (max-width: 520px) {
+            .match-filters {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .match-actions {
+                grid-template-columns: 1fr;
+            }
         }
 
     </style>
@@ -518,6 +589,17 @@
 
         <h2>📋 Saved Matches</h2>
 
+        <div class="matches-toolbar">
+            <span class="matches-toolbar-label">Filter matches by date</span>
+            <div class="match-filters" role="group" aria-label="Filter matches by date">
+                <button type="button" class="match-filter-button active" data-match-filter="today" onclick="setMatchFilter('today')">Today</button>
+                <button type="button" class="match-filter-button" data-match-filter="tomorrow" onclick="setMatchFilter('tomorrow')">Tomorrow</button>
+                <button type="button" class="match-filter-button" data-match-filter="upcoming" onclick="setMatchFilter('upcoming')">Upcoming</button>
+                <button type="button" class="match-filter-button" data-match-filter="all" onclick="setMatchFilter('all')">All matches</button>
+            </div>
+            <div class="matches-summary" id="matchesSummary" aria-live="polite"></div>
+        </div>
+
         <div id="savedMatches">
             Loading...
         </div>
@@ -726,6 +808,8 @@ checkSession();
 
 let editingMatchId = null;
 let savedMatchesById = new Map();
+let savedMatches = [];
+let selectedMatchFilter = "today";
 
 async function sendBroadcast() {
     const message = document.getElementById("broadcastMessage").value.trim();
@@ -994,6 +1078,76 @@ function populateCompetitionOptions(matches) {
     });
 }
 
+function setMatchFilter(filter) {
+    selectedMatchFilter = filter;
+    document.querySelectorAll("[data-match-filter]").forEach(button => {
+        button.classList.toggle("active", button.dataset.matchFilter === filter);
+    });
+    renderSavedMatches();
+}
+
+function getMatchFilterDates() {
+    const today = formatIndiaDate();
+    const tomorrowDate = new Date(`${today}T12:00:00+05:30`);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+
+    return {
+        today: today,
+        tomorrow: formatIndiaDate(tomorrowDate),
+    };
+}
+
+function renderSavedMatches() {
+    const container = document.getElementById("savedMatches");
+    const summary = document.getElementById("matchesSummary");
+    const { today, tomorrow } = getMatchFilterDates();
+    const filteredMatches = savedMatches.filter(match => {
+        if (selectedMatchFilter === "today") return match.match_date === today;
+        if (selectedMatchFilter === "tomorrow") return match.match_date === tomorrow;
+        if (selectedMatchFilter === "upcoming") return match.match_date > tomorrow;
+        return true;
+    });
+
+    const filterLabels = {
+        today: "today",
+        tomorrow: "tomorrow",
+        upcoming: "upcoming",
+        all: "all matches"
+    };
+    summary.textContent = `${filteredMatches.length} ${filterLabels[selectedMatchFilter]} found`;
+
+    if (filteredMatches.length === 0) {
+        container.innerHTML = `<div class="empty">No ${filterLabels[selectedMatchFilter]} found.</div>`;
+        return;
+    }
+
+    container.innerHTML = filteredMatches.map(match => {
+        const isExpired = match.match_date < today;
+        return `
+            <div class="match-item${isExpired ? " expired" : ""}">
+                <strong>${escapeHtml(match.team1)} vs ${escapeHtml(match.team2)}</strong>
+                <br><br>
+                📅 ${escapeHtml(match.match_date)}
+                <br>
+                ⏰ ${escapeHtml(match.match_time)}
+                <br>
+                🏏 ${escapeHtml(match.competition || "No competition")}
+                <br>
+                🏟️ ${escapeHtml(match.venue || "No venue")}
+                ${isExpired ? '<br><span class="expired-badge">EXPIRED</span>' : ''}
+                ${match.is_big_match ? '<br><span class="big-match-badge">⭐ BIG MATCH</span>' : ''}
+                <div class="match-actions">
+                    <button class="edit-match-button" onclick="editMatch(${Number(match.id)})">✏️ Edit</button>
+                    <button class="big-match-button" onclick="toggleBigMatch(${Number(match.id)}, ${Boolean(match.is_big_match)})">
+                        ${match.is_big_match ? "⭐ Remove Big Match" : "⭐ Add to Big Match"}
+                    </button>
+                    <button class="delete-match-button" onclick="deleteMatch(${Number(match.id)})">🗑️ Delete Match</button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
 
 async function loadSavedMatches() {
 
@@ -1020,66 +1174,20 @@ async function loadSavedMatches() {
     }
 
     populateCompetitionOptions(matches || []);
-    savedMatchesById = new Map((matches || []).map(match => [Number(match.id), match]));
+    savedMatches = matches || [];
+    savedMatchesById = new Map(savedMatches.map(match => [Number(match.id), match]));
 
-    if (!matches || matches.length === 0) {
+    if (savedMatches.length === 0) {
 
         container.innerHTML =
             '<div class="empty">No matches saved yet.</div>';
+        document.getElementById("matchesSummary").textContent = "0 matches found";
 
         return;
 
     }
 
-    container.innerHTML = "";
-
-    matches.forEach(function(match) {
-
-        container.innerHTML += `
-
-            <div class="match-item">
-
-                <strong>
-                    ${escapeHtml(match.team1)} vs ${escapeHtml(match.team2)}
-                </strong>
-
-                <br><br>
-
-                📅 ${escapeHtml(match.match_date)}
-
-                <br>
-
-                ⏰ ${escapeHtml(match.match_time)}
-
-                <br>
-
-                🏏 ${escapeHtml(match.competition || "No competition")}
-
-                <br>
-
-                🏟️ ${escapeHtml(match.venue || "No venue")}
-
-                ${match.is_big_match ? '<br><span class="big-match-badge">⭐ BIG MATCH</span>' : ''}
-
-                <div class="match-actions">
-                    <button class="edit-match-button" onclick="editMatch(${Number(match.id)})">
-                        ✏️ Edit
-                    </button>
-
-                    <button class="big-match-button" onclick="toggleBigMatch(${Number(match.id)}, ${Boolean(match.is_big_match)})">
-                        ${match.is_big_match ? "⭐ Remove Big Match" : "⭐ Add to Big Match"}
-                    </button>
-
-                    <button class="delete-match-button" onclick="deleteMatch(${Number(match.id)})">
-                        🗑️ Delete Match
-                    </button>
-                </div>
-
-            </div>
-
-        `;
-
-    });
+    renderSavedMatches();
 
 }
 
