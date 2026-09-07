@@ -667,7 +667,7 @@ setDisplayedMatches(todayMatches);
 
 let html = `
     <div class="section-header">
-        <h3>Today's Matches</h3>
+        <h2>Today's Cricket Matches</h2>
         <span>${formatDateLabel(today)}</span>
     </div>
 `;
@@ -775,7 +775,7 @@ setDisplayedMatches(tomorrowMatches);
 
 let html = `
     <div class="section-header">
-        <h3>Tomorrow's Matches</h3>
+        <h2>Tomorrow's Cricket Matches</h2>
         <span>${formatDateLabel(tomorrow)}</span>
     </div>
 `;
@@ -884,7 +884,7 @@ setDisplayedMatches(upcomingMatches);
 
 let html = `
     <div class="section-header">
-        <h3>Upcoming Matches</h3>
+        <h2>Upcoming Cricket Matches</h2>
         <span>Dates shown in IST</span>
     </div>
 `;
