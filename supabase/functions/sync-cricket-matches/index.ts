@@ -11,19 +11,9 @@ type CricketDataMatch = {
   venue?: string;
 };
 
-type SportMonksFixture = {
-  id?: number;
-  starting_at?: string;
-  type?: string;
-  localteam?: { name?: string };
-  visitorteam?: { name?: string };
-  league?: { name?: string };
-  venue?: { name?: string };
-};
-
 type MatchRow = {
   cricketdata_match_id: string;
-  source: "cricketdata" | "sportmonks";
+  source: "cricketdata";
   team1: string;
   team2: string;
   match_date: string;
@@ -31,8 +21,6 @@ type MatchRow = {
   competition: string;
   venue: string;
 };
-
-const MAX_SPORTMONKS_PAGES = 3;
 
 function formatCompetition(matchType?: string) {
   const labels: Record<string, string> = {
@@ -78,76 +66,31 @@ function indiaDateAndTime(dateTimeText?: string, fallbackDate?: string) {
   };
 }
 
-function utcDateOffset(days: number) {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 async function fetchWithRetry(url: URL, provider: string) {
   let response: Response | null = null;
+  let lastError: unknown;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       response = await fetch(url);
       break;
-    } catch {
+    } catch (error) {
+      lastError = error;
       if (attempt < 3) {
         await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
       }
     }
   }
-  if (!response)
-    throw new Error(`${provider} connection failed after 3 attempts.`);
-  return response;
-}
-
-async function loadSportMonksRows(apiToken: string): Promise<MatchRow[]> {
-  const fixtures: SportMonksFixture[] = [];
-  for (let page = 1; page <= MAX_SPORTMONKS_PAGES; page += 1) {
-    const apiUrl = new URL("https://cricket.sportmonks.com/api/v2.0/fixtures");
-    apiUrl.searchParams.set("api_token", apiToken);
-    apiUrl.searchParams.set("include", "localteam,visitorteam,league,venue");
-    apiUrl.searchParams.set(
-      "filter[starts_between]",
-      `${utcDateOffset(-1)},${utcDateOffset(60)}`,
+  if (!response) {
+    const reason = lastError instanceof Error
+      ? `${lastError.name}: ${lastError.message}`
+      : String(lastError || "unknown connection error");
+    const safeUrl = `${url.origin}${url.pathname}`;
+    const safeReason = reason.replace(url.toString(), safeUrl);
+    throw new Error(
+      `${provider} connection failed after 3 attempts: ${safeReason}`,
     );
-    apiUrl.searchParams.set("sort", "starting_at");
-    apiUrl.searchParams.set("page", String(page));
-
-    const response = await fetchWithRetry(apiUrl, "SportMonks");
-    const body = await response.json();
-    if (!response.ok || !Array.isArray(body?.data)) {
-      throw new Error(`SportMonks returned HTTP ${response.status}.`);
-    }
-
-    fixtures.push(...body.data);
-    const pagination = body?.meta?.pagination;
-    if (
-      !pagination ||
-      Number(pagination.current_page) >= Number(pagination.total_pages)
-    )
-      break;
   }
-
-  return fixtures
-    .map((fixture) => {
-      const { date, time } = indiaDateAndTime(fixture.starting_at);
-      const team1 = fixture.localteam?.name?.trim();
-      const team2 = fixture.visitorteam?.name?.trim();
-      if (!fixture.id || !team1 || !team2 || !date) return null;
-      return {
-        cricketdata_match_id: `sportmonks:${fixture.id}`,
-        source: "sportmonks" as const,
-        team1,
-        team2,
-        match_date: date,
-        match_time: time,
-        competition:
-          fixture.league?.name?.trim() || formatCompetition(fixture.type),
-        venue: fixture.venue?.name?.trim() || "Venue to be confirmed",
-      };
-    })
-    .filter((row): row is MatchRow => row !== null);
+  return response;
 }
 
 async function loadCricketDataRows(apiKey: string): Promise<MatchRow[]> {
@@ -187,39 +130,27 @@ async function loadCricketDataRows(apiKey: string): Promise<MatchRow[]> {
 
 export default {
   fetch: withSupabase({ auth: "secret" }, async (_request, ctx) => {
-    const sportMonksToken = Deno.env.get("SPORTMONKS_API_TOKEN");
     const cricketDataKey = Deno.env.get("CRICKETDATA_API_KEY");
     let provider: MatchRow["source"];
     let rows: MatchRow[];
 
     try {
-      if (!sportMonksToken)
-        throw new Error("SPORTMONKS_API_TOKEN is not configured.");
-      rows = await loadSportMonksRows(sportMonksToken);
-      provider = "sportmonks";
-    } catch (sportMonksError) {
-      console.error(
-        "SportMonks sync failed; using CricketData fallback.",
-        sportMonksError,
-      );
       if (!cricketDataKey) {
         return Response.json(
           {
-            error: "Neither SportMonks nor CricketData could provide matches.",
+            error: "CRICKETDATA_API_KEY is not configured.",
           },
           { status: 502 },
         );
       }
-      try {
-        rows = await loadCricketDataRows(cricketDataKey);
-        provider = "cricketdata";
-      } catch (cricketDataError) {
-        console.error("CricketData fallback failed.", cricketDataError);
-        return Response.json(
-          { error: "Match providers are temporarily unavailable." },
-          { status: 502 },
-        );
-      }
+      rows = await loadCricketDataRows(cricketDataKey);
+      provider = "cricketdata";
+    } catch (error) {
+      console.error("CricketData sync failed.", error);
+      return Response.json(
+        { error: "Match provider is temporarily unavailable." },
+        { status: 502 },
+      );
     }
 
     if (rows.length === 0) {
