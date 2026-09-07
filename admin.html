@@ -1005,7 +1005,6 @@ async function loadSavedMatches() {
     const { data: matches, error } = await supabaseClient
         .from("matches")
         .select("*")
-        .gte("match_date", formatIndiaDate())
         .order("match_date", { ascending: true })
         .order("match_time", { ascending: true });
 
