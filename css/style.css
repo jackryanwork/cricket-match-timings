@@ -266,6 +266,14 @@ button {
     line-height: 1.5;
 }
 
+.local-time {
+    margin-top: 10px;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}
+
 /* FEATURED NEXT MATCH */
 
 .featured-match {
