@@ -646,11 +646,27 @@ function updateBigMatchesExpandedState() {
 }
 
 function updateBigMatchCountdowns() {
+    updateTodayMatchStatuses();
+
     document.querySelectorAll("[data-big-countdown-index]").forEach(countdown => {
         const match = bigMatches[Number(countdown.dataset.bigCountdownIndex)];
         const start = match && getMatchStart(match);
 
         if (start) countdown.textContent = formatCountdown(start);
+    });
+}
+
+function updateTodayMatchStatuses() {
+    document.querySelectorAll("[data-today-match-status]").forEach(status => {
+        const match = displayedMatches.get(status.dataset.matchId);
+        const start = match && getMatchStart(match);
+        const isLive = Boolean(start && start.getTime() <= Date.now());
+
+        status.classList.toggle("today", !isLive);
+        status.classList.toggle("live", isLive);
+        status.innerHTML = isLive
+            ? '<span class="match-live-dot" aria-hidden="true"></span>LIVE'
+            : "TODAY";
     });
 }
 
@@ -752,7 +768,7 @@ if (todayMatches.length === 0) {
                         ${escapeHtml(match.competition)}
                     </div>
 
-                    <div class="match-status today">
+                    <div class="match-status today" data-today-match-status data-match-id="${Number(match.id)}">
                         TODAY
                     </div>
                 </div>
@@ -800,6 +816,7 @@ if (todayMatches.length === 0) {
 }
 
 document.getElementById("matchContent").innerHTML = html;
+updateTodayMatchStatuses();
 return true;
     }
 
