@@ -595,7 +595,7 @@
                 <button type="button" class="match-filter-button active" data-match-filter="today" onclick="setMatchFilter('today')">Today</button>
                 <button type="button" class="match-filter-button" data-match-filter="tomorrow" onclick="setMatchFilter('tomorrow')">Tomorrow</button>
                 <button type="button" class="match-filter-button" data-match-filter="upcoming" onclick="setMatchFilter('upcoming')">Upcoming</button>
-                <button type="button" class="match-filter-button" data-match-filter="all" onclick="setMatchFilter('all')">All matches</button>
+                <button type="button" class="match-filter-button" data-match-filter="all" onclick="setMatchFilter('all')">All matches (including expired)</button>
             </div>
             <div class="matches-summary" id="matchesSummary" aria-live="polite"></div>
         </div>
@@ -1112,7 +1112,7 @@ function renderSavedMatches() {
         today: "today",
         tomorrow: "tomorrow",
         upcoming: "upcoming",
-        all: "all matches"
+        all: "all matches (including expired)"
     };
     summary.textContent = `${filteredMatches.length} ${filterLabels[selectedMatchFilter]} found`;
 
@@ -1160,7 +1160,8 @@ async function loadSavedMatches() {
         .from("matches")
         .select("*")
         .order("match_date", { ascending: true })
-        .order("match_time", { ascending: true });
+        .order("match_time", { ascending: true })
+        .range(0, 9999);
 
     if (error) {
 
