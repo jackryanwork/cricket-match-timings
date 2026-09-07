@@ -128,7 +128,7 @@
 
         .match-filters {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 8px;
         }
 
@@ -595,6 +595,7 @@
                 <button type="button" class="match-filter-button active" data-match-filter="today" onclick="setMatchFilter('today')">Today</button>
                 <button type="button" class="match-filter-button" data-match-filter="tomorrow" onclick="setMatchFilter('tomorrow')">Tomorrow</button>
                 <button type="button" class="match-filter-button" data-match-filter="upcoming" onclick="setMatchFilter('upcoming')">Upcoming</button>
+                <button type="button" class="match-filter-button" data-match-filter="expired" onclick="setMatchFilter('expired')">Expired</button>
                 <button type="button" class="match-filter-button" data-match-filter="all" onclick="setMatchFilter('all')">All matches (including expired)</button>
             </div>
             <div class="matches-summary" id="matchesSummary" aria-live="polite"></div>
@@ -1105,6 +1106,7 @@ function renderSavedMatches() {
         if (selectedMatchFilter === "today") return match.match_date === today;
         if (selectedMatchFilter === "tomorrow") return match.match_date === tomorrow;
         if (selectedMatchFilter === "upcoming") return match.match_date > tomorrow;
+        if (selectedMatchFilter === "expired") return match.match_date < today;
         return true;
     });
 
@@ -1112,6 +1114,7 @@ function renderSavedMatches() {
         today: "today",
         tomorrow: "tomorrow",
         upcoming: "upcoming",
+        expired: "expired matches",
         all: "all matches (including expired)"
     };
     summary.textContent = `${filteredMatches.length} ${filterLabels[selectedMatchFilter]} found`;
