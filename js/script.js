@@ -163,6 +163,7 @@ trackFirstMiniAppOpen();
 let browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
 let localTimeFormatter = createBrowserTimeFormatter(browserTimeZone);
 let localMatchTimeFormatter = createLocalMatchTimeFormatter(browserTimeZone);
+let localMatchDateFormatter = createLocalMatchDateFormatter(browserTimeZone);
 
 function createBrowserTimeFormatter(timeZone) {
     const options = {
@@ -191,6 +192,21 @@ function createLocalMatchTimeFormatter(timeZone) {
     return new Intl.DateTimeFormat(undefined, options);
 }
 
+function createLocalMatchDateFormatter(timeZone) {
+    const options = {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+    };
+
+    if (timeZone) {
+        options.timeZone = timeZone;
+    }
+
+    return new Intl.DateTimeFormat(undefined, options);
+}
+
 function refreshBrowserTimeZone() {
     const resolvedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
     if (resolvedTimeZone === browserTimeZone) return;
@@ -198,6 +214,7 @@ function refreshBrowserTimeZone() {
     browserTimeZone = resolvedTimeZone;
     localTimeFormatter = createBrowserTimeFormatter(browserTimeZone);
     localMatchTimeFormatter = createLocalMatchTimeFormatter(browserTimeZone);
+    localMatchDateFormatter = createLocalMatchDateFormatter(browserTimeZone);
 }
 
 function formatVisitorMatchTime(match) {
@@ -206,6 +223,14 @@ function formatVisitorMatchTime(match) {
 
     refreshBrowserTimeZone();
     return localMatchTimeFormatter.format(start);
+}
+
+function formatVisitorMatchDate(match) {
+    const start = getMatchStart(match);
+    if (!start) return "Date to be confirmed";
+
+    refreshBrowserTimeZone();
+    return localMatchDateFormatter.format(start);
 }
 
 function formatVisitorTimeZone(date = new Date()) {
@@ -303,18 +328,6 @@ function setDisplayedMatches(matches) {
     );
 }
 
-function formatMatchDate(matchDate) {
-    if (!matchDate) return "Date to be confirmed";
-
-    return new Intl.DateTimeFormat("en-IN", {
-        timeZone: "Asia/Kolkata",
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric"
-    }).format(new Date(`${matchDate}T00:00:00+05:30`));
-}
-
 function formatTournamentName(match) {
     const competition = String(match.competition || "Cricket match").trim();
     const escapePattern = value => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -344,7 +357,7 @@ function openMatchDetails(match) {
     detailContent.innerHTML = `
         <div class="detail-tournament">${escapeHtml(match.competition || "Cricket match")}</div>
         <div class="detail-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
-        <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatMatchDate(match.match_date))}</strong></div>
+        <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatVisitorMatchDate(match))}</strong></div>
         <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatVisitorMatchTime(match))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</strong></div>
         <div class="detail-row"><span>Venue</span><strong>${escapeHtml(match.venue || "Venue to be confirmed")}</strong></div>
         ${reminderButton}
@@ -397,7 +410,7 @@ function renderReminderList(reminders) {
             <div class="reminder-item-title">${escapeHtml(reminder.team1)} vs ${escapeHtml(reminder.team2)}</div>
             <div class="reminder-item-meta">
                 ${escapeHtml(reminder.competition || "Cricket match")}<br>
-                ${escapeHtml(formatMatchDate(reminder.match_date))} · ${escapeHtml(formatVisitorMatchTime(reminder))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(reminder)))}
+                ${escapeHtml(formatVisitorMatchDate(reminder))} · ${escapeHtml(formatVisitorMatchTime(reminder))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(reminder)))}
             </div>
             <button class="reminder-cancel" type="button" data-cancel-reminder-id="${Number(reminder.id)}">Cancel reminder</button>
         </div>
@@ -526,7 +539,7 @@ async function saveMyTeams() {
 }
 
 async function shareMiniApp(event) {
-    const shareText = "🏏 Check cricket match schedules and IST timings on CricNivo.";
+    const shareText = "🏏 Check cricket match schedules in your local time on CricNivo.";
 
     // Let Telegram handle the native t.me share link directly. This keeps the
     // action working even when the Mini App JavaScript bridge is unavailable.
@@ -599,7 +612,7 @@ function renderBigMatches() {
                 <div class="featured-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
                 <div class="featured-meta">
                     <span>${escapeHtml(formatTournamentName(match))}</span>
-                    <span>${escapeHtml(formatMatchDate(match.match_date))}<br>${escapeHtml(formatVisitorMatchTime(match))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
+                    <span>${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))} ${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
                 </div>
                 <div class="featured-countdown" data-big-countdown-index="${index}">${formatCountdown(start)}</div>
             </article>
@@ -776,7 +789,7 @@ if (todayMatches.length === 0) {
                 <div class="match-bottom">
 
                     <div class="match-schedule">
-                        <div class="match-date">${escapeHtml(formatMatchDate(match.match_date))}</div>
+                        <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
                         <div class="match-time">
                             ${escapeHtml(formatVisitorMatchTime(match))}
                             <span class="timezone">${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
@@ -884,7 +897,7 @@ if (tomorrowMatches.length === 0) {
                 <div class="match-bottom">
 
                     <div class="match-schedule">
-                        <div class="match-date">${escapeHtml(formatMatchDate(match.match_date))}</div>
+                        <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
                         <div class="match-time">
                             ${escapeHtml(formatVisitorMatchTime(match))}
                             <span class="timezone">${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
@@ -939,7 +952,7 @@ setDisplayedMatches(upcomingMatches);
 let html = `
     <div class="section-header">
         <h2>Upcoming Cricket Matches</h2>
-        <span>Dates shown in IST</span>
+        <span>Dates shown in your local time</span>
     </div>
 `;
 
@@ -993,7 +1006,7 @@ if (upcomingMatches.length === 0) {
                 <div class="match-bottom">
 
                     <div class="match-schedule">
-                        <div class="match-date">${escapeHtml(formatMatchDate(match.match_date))}</div>
+                        <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
                         <div class="match-time">
                             ${escapeHtml(formatVisitorMatchTime(match))}
                             <span class="timezone">${escapeHtml(formatVisitorTimeZone(getMatchStart(match)))}</span>
