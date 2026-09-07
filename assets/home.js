@@ -70,7 +70,21 @@ function isFavouriteMatch(match) {
 }
 
 function sortFavouriteMatches(matches) {
-    return [...matches].sort((left, right) => Number(isFavouriteMatch(right)) - Number(isFavouriteMatch(left)));
+    return [...matches].sort((left, right) => {
+        const favouriteOrder = Number(isFavouriteMatch(right)) - Number(isFavouriteMatch(left));
+        if (favouriteOrder !== 0) return favouriteOrder;
+
+        const dateOrder = String(left.match_date || "").localeCompare(String(right.match_date || ""));
+        if (dateOrder !== 0) return dateOrder;
+
+        const timeOrder = String(left.match_time || "").localeCompare(String(right.match_time || ""));
+        if (timeOrder !== 0) return timeOrder;
+
+        const competitionOrder = String(left.competition || "").localeCompare(String(right.competition || ""));
+        if (competitionOrder !== 0) return competitionOrder;
+
+        return Number(left.id || 0) - Number(right.id || 0);
+    });
 }
 
 function updateMyTeamsMenuCount() {
@@ -635,7 +649,8 @@ async function refreshMatches(type = currentMatchType) {
      const { data: matches, error } = await supabaseClient
     .from("matches")
     .select("*")
-    .eq("match_date", formatLocalDate(new Date()));
+    .eq("match_date", formatLocalDate(new Date()))
+    .order("match_time", { ascending: true });
 
 if (error) {
     console.error("Error loading matches:", error);
@@ -1136,4 +1151,3 @@ document.addEventListener("touchend", async () => {
 }, { passive: true });
 
 document.addEventListener("touchcancel", resetPullIndicator, { passive: true });
-
