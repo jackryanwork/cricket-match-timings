@@ -253,6 +253,28 @@ button {
     letter-spacing: 1px;
 }
 
+.welcome-step {
+    opacity: 0;
+    transform: translateY(-115%);
+    animation: welcome-step-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 1 both;
+}
+
+.welcome-step-1 { animation-delay: 0ms; }
+.welcome-step-2 { animation-delay: 550ms; }
+.welcome-step-3 { animation-delay: 1100ms; }
+
+@keyframes welcome-step-in {
+    from {
+        opacity: 0;
+        transform: translateY(-115%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .welcome h1,
 .welcome h2 {
     margin: 7px 0 5px;
@@ -703,6 +725,27 @@ button {
     color: var(--muted);
     font-size: 10px;
     font-weight: 800;
+}
+
+.match-vs {
+    display: flex;
+    width: 20%;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.match-countdown {
+    color: var(--accent);
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.match-countdown.is-hidden,
+.match-countdown:empty {
+    display: none;
 }
 
 .match-bottom {
@@ -1339,8 +1382,13 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .buddy-eye, .buddy-arm-right {
+    .buddy-eye, .buddy-arm-right, .welcome-step {
         animation: none;
+    }
+
+    .welcome-step {
+        opacity: 1;
+        transform: none;
     }
 }
 

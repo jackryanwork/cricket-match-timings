@@ -288,7 +288,7 @@ function getMatchStart(match) {
 function formatCountdown(start) {
     const remaining = start.getTime() - Date.now();
 
-    if (remaining <= 0) return "Starting now";
+    if (remaining <= 0) return "Live now";
 
     const totalSeconds = Math.ceil(remaining / 1000);
     const days = Math.floor(totalSeconds / 86400);
@@ -303,6 +303,12 @@ function formatCountdown(start) {
     parts.push(`${seconds}s`);
 
     return `Starts in ${parts.join(" ")}`;
+}
+
+function formatMatchCountdown(match, hideWhenStarted = false) {
+    const start = getMatchStart(match);
+    if (hideWhenStarted && start && start.getTime() <= Date.now()) return "";
+    return start ? formatCountdown(start) : "Start time unavailable";
 }
 
 let bigMatches = [];
@@ -611,7 +617,7 @@ function renderBigMatches() {
     }).join("");
 
     featuredContent.innerHTML = `
-        <div class="featured-label">Upcoming Big Matches</div>
+        <div class="featured-label">Featured Matches</div>
         <div class="big-match-stack">${matchCards}</div>
         ${bigMatches.length > 1
             ? '<span class="big-match-toggle">Tap to see all matches</span>'
@@ -645,8 +651,21 @@ function updateBigMatchesExpandedState() {
     }
 }
 
-function updateBigMatchCountdowns() {
+function updateMatchCountdowns() {
     updateTodayMatchStatuses();
+
+    document.querySelectorAll("[data-match-countdown-id]").forEach(countdown => {
+        const match = displayedMatches.get(countdown.dataset.matchCountdownId);
+        if (!match) return;
+
+        const start = getMatchStart(match);
+        const card = countdown.closest("[data-match-id]");
+        const isTodayCountdown = Boolean(card?.querySelector("[data-today-match-status]"));
+        const hideCountdown = isTodayCountdown && start && start.getTime() <= Date.now();
+
+        countdown.classList.toggle("is-hidden", hideCountdown);
+        if (!hideCountdown) countdown.textContent = formatMatchCountdown(match);
+    });
 
     document.querySelectorAll("[data-big-countdown-index]").forEach(countdown => {
         const match = bigMatches[Number(countdown.dataset.bigCountdownIndex)];
@@ -706,7 +725,7 @@ async function refreshMatches(type = currentMatchType) {
     }
 
     refreshButton.disabled = false;
-    refreshButton.innerHTML = `${uiIcon("refresh")}Refresh`;
+    refreshButton.innerHTML = `${uiIcon("refresh")}Update Matches`;
 }
 
     async function showMatches(type) {
@@ -741,7 +760,7 @@ setDisplayedMatches(todayMatches);
 
 let html = `
     <div class="section-header">
-        <h2>Today's Cricket Matches</h2>
+        <h2>Today's Matches</h2>
         <span>${formatDateLabel(today)}</span>
     </div>
 `;
@@ -782,7 +801,10 @@ if (todayMatches.length === 0) {
                         </div>
                     </div>
 
-                    <div class="vs">VS</div>
+                    <div class="match-vs">
+                        <div class="vs">VS</div>
+                        <div class="match-countdown" data-match-countdown-id="${Number(match.id)}">${escapeHtml(formatMatchCountdown(match, true))}</div>
+                    </div>
 
                     <div class="team">
                         <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
@@ -817,6 +839,7 @@ if (todayMatches.length === 0) {
 
 document.getElementById("matchContent").innerHTML = html;
 updateTodayMatchStatuses();
+updateMatchCountdowns();
 return true;
     }
 
@@ -849,7 +872,7 @@ setDisplayedMatches(tomorrowMatches);
 
 let html = `
     <div class="section-header">
-        <h2>Tomorrow's Cricket Matches</h2>
+        <h2>Tomorrow's Matches</h2>
         <span>${formatDateLabel(tomorrow)}</span>
     </div>
 `;
@@ -890,7 +913,10 @@ if (tomorrowMatches.length === 0) {
                         </div>
                     </div>
 
-                    <div class="vs">VS</div>
+                    <div class="match-vs">
+                        <div class="vs">VS</div>
+                        <div class="match-countdown" data-match-countdown-id="${Number(match.id)}">${escapeHtml(formatMatchCountdown(match))}</div>
+                    </div>
 
                     <div class="team">
                         <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
@@ -924,6 +950,7 @@ if (tomorrowMatches.length === 0) {
 }
 
 document.getElementById("matchContent").innerHTML = html;
+updateMatchCountdowns();
 return true;
     }
 
@@ -957,7 +984,7 @@ setDisplayedMatches(upcomingMatches);
 
 let html = `
     <div class="section-header">
-        <h2>Upcoming Cricket Matches</h2>
+        <h2>Upcoming Matches</h2>
         <span>Dates shown in your local time</span>
     </div>
 `;
@@ -1037,7 +1064,7 @@ return true;
 }
 
 refreshMatches("today");
-setInterval(updateBigMatchCountdowns, 1000);
+setInterval(updateMatchCountdowns, 1000);
 
 const menuButton = document.getElementById("menuButton");
 const menuPanel = document.getElementById("menuPanel");

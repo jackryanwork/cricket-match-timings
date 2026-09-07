@@ -4,15 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>CricNivo - Cricket Match Schedule & Local Timings</title>
-    <meta name="description" content="Follow today's cricket matches, tomorrow's fixtures, upcoming international cricket schedules, and match timings in your local time with CricNivo.">
+    <title>CricNivo | Find Every Cricket Match in One Place</title>
+    <meta name="description" content="Find today's cricket matches, upcoming fixtures, results, and local match timings in one simple schedule with CricNivo.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://www.cricnivo.com/">
 
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="CricNivo">
-    <meta property="og:title" content="CricNivo - Cricket Match Schedule & Local Timings">
-    <meta property="og:description" content="Check today's cricket matches and upcoming fixtures in your local time zone on CricNivo.">
+    <meta property="og:title" content="CricNivo | Find Every Cricket Match in One Place">
+    <meta property="og:description" content="Check today's matches, upcoming fixtures, results, and local cricket timings on CricNivo.">
     <meta property="og:url" content="https://www.cricnivo.com/">
     <meta property="og:image" content="https://www.cricnivo.com/assets/icon-512x512.png">
     <meta name="twitter:card" content="summary">
@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="css/style.css?v=5">
-    <script src="js/script.js?v=local-time-4" defer></script>
+    <link rel="stylesheet" href="css/style.css?v=6">
+    <script src="js/script.js?v=match-countdown-5" defer></script>
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
@@ -63,8 +63,8 @@
                     "@type": "WebPage",
                     "@id": "https://www.cricnivo.com/#webpage",
                     "url": "https://www.cricnivo.com/",
-                    "name": "CricNivo - Cricket Match Schedule & Local Timings",
-                    "description": "Follow today's cricket matches, tomorrow's fixtures, upcoming international cricket schedules, and match timings in your local time with CricNivo.",
+                    "name": "CricNivo | Find Every Cricket Match in One Place",
+                    "description": "Find today's cricket matches, upcoming fixtures, results, and local match timings in one simple schedule with CricNivo.",
                     "isPartOf": {
                         "@id": "https://www.cricnivo.com/#website"
                     },
@@ -168,18 +168,14 @@
     <!-- WELCOME -->
     <section class="welcome" aria-labelledby="welcomeHeading">
 
-        <div class="welcome-label">
-            Cricket Schedule
+        <div class="welcome-label welcome-step welcome-step-1">
+            Welcome
         </div>
 
-        <h1 id="welcomeHeading">Cricket match schedule in your local time.</h1>
+        <h1 id="welcomeHeading" class="welcome-step welcome-step-2">CricNivo means your cricket navigation.</h1>
 
-        <p>
-            Check today's cricket matches, tomorrow's fixtures, and upcoming match timings.
-        </p>
-
-        <p class="local-time" id="localTime">
-            Detecting your local time…
+        <p class="welcome-step welcome-step-3">
+            Check today's matches, upcoming fixtures, and start times with a live countdown.
         </p>
 
     </section>
@@ -195,22 +191,22 @@
 <nav class="filters" aria-label="Match filters">
 
     <button class="filter today active" type="button" data-match-filter="today">
-        Today
+        Today's Matches
     </button>
 
     <button class="filter tomorrow" type="button" data-match-filter="tomorrow">
-        Tomorrow
+        Tomorrow's Matches
     </button>
 
     <button class="filter upcoming" type="button" data-match-filter="upcoming">
-        Upcoming
+        Upcoming Matches
     </button>
 
 </nav>
 
     <div class="match-tools">
         <span class="last-updated" id="lastUpdated">Loading matches…</span>
-        <button class="refresh-button" id="refreshButton" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>Refresh</button>
+        <button class="refresh-button" id="refreshButton" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>Update Matches</button>
     </div>
 
     <!-- MATCH CONTENT -->
@@ -218,7 +214,7 @@
 <section id="matchContent" aria-live="polite">
     <div class="match-section">
         <div class="section-header">
-            <h2>Today's Cricket Matches</h2>
+            <h2>Today's Matches</h2>
             <span>Loading…</span>
         </div>
         <article class="match-card">
@@ -230,14 +226,14 @@
     </section>
     <section class="schedule-guide" aria-labelledby="scheduleGuideHeading">
         <div class="section-header">
-            <h2 id="scheduleGuideHeading">Cricket Schedule Guide</h2>
-            <span>Quick answers</span>
+            <h2 id="scheduleGuideHeading">About the Schedule</h2>
+            <span>Good to know</span>
         </div>
 
         <div class="faq-list">
             <details>
-                <summary>Where can I check today's cricket matches?</summary>
-                <p>CricNivo lists today's cricket matches, tomorrow's fixtures, and upcoming cricket schedules from one simple homepage. You can also read the <a href="today-cricket-match.html">today cricket match schedule guide</a>.</p>
+                <summary>What can I find on CricNivo?</summary>
+                <p>CricNivo shows today's matches, tomorrow's fixtures, upcoming schedules, and recent results from one simple homepage. You can also read the <a href="today-cricket-match.html">today's cricket match schedule guide</a>.</p>
             </details>
 
             <details>
@@ -246,7 +242,7 @@
             </details>
 
             <details>
-                <summary>Can I get reminders before a cricket match starts?</summary>
+                <summary>Can I get a reminder before a match starts?</summary>
                 <p>Supported matches include Telegram reminders, so you can set an alert before the match begins.</p>
             </details>
         </div>
@@ -278,7 +274,7 @@
         <div class="modal-handle"></div>
         <button class="modal-close" id="reminderModalClose" type="button" aria-label="Close match reminders"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
         <h2 class="reminder-heading">Match Reminders</h2>
-        <p class="reminder-intro">Your scheduled 30-minute Telegram alerts.</p>
+        <p class="reminder-intro">Your Telegram alerts for upcoming matches.</p>
         <div class="reminder-list" id="reminderList" aria-live="polite">
             <p class="reminder-state">Loading reminders…</p>
         </div>
@@ -290,9 +286,9 @@
         <div class="modal-handle"></div>
         <button class="modal-close" id="myTeamsModalClose" type="button" aria-label="Close My Teams"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
         <h2 class="feature-heading heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</h2>
-        <p class="feature-copy">Select your teams. Their matches will appear first and be highlighted.</p>
+        <p class="feature-copy">Choose your teams to find their matches faster. Selected matches will appear first and be highlighted.</p>
         <div class="team-picker" id="teamPicker"><p class="reminder-state">Loading teams…</p></div>
-        <button class="feature-primary" id="saveMyTeamsButton" type="button">Save My Teams</button>
+        <button class="feature-primary" id="saveMyTeamsButton" type="button">Save Teams</button>
     </div>
 </div>
 
@@ -301,12 +297,12 @@
         <div class="modal-handle"></div>
         <button class="modal-close" id="aboutModalClose" type="button" aria-label="Close About"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
         <h2 class="feature-heading">About</h2>
-        <p class="feature-copy">CricNivo helps you follow international cricket schedules without missing an important game.</p>
+        <p class="feature-copy">CricNivo makes it easy to find cricket matches, check local start times, and follow the teams you care about.</p>
         <ul class="about-list">
             <li>🕒 Match times automatically use your browser's local time zone.</li>
-            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Set a personal Telegram reminder for 30 minutes before a match.</span></li>
-            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Select My Teams to bring their matches to the top.</span></li>
-            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Follow our channel for cricket match updates.</span></li>
+            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Set a Telegram reminder before a match starts.</span></li>
+            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Save your teams to find their matches faster.</span></li>
+            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Join our channel for cricket match updates.</span></li>
         </ul>
     </div>
 </div>
