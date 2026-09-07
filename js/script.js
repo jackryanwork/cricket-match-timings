@@ -990,6 +990,12 @@ const aboutModalClose = document.getElementById("aboutModalClose");
 const cricketBuddy = document.getElementById("cricketBuddy");
 const buddyMessage = document.getElementById("buddyMessage");
 
+document.querySelectorAll("[data-match-filter]").forEach(button => {
+    button.addEventListener("click", () => {
+        refreshMatches(button.dataset.matchFilter);
+    });
+});
+
 document.getElementById("buddyMessageClose").addEventListener("click", () => {
     buddyMessage.hidden = true;
     cricketBuddy.focus({ preventScroll: true });
