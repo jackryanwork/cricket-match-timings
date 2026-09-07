@@ -1073,12 +1073,20 @@ button {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    min-width: 0;
     margin-bottom: 18px;
+}
+
+.content-logo {
+    display: inline-flex;
+    flex: 0 1 min(230px, 44vw);
+    min-width: 0;
 }
 
 .content-logo img {
     display: block;
-    width: clamp(150px, 44vw, 230px);
+    width: 100%;
+    max-width: 230px;
     height: auto;
 }
 
