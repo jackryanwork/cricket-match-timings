@@ -675,11 +675,11 @@ let html = `
 if (todayMatches.length === 0) {
 
     html += `
-        <div class="match-card">
+        <article class="match-card">
             <div class="match-bottom">
                 No matches scheduled today.
             </div>
-        </div>
+        </article>
     `;
 
 } else {
@@ -687,7 +687,7 @@ if (todayMatches.length === 0) {
     todayMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
+            <article class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
@@ -735,7 +735,7 @@ if (todayMatches.length === 0) {
 
                 </div>
 
-            </div>
+            </article>
         `;
 
     });
@@ -783,11 +783,11 @@ let html = `
 if (tomorrowMatches.length === 0) {
 
     html += `
-        <div class="match-card">
+        <article class="match-card">
             <div class="match-bottom">
                 No matches available tomorrow.
             </div>
-        </div>
+        </article>
     `;
 
 } else {
@@ -795,7 +795,7 @@ if (tomorrowMatches.length === 0) {
     tomorrowMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
+            <article class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
@@ -843,7 +843,7 @@ if (tomorrowMatches.length === 0) {
 
                 </div>
 
-            </div>
+            </article>
         `;
 
     });
@@ -892,11 +892,11 @@ let html = `
 if (upcomingMatches.length === 0) {
 
     html += `
-        <div class="match-card">
+        <article class="match-card">
             <div class="match-bottom">
                 No upcoming matches available.
             </div>
-        </div>
+        </article>
     `;
 
 } else {
@@ -904,7 +904,7 @@ if (upcomingMatches.length === 0) {
     upcomingMatches.forEach(function(match) {
 
         html += `
-            <div class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
+            <article class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
 
                 <div class="match-top">
                     <div class="match-type">
@@ -952,7 +952,7 @@ if (upcomingMatches.length === 0) {
 
                 </div>
 
-            </div>
+            </article>
         `;
 
     });

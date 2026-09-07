@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>CricNivo</title>
+    <title>CricNivo - Cricket Match Schedule, Today Matches & IST Timings</title>
+    <meta name="description" content="Follow today's cricket matches, tomorrow's fixtures, upcoming international cricket schedules, and match timings in IST with CricNivo.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://www.cricnivo.com/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="CricNivo">
+    <meta property="og:title" content="CricNivo - Cricket Match Schedule & IST Timings">
+    <meta property="og:description" content="Check today's cricket matches, upcoming fixtures, and India Standard Time schedules on CricNivo.">
+    <meta property="og:url" content="https://www.cricnivo.com/">
+    <meta property="og:image" content="https://www.cricnivo.com/assets/icon-512x512.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="CricNivo - Cricket Match Schedule & IST Timings">
+    <meta name="twitter:description" content="Check today's cricket matches, upcoming fixtures, and IST match timings on CricNivo.">
+    <meta name="twitter:image" content="https://www.cricnivo.com/assets/icon-512x512.png">
 
     <link rel="icon" href="assets/favicon.ico?v=3" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png?v=3">
@@ -20,6 +34,43 @@
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="css/style.css">
     <script src="js/script.js" defer></script>
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@graph": [
+                {
+                    "@type": "Organization",
+                    "@id": "https://www.cricnivo.com/#organization",
+                    "name": "CricNivo",
+                    "url": "https://www.cricnivo.com/",
+                    "logo": "https://www.cricnivo.com/assets/icon-512x512.png",
+                    "sameAs": [
+                        "https://t.me/cricketmatchupdatesicc",
+                        "https://t.me/CricNivo"
+                    ]
+                },
+                {
+                    "@type": "WebSite",
+                    "@id": "https://www.cricnivo.com/#website",
+                    "name": "CricNivo",
+                    "url": "https://www.cricnivo.com/",
+                    "publisher": {
+                        "@id": "https://www.cricnivo.com/#organization"
+                    },
+                    "inLanguage": "en"
+                },
+                {
+                    "@type": "WebApplication",
+                    "@id": "https://www.cricnivo.com/#webapp",
+                    "name": "CricNivo",
+                    "url": "https://www.cricnivo.com/",
+                    "applicationCategory": "SportsApplication",
+                    "operatingSystem": "Any",
+                    "description": "Cricket match schedule, upcoming fixtures, and match timings in India Standard Time."
+                }
+            ]
+        }
+    </script>
 </head>
 
 <body>
@@ -39,12 +90,12 @@
     <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
 </svg>
 
-<div class="app">
+<main class="app">
 
     <div class="pull-indicator" id="pullIndicator" aria-live="polite">↓ Pull down to refresh</div>
 
     <!-- HEADER -->
-    <div class="header">
+    <header class="header">
 
         <div class="brand">
             <img class="brand-logo" src="assets/cricnivo-logo-small.png" width="750" height="202" fetchpriority="high" alt="CricNivo">
@@ -56,7 +107,7 @@
             </button>
             <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
 
-            <div class="menu-panel" id="menuPanel" aria-label="Menu">
+            <nav class="menu-panel" id="menuPanel" aria-label="Menu">
                 <div class="menu-title">Menu</div>
                 <button class="menu-item" id="myTeamsMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</span><span id="myTeamsMenuCount">Select</span></button>
                 <button class="menu-item" id="remindersMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Match reminders</span><span>Open</span></button>
@@ -64,26 +115,26 @@
                 <a class="menu-item" id="shareMenuButton" href="https://t.me/share/url?url=https%3A%2F%2Fwww.cricnivo.com%2F&amp;text=%F0%9F%8F%8F%20Check%20cricket%20match%20schedules%20and%20IST%20timings%20on%20CricNivo." target="_blank" rel="noopener noreferrer"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-share"></use></svg>Share App</span><span>Share</span></a>
                 <a class="menu-item" id="contactMenuButton" href="https://t.me/CricNivo" target="_blank" rel="noopener noreferrer"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-message"></use></svg>Contact Us</span><span>Open</span></a>
                 <button class="menu-item" id="aboutMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-info"></use></svg>About</span><span>View</span></button>
-            </div>
+            </nav>
         </div>
 
-    </div>
+    </header>
 
 
     <!-- WELCOME -->
-    <div class="welcome">
+    <section class="welcome" aria-labelledby="welcomeHeading">
 
         <div class="welcome-label">
             Cricket Schedule
         </div>
 
-        <h2>Never miss a match.</h2>
+        <h1 id="welcomeHeading">Never miss a match.</h1>
 
         <p>
             Get daily fixtures and upcoming matches.
         </p>
 
-    </div>
+    </section>
 
 
     <!-- UPCOMING BIG MATCHES -->
@@ -93,7 +144,7 @@
 
 
    <!-- FILTERS -->
-<div class="filters">
+<nav class="filters" aria-label="Match filters">
 
     <button class="filter today active" type="button" data-match-filter="today">
         Today
@@ -107,7 +158,7 @@
         Upcoming
     </button>
 
-</div>
+</nav>
 
     <div class="match-tools">
         <span class="last-updated" id="lastUpdated">Loading matches…</span>
@@ -116,20 +167,20 @@
 
     <!-- MATCH CONTENT -->
 
-<div id="matchContent">
+<section id="matchContent" aria-live="polite">
     <div class="match-section">
         <div class="section-header">
             <h3>Today's Matches</h3>
             <span>Loading…</span>
         </div>
-        <div class="match-card">
+        <article class="match-card">
             <div class="match-bottom">
                 Loading matches…
             </div>
-        </div>
+        </article>
     </div>
-    </div>
-    <div class="footer">
+    </section>
+    <footer class="footer">
         <p class="footer-note">All match times are shown in IST</p>
         <p class="footer-copyright">© 2026 Cricnivo. All rights reserved.</p>
         <nav class="footer-links" aria-label="Legal and support links">
@@ -138,9 +189,9 @@
             <a href="https://t.me/CricNivo" target="_blank" rel="noopener noreferrer">Contact Us</a>
             <a href="mailto:support@cricnivo.com">Support Email</a>
         </nav>
-    </div>
+    </footer>
 
-</div>
+</main>
 
 <div class="match-modal" id="matchModal" role="dialog" aria-modal="true" aria-label="Match details">
     <div class="match-modal-sheet">
