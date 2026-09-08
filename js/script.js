@@ -268,21 +268,91 @@ function formatIndiaDate(date) {
 }
 
 function formatDateLabel(dateText) {
-    return new Intl.DateTimeFormat("en-GB", {
-        timeZone: "Asia/Kolkata",
+    return new Intl.DateTimeFormat(undefined, {
         weekday: "short",
         day: "numeric",
         month: "short"
-    }).format(new Date(`${dateText}T00:00:00+05:30`));
+    }).format(new Date(`${dateText}T00:00:00`));
+}
+
+function parseZonedDateTime(dateText, timeText, timeZone) {
+    const time = String(timeText).slice(0, 8);
+    const [year, month, day] = String(dateText).split("-").map(Number);
+    const [hour, minute, second = 0] = time.split(":").map(Number);
+    if (![year, month, day, hour, minute, second].every(Number.isFinite)) return null;
+
+    try {
+        const wallClock = Date.UTC(year, month - 1, day, hour, minute, second);
+        let guess = new Date(wallClock);
+        const formatter = new Intl.DateTimeFormat("en-CA", {
+            timeZone: timeZone || "Asia/Kolkata",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hourCycle: "h23"
+        });
+
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            const parts = Object.fromEntries(
+                formatter.formatToParts(guess)
+                    .filter(part => part.type !== "literal")
+                    .map(part => [part.type, part.value])
+            );
+            const displayed = Date.UTC(
+                Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+                Number(parts.hour), Number(parts.minute), Number(parts.second)
+            );
+            guess = new Date(wallClock - (displayed - guess.getTime()));
+        }
+        return Number.isNaN(guess.getTime()) ? null : guess;
+    } catch {
+        return null;
+    }
 }
 
 function getMatchStart(match) {
+    if (match.match_start_at) {
+        const canonicalStart = new Date(match.match_start_at);
+        if (!Number.isNaN(canonicalStart.getTime())) return canonicalStart;
+    }
+
     if (!match.match_date || !match.match_time) return null;
+    return parseZonedDateTime(match.match_date, match.match_time, match.match_timezone);
+}
 
-    const time = String(match.match_time).slice(0, 5);
-    const start = new Date(`${match.match_date}T${time}:00+05:30`);
+function getLocalDayBounds(offsetDays = 0) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() + offsetDays);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    return { start, end, label: formatLocalDate(start) };
+}
 
-    return Number.isNaN(start.getTime()) ? null : start;
+async function loadMatchesForLocalWindow(start, end, legacyStart, legacyEnd) {
+    const canonicalQuery = await supabaseClient
+        .from("matches")
+        .select("*")
+        .gte("match_start_at", start.toISOString())
+        .lt("match_start_at", end.toISOString())
+        .order("match_start_at", { ascending: true });
+
+    if (!canonicalQuery.error) return canonicalQuery;
+
+    const missingCanonicalColumn = canonicalQuery.error.code === "42703"
+        || String(canonicalQuery.error.message || "").includes("match_start_at");
+    if (!missingCanonicalColumn) return canonicalQuery;
+
+    return supabaseClient
+        .from("matches")
+        .select("*")
+        .gte("match_date", legacyStart)
+        .lt("match_date", legacyEnd)
+        .order("match_date", { ascending: true })
+        .order("match_time", { ascending: true });
 }
 
 function formatCountdown(start) {
@@ -348,7 +418,10 @@ function openMatchDetails(match) {
     const matchModal = document.getElementById("matchModal");
     const matchId = Number(match.id);
     const reminderButton = Number.isSafeInteger(matchId) && matchId > 0
-        ? `<button class="detail-reminder" type="button" data-reminder-match-id="${matchId}">${uiIcon("bell")}Remind me 30 minutes before</button>`
+        ? `<button class="detail-reminder" type="button" data-reminder-match-id="${matchId}" aria-expanded="false">${uiIcon("bell")}Remind me</button>`
+        : "";
+    const calendarButton = getMatchStart(match)
+        ? `<button class="detail-calendar" type="button" data-calendar-match-id="${matchId}">${uiIcon("calendar")}Add to Calendar</button>`
         : "";
 
     detailContent.innerHTML = `
@@ -357,12 +430,22 @@ function openMatchDetails(match) {
         <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatVisitorMatchDate(match))}</strong></div>
         <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatVisitorMatchTime(match))}</strong></div>
         <div class="detail-row"><span>Venue</span><strong>${escapeHtml(match.venue || "Venue to be confirmed")}</strong></div>
-        ${reminderButton}
+        <div class="detail-actions">${reminderButton}${calendarButton}</div>
+        <div class="reminder-picker" data-reminder-picker hidden>
+            <fieldset>
+                <legend>Reminder</legend>
+                <label><input type="radio" name="reminder-minutes" value="5"> 5 minutes before</label>
+                <label><input type="radio" name="reminder-minutes" value="15"> 15 minutes before</label>
+                <label><input type="radio" name="reminder-minutes" value="30" checked> 30 minutes before</label>
+                <label><input type="radio" name="reminder-minutes" value="120"> 2 hours before</label>
+            </fieldset>
+            <button class="save-reminder" type="button" data-save-reminder-match-id="${matchId}">Save Reminder</button>
+        </div>
     `;
     matchModal.classList.add("open");
 }
 
-async function requestReminderAction(action, matchId) {
+async function requestReminderAction(action, matchId, reminderMinutes) {
     const initData = getTelegramInitData();
     if (!initData) {
         throw new Error("Open from the bot’s Open App button");
@@ -370,6 +453,7 @@ async function requestReminderAction(action, matchId) {
 
     const payload = { initData, action };
     if (Number.isSafeInteger(matchId) && matchId > 0) payload.matchId = matchId;
+    if (reminderMinutes !== undefined) payload.reminderMinutes = reminderMinutes;
 
     const response = await fetch(REMINDER_FUNCTION_URL, {
         method: "POST",
@@ -407,11 +491,79 @@ function renderReminderList(reminders) {
             <div class="reminder-item-title">${escapeHtml(reminder.team1)} vs ${escapeHtml(reminder.team2)}</div>
             <div class="reminder-item-meta">
                 ${escapeHtml(reminder.competition || "Cricket match")}<br>
-                ${escapeHtml(formatVisitorMatchDate(reminder))} · ${escapeHtml(formatVisitorMatchTime(reminder))}
+                ${escapeHtml(formatVisitorMatchDate(reminder))} · ${escapeHtml(formatVisitorMatchTime(reminder))}<br>
+                ${escapeHtml(formatReminderMinutes(reminder.reminder_minutes))} before match
             </div>
-            <button class="reminder-cancel" type="button" data-cancel-reminder-id="${Number(reminder.id)}">Cancel reminder</button>
+            <button class="reminder-cancel" type="button" data-cancel-reminder-id="${Number(reminder.match_id)}">Cancel reminder</button>
         </div>
     `).join("");
+}
+
+function formatReminderMinutes(minutes) {
+    const value = Number(minutes);
+    if (value === 120) return "2 hours";
+    return `${value || 30} minutes`;
+}
+
+function escapeIcsText(value) {
+    return String(value ?? "")
+        .replace(/\\/g, "\\\\")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,")
+        .replace(/\r?\n/g, "\\n");
+}
+
+function formatIcsUtc(date) {
+    const parts = [
+        date.getUTCFullYear(),
+        String(date.getUTCMonth() + 1).padStart(2, "0"),
+        String(date.getUTCDate()).padStart(2, "0")
+    ];
+    const time = [
+        String(date.getUTCHours()).padStart(2, "0"),
+        String(date.getUTCMinutes()).padStart(2, "0"),
+        String(date.getUTCSeconds()).padStart(2, "0")
+    ];
+    return `${parts.join("")}T${time.join("")}Z`;
+}
+
+function downloadCalendarEvent(match) {
+    const start = getMatchStart(match);
+    if (!start) return;
+
+    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
+    const title = `${match.team1 || "Team 1"} vs ${match.team2 || "Team 2"}`;
+    const identifier = String(match.cricketdata_match_id || `${title}-${start.toISOString()}`)
+        .replace(/[^a-zA-Z0-9.-]+/g, "-")
+        .slice(0, 100);
+    const website = "https://www.cricnivo.com/";
+    const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//CricNivo//Cricket Match//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "BEGIN:VEVENT",
+        `UID:cricnivo-${identifier}@cricnivo.com`,
+        `DTSTAMP:${formatIcsUtc(new Date())}`,
+        `DTSTART:${formatIcsUtc(start)}`,
+        `DTEND:${formatIcsUtc(end)}`,
+        `SUMMARY:${escapeIcsText(title)}`,
+        `DESCRIPTION:${escapeIcsText(`${match.competition || "Cricket match"}\n${website}`)}`,
+        `LOCATION:${escapeIcsText(match.venue || "")}`,
+        `URL:${website}`,
+        "END:VEVENT",
+        "END:VCALENDAR"
+    ];
+    const blob = new Blob([`${lines.join("\r\n")}\r\n`], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${identifier || "cricnivo-match"}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function loadReminderCenter(showModal = true) {
@@ -464,15 +616,18 @@ async function subscribeToReminder(button) {
 
     if (!Number.isSafeInteger(matchId) || matchId <= 0) return;
 
+    const picker = button.closest("[data-reminder-picker]");
+    const reminderMinutes = Number(picker?.querySelector("input[name='reminder-minutes']:checked")?.value || 30);
+
     button.disabled = true;
     button.textContent = "Setting reminder…";
 
     try {
-        const result = await requestReminderAction("set", matchId);
+        const result = await requestReminderAction("set", matchId, reminderMinutes);
 
         button.innerHTML = result.alreadyExists
-            ? `${uiIcon("bell")}Reminder already set`
-            : `${uiIcon("check")}Reminder set for 30 minutes before`;
+            ? `${uiIcon("bell")}Reminder already set for ${formatReminderMinutes(reminderMinutes)}`
+            : `${uiIcon("check")}Reminder set for ${formatReminderMinutes(reminderMinutes)} before`;
         await loadReminderCenter(false);
     } catch (error) {
         button.disabled = false;
@@ -690,11 +845,19 @@ function updateTodayMatchStatuses() {
 }
 
 async function loadBigMatches() {
-    const { data: matches, error } = await supabaseClient
+    let bigMatchQuery = await supabaseClient
         .from("matches")
-        .select("team1, team2, competition, match_date, match_time")
+        .select("team1, team2, competition, match_date, match_time, match_start_at, match_timezone")
         .eq("is_big_match", true)
-        .gte("match_date", formatIndiaDate(new Date()));
+        .gte("match_start_at", new Date().toISOString());
+    if (bigMatchQuery.error && String(bigMatchQuery.error.message || "").includes("match_start_at")) {
+        bigMatchQuery = await supabaseClient
+            .from("matches")
+            .select("team1, team2, competition, match_date, match_time")
+            .eq("is_big_match", true)
+            .gte("match_date", formatIndiaDate(new Date()));
+    }
+    const { data: matches, error } = bigMatchQuery;
 
     if (error) {
         console.error("Error loading big matches:", error);
@@ -739,21 +902,25 @@ async function refreshMatches(type = currentMatchType) {
     if (type === "today") {
         filters[0].classList.add("active");
 
-     const { data: matches, error } = await supabaseClient
-    .from("matches")
-    .select("*")
-    .eq("match_date", formatLocalDate(new Date()))
-    .order("match_time", { ascending: true });
+        const todayBounds = getLocalDayBounds();
+
+     const { data: matches, error } = await loadMatchesForLocalWindow(
+        todayBounds.start,
+        todayBounds.end,
+        todayBounds.label,
+        formatLocalDate(todayBounds.end)
+    );
 
 if (error) {
     console.error("Error loading matches:", error);
     return false;
 }
 
-const today = formatLocalDate(new Date());
+const today = todayBounds.label;
 
 const todayMatches = sortFavouriteMatches(matches.filter(function(match) {
-  return match.match_date === today;
+  return getMatchStart(match)?.getTime() >= todayBounds.start.getTime()
+      && getMatchStart(match)?.getTime() < todayBounds.end.getTime();
 }));
 
 setDisplayedMatches(todayMatches);
@@ -846,16 +1013,15 @@ return true;
     if (type === "tomorrow") {
         filters[1].classList.add("active");
 
-const tomorrowDate = new Date();
-tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+const tomorrowBounds = getLocalDayBounds(1);
+const tomorrow = tomorrowBounds.label;
 
-const tomorrow = formatLocalDate(tomorrowDate);
-
-        const { data: matches, error } = await supabaseClient
-    .from("matches")
-    .select("*")
-    .eq("match_date", tomorrow)
-    .order("match_time", { ascending: true });
+        const { data: matches, error } = await loadMatchesForLocalWindow(
+            tomorrowBounds.start,
+            tomorrowBounds.end,
+            tomorrowBounds.label,
+            formatLocalDate(tomorrowBounds.end)
+        );
 
 if (error) {
     console.error("Error loading matches:", error);
@@ -865,7 +1031,8 @@ if (error) {
 
 
 const tomorrowMatches = sortFavouriteMatches(matches.filter(function(match) {
-    return match.match_date === tomorrow;
+    return getMatchStart(match)?.getTime() >= tomorrowBounds.start.getTime()
+        && getMatchStart(match)?.getTime() < tomorrowBounds.end.getTime();
 }));
 
 setDisplayedMatches(tomorrowMatches);
@@ -957,17 +1124,22 @@ return true;
     if (type === "upcoming") {
         filters[2].classList.add("active");
 
-const tomorrowDate = new Date();
-tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+const upcomingStart = getLocalDayBounds(2).start;
 
-const tomorrow = formatLocalDate(tomorrowDate);
-
-        const { data: matches, error } = await supabaseClient
-    .from("matches")
-    .select("*")
-    .gt("match_date", tomorrow)
-    .order("match_date", { ascending: true })
-    .order("match_time", { ascending: true });
+        let upcomingQuery = await supabaseClient
+            .from("matches")
+            .select("*")
+            .gte("match_start_at", upcomingStart.toISOString())
+            .order("match_start_at", { ascending: true });
+        if (upcomingQuery.error && String(upcomingQuery.error.message || "").includes("match_start_at")) {
+            upcomingQuery = await supabaseClient
+                .from("matches")
+                .select("*")
+                .gt("match_date", formatLocalDate(getLocalDayBounds(1).start))
+                .order("match_date", { ascending: true })
+                .order("match_time", { ascending: true });
+        }
+        const { data: matches, error } = upcomingQuery;
 
 if (error) {
     console.error("Error loading matches:", error);
@@ -977,7 +1149,8 @@ if (error) {
 
 
 const upcomingMatches = sortFavouriteMatches(matches.filter(function(match) {
-    return match.match_date > tomorrow;
+    const start = getMatchStart(match);
+    return start && start.getTime() >= upcomingStart.getTime();
 }));
 
 setDisplayedMatches(upcomingMatches);
@@ -1165,7 +1338,23 @@ matchModal.addEventListener("click", event => {
 
     const reminderButton = event.target.closest("[data-reminder-match-id]");
     if (reminderButton && !reminderButton.disabled) {
-        subscribeToReminder(reminderButton);
+        const picker = matchModal.querySelector("[data-reminder-picker]");
+        const isOpen = picker && !picker.hidden;
+        if (picker) picker.hidden = isOpen;
+        reminderButton.setAttribute("aria-expanded", String(!isOpen));
+        return;
+    }
+
+    const saveReminderButton = event.target.closest("[data-save-reminder-match-id]");
+    if (saveReminderButton && !saveReminderButton.disabled) {
+        subscribeToReminder(saveReminderButton);
+        return;
+    }
+
+    const calendarButton = event.target.closest("[data-calendar-match-id]");
+    if (calendarButton) {
+        const match = displayedMatches.get(calendarButton.dataset.calendarMatchId);
+        if (match) downloadCalendarEvent(match);
     }
 });
 

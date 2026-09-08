@@ -869,7 +869,15 @@ button {
     height: 17px;
 }
 
+.detail-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 18px;
+}
+
 .detail-reminder,
+.detail-calendar,
 .refresh-button,
 .venue {
     display: inline-flex;
@@ -881,6 +889,7 @@ button {
 .venue { justify-content: flex-end; }
 .venue .ui-icon { width: 13px; height: 13px; color: var(--accent); }
 .detail-reminder .ui-icon { width: 16px; height: 16px; }
+.detail-calendar .ui-icon { width: 16px; height: 16px; }
 
 .detail-tournament {
     margin: 0 42px 7px 0;
@@ -916,7 +925,6 @@ button {
 
 .detail-reminder {
     width: 100%;
-    margin-top: 18px;
     border: 1px solid rgba(8, 120, 232, 0.22);
     border-radius: 12px;
     padding: 12px;
@@ -928,9 +936,76 @@ button {
     cursor: pointer;
 }
 
+.detail-calendar {
+    width: 100%;
+    border: 1px solid rgba(24, 148, 94, 0.25);
+    border-radius: 12px;
+    padding: 12px;
+    background: rgba(24, 148, 94, 0.08);
+    color: #166534;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .detail-reminder:disabled {
     cursor: wait;
     opacity: 0.72;
+}
+
+.reminder-picker {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: var(--card-light);
+}
+
+.reminder-picker fieldset {
+    display: grid;
+    gap: 9px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.reminder-picker legend {
+    margin-bottom: 9px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.reminder-picker label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-size: 12px;
+}
+
+.reminder-picker input {
+    accent-color: var(--accent);
+}
+
+.save-reminder {
+    width: 100%;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--accent);
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.save-reminder:disabled {
+    cursor: wait;
+    opacity: 0.7;
 }
 
 .reminder-heading {

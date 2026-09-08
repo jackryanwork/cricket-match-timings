@@ -2,12 +2,27 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "jsr:@supabase/server@^1";
 
 const encoder = new TextEncoder();
-const REMINDER_LEAD_MINUTES = 30;
+const DEFAULT_REMINDER_MINUTES = 30;
+const ALLOWED_REMINDER_MINUTES = new Set([5, 15, 30, 120]);
 const MAX_INIT_DATA_AGE_SECONDS = 24 * 60 * 60;
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const RATE_LIMIT_MAX_REQUESTS = 30;
+const requestBuckets = new Map<number, { startedAt: number; count: number }>();
 
 type TelegramUser = {
   id?: number;
 };
+
+function isRateLimited(telegramUserId: number) {
+  const now = Date.now();
+  const bucket = requestBuckets.get(telegramUserId);
+  if (!bucket || now - bucket.startedAt >= RATE_LIMIT_WINDOW_MS) {
+    requestBuckets.set(telegramUserId, { startedAt: now, count: 1 });
+    return false;
+  }
+  bucket.count += 1;
+  return bucket.count > RATE_LIMIT_MAX_REQUESTS;
+}
 
 async function hmacSha256(key: Uint8Array, value: string) {
   const cryptoKey = await crypto.subtle.importKey(
@@ -70,11 +85,59 @@ async function verifyTelegramInitData(initData: string, botToken: string) {
   }
 }
 
-function getIndiaMatchStart(matchDate: string, matchTime: string) {
-  const time = String(matchTime).slice(0, 5);
-  const start = new Date(`${matchDate}T${time}:00+05:30`);
+function getCanonicalMatchStart(match: {
+  match_start_at?: string | null;
+  match_date?: string | null;
+  match_time?: string | null;
+  match_timezone?: string | null;
+}) {
+  if (match.match_start_at) {
+    const canonicalStart = new Date(match.match_start_at);
+    if (!Number.isNaN(canonicalStart.getTime())) return canonicalStart;
+  }
 
-  return Number.isNaN(start.getTime()) ? null : start;
+  // Legacy rows are covered by the migration, but retain a safe fallback.
+  if (!match.match_date || !match.match_time) return null;
+  const time = String(match.match_time).slice(0, 8);
+  const [year, month, day] = String(match.match_date).split("-").map(Number);
+  const [hour, minute, second = 0] = time.split(":").map(Number);
+  if (![year, month, day, hour, minute, second].every(Number.isFinite)) return null;
+
+  try {
+    const timeZone = match.match_timezone || "Asia/Kolkata";
+    const wallClock = Date.UTC(year, month - 1, day, hour, minute, second);
+    let guess = new Date(wallClock);
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const parts = Object.fromEntries(
+        formatter.formatToParts(guess)
+          .filter((part) => part.type !== "literal")
+          .map((part) => [part.type, part.value]),
+      );
+      const displayed = Date.UTC(
+        Number(parts.year),
+        Number(parts.month) - 1,
+        Number(parts.day),
+        Number(parts.hour),
+        Number(parts.minute),
+        Number(parts.second),
+      );
+      guess = new Date(wallClock - (displayed - guess.getTime()));
+    }
+    return Number.isNaN(guess.getTime()) ? null : guess;
+  } catch {
+    return null;
+  }
 }
 
 export default {
@@ -88,7 +151,7 @@ export default {
       return Response.json({ error: "Reminder service is not configured." }, { status: 500 });
     }
 
-    let body: { initData?: unknown; matchId?: unknown; action?: unknown };
+    let body: { initData?: unknown; matchId?: unknown; action?: unknown; reminderMinutes?: unknown };
     try {
       body = await req.json();
     } catch {
@@ -102,15 +165,22 @@ export default {
     const telegramUserId = await verifyTelegramInitData(body.initData, botToken);
     const action = typeof body.action === "string" ? body.action : "set";
     const matchId = Number(body.matchId);
+    const reminderMinutes = body.reminderMinutes === undefined
+      ? DEFAULT_REMINDER_MINUTES
+      : Number(body.reminderMinutes);
 
     if (!telegramUserId) {
       return Response.json({ error: "Invalid reminder request." }, { status: 400 });
     }
 
+    if (isRateLimited(telegramUserId)) {
+      return Response.json({ error: "Too many reminder requests. Please try again shortly." }, { status: 429 });
+    }
+
     if (action === "list") {
       const { data: reminderRows, error: reminderError } = await ctx.supabaseAdmin
         .from("match_reminders")
-        .select("match_id, remind_at")
+        .select("match_id, remind_at, reminder_minutes")
         .eq("telegram_user_id", telegramUserId)
         .gte("remind_at", new Date().toISOString())
         .order("remind_at", { ascending: true });
@@ -129,7 +199,7 @@ export default {
 
       const { data: matches, error: matchesError } = await ctx.supabase
         .from("matches")
-        .select("id, team1, team2, competition, match_date, match_time, venue")
+        .select("id, team1, team2, competition, match_date, match_time, match_start_at, match_timezone, venue")
         .in("id", matchIds);
 
       if (matchesError) {
@@ -140,7 +210,9 @@ export default {
       const matchesById = new Map((matches || []).map((match) => [Number(match.id), match]));
       const reminders = (reminderRows || []).flatMap((row) => {
         const reminderMatch = matchesById.get(Number(row.match_id));
-        return reminderMatch ? [{ ...reminderMatch, remind_at: row.remind_at }] : [];
+        return reminderMatch
+          ? [{ ...reminderMatch, remind_at: row.remind_at, reminder_minutes: row.reminder_minutes }]
+          : [];
       });
 
       return Response.json({ success: true, reminders });
@@ -169,9 +241,13 @@ export default {
       return Response.json({ error: "Unknown reminder action." }, { status: 400 });
     }
 
+    if (!Number.isSafeInteger(reminderMinutes) || !ALLOWED_REMINDER_MINUTES.has(reminderMinutes)) {
+      return Response.json({ error: "Invalid reminder time." }, { status: 400 });
+    }
+
     const { data: match, error: matchError } = await ctx.supabase
       .from("matches")
-      .select("id, match_date, match_time")
+      .select("id, match_date, match_time, match_start_at, match_timezone")
       .eq("id", matchId)
       .maybeSingle();
 
@@ -184,14 +260,15 @@ export default {
       return Response.json({ error: "Match not found." }, { status: 404 });
     }
 
-    const matchStart = getIndiaMatchStart(match.match_date, match.match_time);
-    const remindAt = matchStart && new Date(matchStart.getTime() - REMINDER_LEAD_MINUTES * 60_000);
+    const matchStart = getCanonicalMatchStart(match);
+    const remindAt = matchStart && new Date(matchStart.getTime() - reminderMinutes * 60_000);
+
+    if (!matchStart || matchStart.getTime() <= Date.now()) {
+      return Response.json({ error: "This match has already started or has no valid start time." }, { status: 422 });
+    }
 
     if (!remindAt || remindAt.getTime() <= Date.now()) {
-      return Response.json(
-        { error: "This match starts in less than 30 minutes." },
-        { status: 422 },
-      );
+      return Response.json({ error: `This match starts in less than ${reminderMinutes} minutes.` }, { status: 422 });
     }
 
     const { error: userError } = await ctx.supabaseAdmin
@@ -212,10 +289,11 @@ export default {
 
     const { data: existingReminder, error: existingError } = await ctx.supabaseAdmin
       .from("match_reminders")
-      .select("id")
-      .eq("telegram_user_id", telegramUserId)
-      .eq("match_id", matchId)
-      .maybeSingle();
+        .select("id, remind_at, reminder_minutes")
+        .eq("telegram_user_id", telegramUserId)
+        .eq("match_id", matchId)
+        .limit(1)
+        .maybeSingle();
 
     if (existingError) {
       console.error("Unable to check reminder", existingError.code);
@@ -223,7 +301,24 @@ export default {
     }
 
     if (existingReminder) {
-      return Response.json({ success: true, alreadyExists: true });
+      const sameReminder = existingReminder.reminder_minutes === reminderMinutes
+        && Math.abs(new Date(existingReminder.remind_at).getTime() - remindAt.getTime()) < 1000;
+      if (sameReminder) {
+        return Response.json({ success: true, alreadyExists: true, reminderMinutes });
+      }
+
+      const { error: updateError } = await ctx.supabaseAdmin
+        .from("match_reminders")
+        .update({ remind_at: remindAt.toISOString(), reminder_minutes: reminderMinutes, processing_at: null })
+        .eq("telegram_user_id", telegramUserId)
+        .eq("match_id", matchId);
+
+      if (updateError) {
+        console.error("Unable to update reminder", updateError.code);
+        return Response.json({ error: "Could not update reminder." }, { status: 500 });
+      }
+
+      return Response.json({ success: true, updated: true, reminderMinutes, remindAt: remindAt.toISOString() });
     }
 
     const { error: reminderError } = await ctx.supabaseAdmin
@@ -232,13 +327,24 @@ export default {
         telegram_user_id: telegramUserId,
         match_id: matchId,
         remind_at: remindAt.toISOString(),
+        reminder_minutes: reminderMinutes,
       });
 
     if (reminderError) {
+      if (reminderError.code === "23505") {
+        const { error: raceUpdateError } = await ctx.supabaseAdmin
+          .from("match_reminders")
+          .update({ remind_at: remindAt.toISOString(), reminder_minutes: reminderMinutes, processing_at: null })
+          .eq("telegram_user_id", telegramUserId)
+          .eq("match_id", matchId);
+        if (!raceUpdateError) {
+          return Response.json({ success: true, updated: true, reminderMinutes, remindAt: remindAt.toISOString() });
+        }
+      }
       console.error("Unable to create reminder", reminderError.code);
       return Response.json({ error: "Could not save reminder." }, { status: 500 });
     }
 
-    return Response.json({ success: true, remindAt: remindAt.toISOString() });
+    return Response.json({ success: true, reminderMinutes, remindAt: remindAt.toISOString() });
   }),
 };

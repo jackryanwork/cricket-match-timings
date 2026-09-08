@@ -18,6 +18,8 @@ type MatchRow = {
   team2: string;
   match_date: string;
   match_time: string;
+  match_start_at: string;
+  match_timezone: string;
   competition: string;
   venue: string;
 };
@@ -35,14 +37,14 @@ function formatCompetition(matchType?: string) {
 }
 
 function indiaDateAndTime(dateTimeText?: string, fallbackDate?: string) {
-  if (!dateTimeText) return { date: fallbackDate, time: "00:00:00" };
+  if (!dateTimeText) return { date: fallbackDate, time: "00:00:00", startAt: null };
 
   const value = /(?:Z|[+-]\d\d:\d\d)$/.test(dateTimeText)
     ? dateTimeText
     : `${dateTimeText}Z`;
   const dateTime = new Date(value);
   if (Number.isNaN(dateTime.getTime())) {
-    return { date: fallbackDate, time: "00:00:00" };
+    return { date: fallbackDate, time: "00:00:00", startAt: null };
   }
 
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -63,6 +65,7 @@ function indiaDateAndTime(dateTimeText?: string, fallbackDate?: string) {
   return {
     date: `${values.year}-${values.month}-${values.day}`,
     time: `${values.hour}:${values.minute}:${values.second}`,
+    startAt: dateTime.toISOString(),
   };
 }
 
@@ -109,7 +112,7 @@ async function loadCricketDataRows(apiKey: string): Promise<MatchRow[]> {
         match.teams?.filter(Boolean) ||
         match.teamInfo?.map((team) => team.name || "").filter(Boolean) ||
         [];
-      const { date, time } = indiaDateAndTime(
+      const { date, time, startAt } = indiaDateAndTime(
         match.dateTimeGMT,
         match.date?.slice(0, 10),
       );
@@ -121,6 +124,8 @@ async function loadCricketDataRows(apiKey: string): Promise<MatchRow[]> {
         team2: teams[1],
         match_date: date,
         match_time: time,
+        match_start_at: startAt || new Date(`${date}T${time}+05:30`).toISOString(),
+        match_timezone: "Asia/Kolkata",
         competition: formatCompetition(match.matchType),
         venue: match.venue || "Venue to be confirmed",
       };
