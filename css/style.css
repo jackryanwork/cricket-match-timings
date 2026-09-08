@@ -942,6 +942,7 @@ button {
 }
 
 .social-icon {
+    display: block;
     width: 15px;
     height: 15px;
     fill: none;
