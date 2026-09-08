@@ -4,6 +4,7 @@ const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-remi
 const MINI_APP_TRACKING_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/track-mini-app-open`;
 const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
 const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
+const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
 const DEFAULT_TEAMS = [
     "Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland",
@@ -64,6 +65,62 @@ function readMyTeams() {
 }
 
 let myTeams = readMyTeams();
+
+function readFavouriteMatchIds() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(FAVOURITE_MATCHES_STORAGE_KEY) || "[]");
+        return new Set(Array.isArray(saved)
+            ? saved.filter(id => Number.isSafeInteger(Number(id)) && Number(id) > 0).map(Number)
+            : []);
+    } catch {
+        return new Set();
+    }
+}
+
+let favouriteMatchIds = readFavouriteMatchIds();
+
+function saveFavouriteMatchIds() {
+    try {
+        localStorage.setItem(FAVOURITE_MATCHES_STORAGE_KEY, JSON.stringify([...favouriteMatchIds]));
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function isMatchFavourite(match) {
+    return favouriteMatchIds.has(Number(match.id));
+}
+
+function favouriteButton(match) {
+    const active = isMatchFavourite(match);
+    const id = Number(match.id);
+    return `<button class="favourite-button${active ? " active" : ""}" type="button" data-favourite-match-id="${id}" aria-pressed="${active}" aria-label="${active ? "Remove from favourites" : "Add to favourites"}">${active ? "♥ Favourite" : "♡ Favourite"}</button>`;
+}
+
+function updateFavouriteButtons(matchId) {
+    document.querySelectorAll(`[data-favourite-match-id="${matchId}"]`).forEach(button => {
+        const active = favouriteMatchIds.has(matchId);
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+        button.setAttribute("aria-label", active ? "Remove from favourites" : "Add to favourites");
+        button.textContent = active ? "♥ Favourite" : "♡ Favourite";
+    });
+}
+
+function toggleFavouriteMatch(matchId) {
+    if (favouriteMatchIds.has(matchId)) favouriteMatchIds.delete(matchId);
+    else favouriteMatchIds.add(matchId);
+    saveFavouriteMatchIds();
+    updateFavouriteButtons(matchId);
+    updateFavouriteMenuCount();
+    renderFavouriteMatches();
+}
+
+function updateFavouriteMenuCount() {
+    const count = document.getElementById("favouriteMatchesMenuCount");
+    if (count) count.textContent = favouriteMatchIds.size ? `${favouriteMatchIds.size} saved` : "Open";
+}
 
 function isFavouriteMatch(match) {
     return myTeams.has(match.team1) || myTeams.has(match.team2);
@@ -386,6 +443,7 @@ let bigMatchesExpanded = false;
 let currentMatchType = "today";
 let lastUpdatedAt = null;
 let displayedMatches = new Map();
+let knownMatches = new Map();
 
 function setDisplayedMatches(matches) {
     displayedMatches = new Map(
@@ -393,6 +451,65 @@ function setDisplayedMatches(matches) {
             .filter(match => Number.isFinite(Number(match.id)))
             .map(match => [String(Number(match.id)), match])
     );
+    displayedMatches.forEach((match, id) => knownMatches.set(id, match));
+}
+
+function renderFavouriteMatches() {
+    const list = document.getElementById("favouriteMatchesList");
+    if (!list) return;
+
+    const matches = [...favouriteMatchIds]
+        .map(id => knownMatches.get(String(id)))
+        .filter(Boolean);
+
+    if (matches.length === 0) {
+        list.innerHTML = '<p class="reminder-state">You haven’t added any favourite matches yet.</p>';
+        return;
+    }
+
+    list.innerHTML = matches.map(match => `
+        <article class="favourite-item">
+            <div class="favourite-item-main">
+                <strong>${escapeHtml(match.team1 || "Team 1")} vs ${escapeHtml(match.team2 || "Team 2")}</strong>
+                <span>${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</span>
+                <span>${escapeHtml(match.venue || "Venue to be confirmed")}</span>
+            </div>
+            ${favouriteButton(match)}
+        </article>
+    `).join("");
+}
+
+async function openFavouriteMatches() {
+    const modal = document.getElementById("favouriteMatchesModal");
+    const list = document.getElementById("favouriteMatchesList");
+    modal.classList.add("open");
+
+    if (favouriteMatchIds.size === 0) {
+        renderFavouriteMatches();
+        return;
+    }
+
+    const missingIds = [...favouriteMatchIds].filter(id => !knownMatches.has(String(id)));
+    if (missingIds.length) {
+        list.innerHTML = '<p class="reminder-state">Loading favourite matches…</p>';
+        const { data, error } = await supabaseClient
+            .from("matches")
+            .select("*")
+            .in("id", missingIds);
+        if (!error && Array.isArray(data)) data.forEach(match => knownMatches.set(String(Number(match.id)), match));
+
+        if (!error) {
+            const availableIds = new Set([...knownMatches.keys()].map(Number));
+            const validIds = [...favouriteMatchIds].filter(id => availableIds.has(id));
+            if (validIds.length !== favouriteMatchIds.size) {
+                favouriteMatchIds = new Set(validIds);
+                saveFavouriteMatchIds();
+                updateFavouriteMenuCount();
+            }
+        }
+    }
+
+    renderFavouriteMatches();
 }
 
 function formatTournamentName(match) {
@@ -420,9 +537,6 @@ function openMatchDetails(match) {
     const reminderButton = Number.isSafeInteger(matchId) && matchId > 0
         ? `<button class="detail-reminder" type="button" data-reminder-match-id="${matchId}" aria-expanded="false">${uiIcon("bell")}Remind me</button>`
         : "";
-    const calendarButton = getMatchStart(match)
-        ? `<button class="detail-calendar" type="button" data-calendar-match-id="${matchId}">${uiIcon("calendar")}Add to Calendar</button>`
-        : "";
 
     detailContent.innerHTML = `
         <div class="detail-tournament">${escapeHtml(match.competition || "Cricket match")}</div>
@@ -430,7 +544,7 @@ function openMatchDetails(match) {
         <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatVisitorMatchDate(match))}</strong></div>
         <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatVisitorMatchTime(match))}</strong></div>
         <div class="detail-row"><span>Venue</span><strong>${escapeHtml(match.venue || "Venue to be confirmed")}</strong></div>
-        <div class="detail-actions">${reminderButton}${calendarButton}</div>
+        <div class="detail-actions">${reminderButton}</div>
         <div class="reminder-picker" data-reminder-picker hidden>
             <fieldset>
                 <legend>Reminder</legend>
@@ -503,67 +617,6 @@ function formatReminderMinutes(minutes) {
     const value = Number(minutes);
     if (value === 120) return "2 hours";
     return `${value || 30} minutes`;
-}
-
-function escapeIcsText(value) {
-    return String(value ?? "")
-        .replace(/\\/g, "\\\\")
-        .replace(/;/g, "\\;")
-        .replace(/,/g, "\\,")
-        .replace(/\r?\n/g, "\\n");
-}
-
-function formatIcsUtc(date) {
-    const parts = [
-        date.getUTCFullYear(),
-        String(date.getUTCMonth() + 1).padStart(2, "0"),
-        String(date.getUTCDate()).padStart(2, "0")
-    ];
-    const time = [
-        String(date.getUTCHours()).padStart(2, "0"),
-        String(date.getUTCMinutes()).padStart(2, "0"),
-        String(date.getUTCSeconds()).padStart(2, "0")
-    ];
-    return `${parts.join("")}T${time.join("")}Z`;
-}
-
-function downloadCalendarEvent(match) {
-    const start = getMatchStart(match);
-    if (!start) return;
-
-    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
-    const title = `${match.team1 || "Team 1"} vs ${match.team2 || "Team 2"}`;
-    const identifier = String(match.cricketdata_match_id || `${title}-${start.toISOString()}`)
-        .replace(/[^a-zA-Z0-9.-]+/g, "-")
-        .slice(0, 100);
-    const website = "https://www.cricnivo.com/";
-    const lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//CricNivo//Cricket Match//EN",
-        "CALSCALE:GREGORIAN",
-        "METHOD:PUBLISH",
-        "BEGIN:VEVENT",
-        `UID:cricnivo-${identifier}@cricnivo.com`,
-        `DTSTAMP:${formatIcsUtc(new Date())}`,
-        `DTSTART:${formatIcsUtc(start)}`,
-        `DTEND:${formatIcsUtc(end)}`,
-        `SUMMARY:${escapeIcsText(title)}`,
-        `DESCRIPTION:${escapeIcsText(`${match.competition || "Cricket match"}\n${website}`)}`,
-        `LOCATION:${escapeIcsText(match.venue || "")}`,
-        `URL:${website}`,
-        "END:VEVENT",
-        "END:VCALENDAR"
-    ];
-    const blob = new Blob([`${lines.join("\r\n")}\r\n`], { type: "text/calendar;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${identifier || "cricnivo-match"}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 async function loadReminderCenter(showModal = true) {
@@ -991,6 +1044,8 @@ if (todayMatches.length === 0) {
                         </div>
                     </div>
 
+                    ${favouriteButton(match)}
+
                     <div class="venue">
                         ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
                     </div>
@@ -1102,6 +1157,8 @@ if (tomorrowMatches.length === 0) {
                             ${escapeHtml(formatVisitorMatchTime(match))}
                         </div>
                     </div>
+
+                    ${favouriteButton(match)}
 
                     <div class="venue">
                         ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
@@ -1218,6 +1275,8 @@ if (upcomingMatches.length === 0) {
                         </div>
                     </div>
 
+                    ${favouriteButton(match)}
+
                     <div class="venue">
                         ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
                     </div>
@@ -1252,10 +1311,13 @@ const reminderModal = document.getElementById("reminderModal");
 const reminderModalClose = document.getElementById("reminderModalClose");
 const reminderList = document.getElementById("reminderList");
 const myTeamsMenuButton = document.getElementById("myTeamsMenuButton");
+const favouriteMatchesMenuButton = document.getElementById("favouriteMatchesMenuButton");
 const shareMenuButton = document.getElementById("shareMenuButton");
 const aboutMenuButton = document.getElementById("aboutMenuButton");
 const myTeamsModal = document.getElementById("myTeamsModal");
 const myTeamsModalClose = document.getElementById("myTeamsModalClose");
+const favouriteMatchesModal = document.getElementById("favouriteMatchesModal");
+const favouriteMatchesModalClose = document.getElementById("favouriteMatchesModalClose");
 const saveMyTeamsButton = document.getElementById("saveMyTeamsButton");
 const aboutModal = document.getElementById("aboutModal");
 const aboutModalClose = document.getElementById("aboutModalClose");
@@ -1288,7 +1350,7 @@ menuButton.addEventListener("click", () => {
 document.addEventListener("click", event => {
     if (!menuPanel.classList.contains("open")) return;
     if (menuPanel.contains(event.target) || menuButton.contains(event.target)) return;
-    if (event.target.closest("#reminderModal, #myTeamsModal, #aboutModal")) return;
+    if (event.target.closest("#reminderModal, #myTeamsModal, #favouriteMatchesModal, #aboutModal")) return;
 
     menuPanel.classList.remove("open");
     menuButton.setAttribute("aria-expanded", "false");
@@ -1318,11 +1380,26 @@ function openDetailsFromCard(card) {
 }
 
 matchContent.addEventListener("click", event => {
+    const favouriteButton = event.target.closest("[data-favourite-match-id]");
+    if (favouriteButton) {
+        event.stopPropagation();
+        toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
+        return;
+    }
+
     const card = event.target.closest("[data-match-id]");
     if (card) openDetailsFromCard(card);
 });
 
 matchContent.addEventListener("keydown", event => {
+    const favouriteButton = event.target.closest("[data-favourite-match-id]");
+    if (favouriteButton && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
+        return;
+    }
+
     if (event.key !== "Enter" && event.key !== " ") return;
 
     const card = event.target.closest("[data-match-id]");
@@ -1351,11 +1428,6 @@ matchModal.addEventListener("click", event => {
         return;
     }
 
-    const calendarButton = event.target.closest("[data-calendar-match-id]");
-    if (calendarButton) {
-        const match = displayedMatches.get(calendarButton.dataset.calendarMatchId);
-        if (match) downloadCalendarEvent(match);
-    }
 });
 
 notificationButton.addEventListener("click", () => loadReminderCenter(true));
@@ -1364,6 +1436,11 @@ remindersMenuButton.addEventListener("click", () => {
 });
 myTeamsMenuButton.addEventListener("click", () => {
     openMyTeams();
+});
+favouriteMatchesMenuButton.addEventListener("click", () => {
+    menuPanel.classList.remove("open");
+    menuButton.setAttribute("aria-expanded", "false");
+    openFavouriteMatches();
 });
 shareMenuButton.addEventListener("click", event => {
     shareMiniApp(event).catch(() => {});
@@ -1375,6 +1452,12 @@ myTeamsModalClose.addEventListener("click", () => myTeamsModal.classList.remove(
 saveMyTeamsButton.addEventListener("click", saveMyTeams);
 myTeamsModal.addEventListener("click", event => {
     if (event.target === myTeamsModal) myTeamsModal.classList.remove("open");
+});
+favouriteMatchesModalClose.addEventListener("click", () => favouriteMatchesModal.classList.remove("open"));
+favouriteMatchesModal.addEventListener("click", event => {
+    if (event.target === favouriteMatchesModal) favouriteMatchesModal.classList.remove("open");
+    const favouriteButton = event.target.closest("[data-favourite-match-id]");
+    if (favouriteButton) toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
 });
 aboutModalClose.addEventListener("click", () => aboutModal.classList.remove("open"));
 aboutModal.addEventListener("click", event => {
@@ -1392,6 +1475,7 @@ document.addEventListener("keydown", event => {
         closeMatchDetails();
         reminderModal.classList.remove("open");
         myTeamsModal.classList.remove("open");
+        favouriteMatchesModal.classList.remove("open");
         aboutModal.classList.remove("open");
     }
 });
@@ -1405,6 +1489,7 @@ updateLocalTime();
 setInterval(updateLocalTime, 1000);
 loadReminderCenter(false);
 updateMyTeamsMenuCount();
+updateFavouriteMenuCount();
 
 const pullIndicator = document.getElementById("pullIndicator");
 const pullThreshold = 72;

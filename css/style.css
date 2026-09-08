@@ -235,6 +235,44 @@ button {
     background: var(--accent-soft);
 }
 
+.menu-social {
+    margin: 8px 4px 4px;
+    padding: 13px 8px 8px;
+    border-top: 1px solid var(--border);
+}
+
+.menu-social-title {
+    margin-bottom: 9px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+}
+
+.menu-social-links {
+    display: flex;
+    gap: 7px;
+}
+
+.menu-social-link {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: #f8fbff;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.menu-social-link:hover,
+.menu-social-link:focus-visible {
+    transform: translateY(-2px);
+    border-color: currentColor;
+}
+
 /* WELCOME */
 
 .welcome {
@@ -645,7 +683,32 @@ button {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     margin-bottom: 15px;
+}
+
+.favourite-button {
+    flex: 0 0 auto;
+    border: 1px solid rgba(8, 120, 232, 0.2);
+    border-radius: 999px;
+    padding: 6px 9px;
+    background: #ffffff;
+    color: var(--muted);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.favourite-button.active {
+    border-color: rgba(250, 120, 72, 0.3);
+    background: rgba(250, 120, 72, 0.1);
+    color: #c2410c;
+}
+
+.favourite-button:focus-visible,
+.favourite-button:hover {
+    border-color: rgba(8, 120, 232, 0.45);
 }
 
 .match-type {
@@ -757,6 +820,16 @@ button {
     padding-top: 12px;
 }
 
+.match-card .match-bottom {
+    position: relative;
+}
+
+.match-card .match-bottom > .favourite-button {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
 .match-time {
     font-size: 15px;
     font-weight: 800;
@@ -789,6 +862,107 @@ button {
     color: #60718a;
     font-size: 11px;
 }
+
+.social-section {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding: 20px;
+    border: 1px solid rgba(8, 120, 232, 0.18);
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 92% 15%, rgba(33, 165, 232, 0.22), transparent 28%),
+        linear-gradient(125deg, #082542, #0d4770);
+    color: #ffffff;
+    text-align: left;
+    box-shadow: 0 16px 30px rgba(8, 55, 92, 0.16);
+}
+
+.social-eyebrow {
+    margin: 0 0 5px;
+    color: #75d4f4;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+}
+
+.social-section h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 22px;
+}
+
+.social-section p:not(.social-eyebrow) {
+    margin: 5px 0 0;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
+}
+
+.social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 6px 11px 6px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+}
+
+.social-link:hover,
+.social-link:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.42);
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.social-mark {
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: -0.3px;
+}
+
+.social-icon {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.menu-social-link .social-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.instagram .social-mark { background: linear-gradient(135deg, #f9ce34, #ee2a7b 52%, #6228d7); }
+.facebook .social-mark { background: #315bb5; font-size: 16px; }
+.threads .social-mark { background: #222b3a; font-size: 13px; }
+.threads .social-icon { color: #ffffff; }
+.telegram .social-mark { background: #229ed9; }
+.telegram .social-icon { fill: currentColor; stroke: none; }
+.x-social .social-mark { background: #101827; font-size: 12px; }
 
 .footer-note,
 .footer-copyright {
@@ -877,7 +1051,6 @@ button {
 }
 
 .detail-reminder,
-.detail-calendar,
 .refresh-button,
 .venue {
     display: inline-flex;
@@ -889,7 +1062,6 @@ button {
 .venue { justify-content: flex-end; }
 .venue .ui-icon { width: 13px; height: 13px; color: var(--accent); }
 .detail-reminder .ui-icon { width: 16px; height: 16px; }
-.detail-calendar .ui-icon { width: 16px; height: 16px; }
 
 .detail-tournament {
     margin: 0 42px 7px 0;
@@ -930,19 +1102,6 @@ button {
     padding: 12px;
     background: rgba(8, 120, 232, 0.07);
     color: var(--muted);
-    font: inherit;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.detail-calendar {
-    width: 100%;
-    border: 1px solid rgba(24, 148, 94, 0.25);
-    border-radius: 12px;
-    padding: 12px;
-    background: rgba(24, 148, 94, 0.08);
-    color: #166534;
     font: inherit;
     font-size: 12px;
     font-weight: 700;
@@ -1019,6 +1178,42 @@ button {
     color: var(--muted);
     font-size: 12px;
     line-height: 1.55;
+}
+
+.favourite-list {
+    display: grid;
+    gap: 10px;
+    max-height: min(55vh, 440px);
+    margin-top: 18px;
+    overflow-y: auto;
+}
+
+.favourite-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card-light);
+}
+
+.favourite-item-main {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.favourite-item-main strong {
+    color: var(--text);
+    font-size: 13px;
+}
+
+.favourite-item-main span {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.4;
 }
 
 .reminder-list {
@@ -1613,6 +1808,13 @@ button {
         align-items: center;
         gap: 8px 24px;
         text-align: left;
+    }
+
+    .social-section {
+        grid-column: 1 / -1;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 24px;
     }
 
     .footer-note {
