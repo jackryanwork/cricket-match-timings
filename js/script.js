@@ -95,7 +95,7 @@ function isMatchFavourite(match) {
 function favouriteButton(match) {
     const active = isMatchFavourite(match);
     const id = Number(match.id);
-    return `<button class="favourite-button${active ? " active" : ""}" type="button" data-favourite-match-id="${id}" aria-pressed="${active}" aria-label="${active ? "Remove from favourites" : "Add to favourites"}">${active ? "♥ Favourite" : "♡ Favourite"}</button>`;
+    return `<button class="favourite-button${active ? " active" : ""}" type="button" data-favourite-match-id="${id}" aria-pressed="${active}" aria-label="${active ? "Remove from favourites" : "Add to favourite"}">${active ? "♥ Favourite" : "♡ Add to favourite"}</button>`;
 }
 
 function updateFavouriteButtons(matchId) {
@@ -103,8 +103,8 @@ function updateFavouriteButtons(matchId) {
         const active = favouriteMatchIds.has(matchId);
         button.classList.toggle("active", active);
         button.setAttribute("aria-pressed", String(active));
-        button.setAttribute("aria-label", active ? "Remove from favourites" : "Add to favourites");
-        button.textContent = active ? "♥ Favourite" : "♡ Favourite";
+        button.setAttribute("aria-label", active ? "Remove from favourites" : "Add to favourite");
+        button.textContent = active ? "♥ Favourite" : "♡ Add to favourite";
     });
 }
 
@@ -1044,12 +1044,14 @@ if (todayMatches.length === 0) {
                         </div>
                     </div>
 
-                    ${favouriteButton(match)}
-
                     <div class="venue">
-                        ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
+                        <span class="venue-label">${uiIcon("pin")}<span>${escapeHtml(match.venue || "Stadium")}</span></span>
                     </div>
 
+                </div>
+
+                <div class="match-actions">
+                    ${favouriteButton(match)}
                 </div>
 
             </article>
@@ -1158,12 +1160,14 @@ if (tomorrowMatches.length === 0) {
                         </div>
                     </div>
 
-                    ${favouriteButton(match)}
-
                     <div class="venue">
-                        ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
+                        <span class="venue-label">${uiIcon("pin")}<span>${escapeHtml(match.venue || "Stadium")}</span></span>
                     </div>
 
+                </div>
+
+                <div class="match-actions">
+                    ${favouriteButton(match)}
                 </div>
 
             </article>
@@ -1275,12 +1279,14 @@ if (upcomingMatches.length === 0) {
                         </div>
                     </div>
 
-                    ${favouriteButton(match)}
-
                     <div class="venue">
-                        ${uiIcon("pin")}${escapeHtml(match.venue || "Stadium")}
+                        <span class="venue-label">${uiIcon("pin")}<span>${escapeHtml(match.venue || "Stadium")}</span></span>
                     </div>
 
+                </div>
+
+                <div class="match-actions">
+                    ${favouriteButton(match)}
                 </div>
 
             </article>

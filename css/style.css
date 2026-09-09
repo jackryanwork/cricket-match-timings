@@ -768,10 +768,12 @@ button {
     align-items: center;
     justify-content: space-between;
     text-align: center;
+    min-width: 0;
 }
 
 .team {
     width: 40%;
+    min-width: 0;
 }
 
 .team-logo {
@@ -782,6 +784,7 @@ button {
 .team-name-card {
     font-size: 13px;
     font-weight: 750;
+    overflow-wrap: anywhere;
 }
 
 .vs {
@@ -803,7 +806,9 @@ button {
     font-size: 9px;
     font-weight: 800;
     line-height: 1.2;
-    white-space: nowrap;
+    max-width: 100%;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
 
 .match-countdown.is-hidden,
@@ -812,8 +817,9 @@ button {
 }
 
 .match-bottom {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 10px;
     align-items: center;
     border-top: 1px solid var(--border);
     margin-top: 14px;
@@ -822,12 +828,6 @@ button {
 
 .match-card .match-bottom {
     position: relative;
-}
-
-.match-card .match-bottom > .favourite-button {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
 }
 
 .match-time {
@@ -839,6 +839,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 3px;
+    min-width: 0;
 }
 
 .match-date {
@@ -848,8 +849,58 @@ button {
 }
 
 .venue {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    min-width: 0;
     color: var(--muted);
     font-size: 10px;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.venue-label {
+    display: inline-flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 0.35em;
+    width: fit-content;
+    max-width: 100%;
+    margin-left: auto;
+}
+
+.venue-label > span {
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.venue-label .ui-icon {
+    vertical-align: -2px;
+    flex: 0 0 auto;
+}
+
+.match-actions {
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+    padding-top: 7px;
+}
+
+.match-actions .favourite-button {
+    min-width: 132px;
+}
+
+@media (max-width: 420px) {
+    .match-bottom {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px 12px;
+    }
+
+    .match-card .match-bottom > .venue {
+        grid-column: 2;
+        grid-row: 1;
+    }
 }
 
 /* FOOTER */
