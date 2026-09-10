@@ -557,11 +557,17 @@ function openMatchDetails(match) {
         </div>
     `;
     const saveReminderButton = detailContent.querySelector("[data-save-reminder-match-id]");
-    saveReminderButton?.addEventListener("click", event => {
+    const handleSaveReminder = event => {
         event.preventDefault();
         event.stopPropagation();
-        if (!saveReminderButton.disabled) void subscribeToReminder(saveReminderButton);
-    });
+        if (saveReminderButton.disabled || saveReminderButton.dataset.submitting === "true") return;
+        saveReminderButton.dataset.submitting = "true";
+        void subscribeToReminder(saveReminderButton).finally(() => {
+            delete saveReminderButton.dataset.submitting;
+        });
+    };
+    saveReminderButton?.addEventListener("click", handleSaveReminder);
+    saveReminderButton?.addEventListener("touchend", handleSaveReminder, { passive: false });
     matchModal.classList.add("open");
 }
 
