@@ -556,6 +556,12 @@ function openMatchDetails(match) {
             <button class="save-reminder" type="button" data-save-reminder-match-id="${matchId}">Save Reminder</button>
         </div>
     `;
+    const saveReminderButton = detailContent.querySelector("[data-save-reminder-match-id]");
+    saveReminderButton?.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!saveReminderButton.disabled) void subscribeToReminder(saveReminderButton);
+    });
     matchModal.classList.add("open");
 }
 
@@ -1429,14 +1435,6 @@ matchModal.addEventListener("click", event => {
         const isOpen = picker && !picker.hidden;
         if (picker) picker.hidden = isOpen;
         reminderButton.setAttribute("aria-expanded", String(!isOpen));
-        return;
-    }
-
-    const saveReminderButton = event.target.closest("[data-save-reminder-match-id]");
-    if (saveReminderButton && !saveReminderButton.disabled) {
-        event.preventDefault();
-        event.stopPropagation();
-        subscribeToReminder(saveReminderButton);
         return;
     }
 
