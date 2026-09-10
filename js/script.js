@@ -6,6 +6,7 @@ const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
 const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
 const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
+const THEME_STORAGE_KEY = "cricnivoTheme";
 const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
 const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, competition, venue, is_big_match";
 const REMINDER_OPTIONS = [5, 30, 60, 120];
@@ -208,6 +209,29 @@ if (window.Telegram?.WebApp) {
     }
     getTelegramInitData();
 }
+
+function isDarkMode() {
+    return document.documentElement.classList.contains("dark-mode");
+}
+
+function updateThemeChrome() {
+    const dark = isDarkMode();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#101e32" : "#ddf3fa");
+
+    try {
+        const telegramApp = window.Telegram?.WebApp;
+        if (!telegramApp) return;
+        telegramApp.setHeaderColor(dark ? "#101e32" : "#f8fcff");
+        telegramApp.setBackgroundColor(dark ? "#0b1424" : "#eef7ff");
+        if (typeof telegramApp.setBottomBarColor === "function") {
+            telegramApp.setBottomBarColor(dark ? "#0b1424" : "#eef7ff");
+        }
+    } catch {
+        // Older Telegram clients may not support custom interface colors.
+    }
+}
+
+updateThemeChrome();
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -1376,6 +1400,7 @@ const myTeamsMenuButton = document.getElementById("myTeamsMenuButton");
 const favouriteMatchesMenuButton = document.getElementById("favouriteMatchesMenuButton");
 const shareMenuButton = document.getElementById("shareMenuButton");
 const aboutMenuButton = document.getElementById("aboutMenuButton");
+const themeToggleButton = document.getElementById("themeToggleButton");
 const myTeamsModal = document.getElementById("myTeamsModal");
 const myTeamsModalClose = document.getElementById("myTeamsModalClose");
 const favouriteMatchesModal = document.getElementById("favouriteMatchesModal");
@@ -1387,6 +1412,28 @@ const aboutModal = document.getElementById("aboutModal");
 const aboutModalClose = document.getElementById("aboutModalClose");
 const cricketBuddy = document.getElementById("cricketBuddy");
 const buddyMessage = document.getElementById("buddyMessage");
+
+function updateThemeToggle() {
+    const dark = isDarkMode();
+    themeToggleButton.setAttribute("aria-pressed", String(dark));
+    document.getElementById("themeToggleLabel").textContent = dark ? "Bright mode" : "Dark mode";
+    document.getElementById("themeToggleStatus").textContent = dark ? "On" : "Off";
+    themeToggleButton.querySelector("use").setAttribute("href", dark ? "#icon-sun" : "#icon-moon");
+}
+
+updateThemeToggle();
+
+themeToggleButton.addEventListener("click", () => {
+    const dark = !isDarkMode();
+    document.documentElement.classList.toggle("dark-mode", dark);
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, dark ? "dark" : "light");
+    } catch {
+        // The theme still works for the current session when storage is unavailable.
+    }
+    updateThemeToggle();
+    updateThemeChrome();
+});
 
 document.querySelectorAll("[data-match-filter]").forEach(button => {
     button.addEventListener("click", () => {
