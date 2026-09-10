@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "jsr:@supabase/server@^1";
 
 const RETRY_WINDOW_MINUTES = 10;
-const MINI_APP_URL = "https://www.cricnivo.com/";
+const MINI_APP_URL = "https://www.cricnivo.com/?v=4";
 
 function matchStart(match: { match_start_at?: string | null; match_date?: string | null; match_time?: string | null; match_timezone?: string | null }) {
   if (match.match_start_at) {
