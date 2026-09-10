@@ -1202,6 +1202,7 @@ button {
 
 .save-reminder {
     width: 100%;
+    min-height: 44px;
     margin-top: 12px;
     border: 0;
     border-radius: 10px;
@@ -1212,6 +1213,13 @@ button {
     font-size: 12px;
     font-weight: 800;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(8, 120, 232, 0.18);
+}
+
+.save-reminder:active {
+    transform: translateY(1px);
+    filter: brightness(0.92);
 }
 
 .save-reminder:disabled {

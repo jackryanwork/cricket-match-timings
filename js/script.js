@@ -566,6 +566,7 @@ function openMatchDetails(match) {
             delete saveReminderButton.dataset.submitting;
         });
     };
+    saveReminderButton.onclick = handleSaveReminder;
     saveReminderButton?.addEventListener("click", handleSaveReminder);
     saveReminderButton?.addEventListener("touchend", handleSaveReminder, { passive: false });
     matchModal.classList.add("open");
