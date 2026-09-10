@@ -441,7 +441,24 @@ async function loadMatchesForLocalWindow(start, end, legacyStart, legacyEnd) {
         .lt("match_start_at", end.toISOString())
         .order("match_start_at", { ascending: true });
 
-    if (!canonicalQuery.error) return canonicalQuery;
+    if (!canonicalQuery.error) {
+        // Include older admin-created rows that predate match_start_at.
+        const legacyQuery = await supabaseClient
+            .from("matches")
+            .select(LEGACY_MATCH_SELECT)
+            .gte("match_date", legacyStart)
+            .lt("match_date", legacyEnd)
+            .order("match_date", { ascending: true })
+            .order("match_time", { ascending: true });
+
+        if (legacyQuery.error) return canonicalQuery;
+
+        const matchesById = new Map(
+            [...(canonicalQuery.data || []), ...(legacyQuery.data || [])]
+                .map(match => [Number(match.id), match])
+        );
+        return { ...canonicalQuery, data: [...matchesById.values()] };
+    }
 
     const missingCanonicalColumn = canonicalQuery.error.code === "42703"
         || String(canonicalQuery.error.message || "").includes("match_start_at");
