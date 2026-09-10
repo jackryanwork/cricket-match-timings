@@ -843,14 +843,108 @@ button {
 
 .match-actions {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
     border-top: 1px solid var(--border);
     margin-top: 8px;
     padding-top: 7px;
 }
 
-.match-actions .favourite-button {
+.match-actions .favourite-button,
+.match-actions .set-reminder-button {
     min-width: 132px;
+}
+
+.set-reminder-button {
+    flex: 0 0 auto;
+    border: 1px solid rgba(8, 120, 232, 0.2);
+    border-radius: 999px;
+    padding: 6px 9px;
+    background: #ffffff;
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    opacity: 1;
+}
+
+.set-reminder-button.is-set {
+    border-color: rgba(16, 148, 92, 0.35);
+    background: rgba(16, 148, 92, 0.08);
+    color: #087a4b;
+}
+
+.reminder-picker {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.reminder-picker[hidden] {
+    display: none;
+}
+
+.reminder-picker fieldset {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.reminder-picker legend {
+    margin-bottom: 8px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.reminder-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.reminder-option:has(input:checked) {
+    border-color: rgba(8, 120, 232, 0.45);
+    background: rgba(8, 120, 232, 0.06);
+}
+
+.save-reminder {
+    width: 100%;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 14px;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.save-reminder:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.save-reminder.is-set {
+    background: #087a4b;
+}
+
+.reminder-status {
+    min-height: 20px;
+    margin: 9px 0 0;
+    color: var(--muted);
+    font-size: 13px;
 }
 
 @media (max-width: 420px) {
