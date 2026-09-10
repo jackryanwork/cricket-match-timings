@@ -102,6 +102,14 @@
             cursor: pointer;
         }
 
+        .match-save-status {
+            min-height: 19px;
+            margin-top: 9px;
+            color: #54d99b;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
         .match-item {
             background: #0c1324;
             border: 1px solid #303b59;
@@ -557,6 +565,8 @@
             ➕ Save Match
         </button>
 
+        <div class="match-save-status" id="matchSaveStatus" role="status" aria-live="polite"></div>
+
         <button id="cancelEditButton" onclick="cancelEdit()">
             Cancel Edit
         </button>
@@ -903,6 +913,9 @@ async function sendBroadcast() {
 
 async function saveMatch() {
 
+    const saveStatus = document.getElementById("matchSaveStatus");
+    saveStatus.textContent = "";
+
     const team1 = document.getElementById("team1").value.trim();
     const team2 = document.getElementById("team2").value.trim();
     const date = document.getElementById("matchDate").value;
@@ -951,7 +964,7 @@ async function saveMatch() {
 
     cancelEdit();
     loadSavedMatches();
-    alert(isEditing ? "Match updated successfully! ✅" : "Match saved successfully!");
+    saveStatus.textContent = isEditing ? "Match updated" : "Match saved";
 }
 
 function convertTo24HourTime(timeInput, period) {
