@@ -9,6 +9,16 @@ const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const requestBuckets = new Map<number, { startedAt: number; count: number }>();
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://www.cricnivo.com",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function json(body: Record<string, unknown>, status = 200) {
+  return Response.json(body, { status, headers: corsHeaders });
+}
+
 type TelegramUser = {
   id?: number;
 };
@@ -142,24 +152,25 @@ function getCanonicalMatchStart(match: {
 
 export default {
   fetch: withSupabase({ auth: "none" }, async (req, ctx) => {
+    if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
     if (req.method !== "POST") {
-      return Response.json({ error: "Method not allowed." }, { status: 405 });
+      return json({ error: "Method not allowed." }, 405);
     }
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     if (!botToken) {
-      return Response.json({ error: "Reminder service is not configured." }, { status: 500 });
+      return json({ error: "Reminder service is not configured." }, 500);
     }
 
     let body: { initData?: unknown; matchId?: unknown; action?: unknown; reminderMinutes?: unknown; timezone?: unknown };
     try {
       body = await req.json();
     } catch {
-      return Response.json({ error: "Invalid request body." }, { status: 400 });
+      return json({ error: "Invalid request body." }, 400);
     }
 
     if (typeof body.initData !== "string") {
-      return Response.json({ error: "Telegram verification is required." }, { status: 401 });
+      return json({ error: "Telegram verification is required." }, 401);
     }
 
     const telegramUserId = await verifyTelegramInitData(body.initData, botToken);
@@ -170,7 +181,7 @@ export default {
         new Intl.DateTimeFormat("en-US", { timeZone: requestedTimeZone }).format();
         userTimeZone = requestedTimeZone;
       } catch {
-        return Response.json({ error: "Invalid timezone." }, { status: 400 });
+        return json({ error: "Invalid timezone." }, 400);
       }
     }
     const action = typeof body.action === "string" ? body.action : "set";
@@ -180,7 +191,7 @@ export default {
       : Number(body.reminderMinutes);
 
     if (!telegramUserId) {
-      return Response.json({ error: "Invalid reminder request." }, { status: 400 });
+      return json({ error: "Invalid reminder request." }, 400);
     }
 
     if (userTimeZone) {
@@ -194,7 +205,7 @@ export default {
     }
 
     if (isRateLimited(telegramUserId)) {
-      return Response.json({ error: "Too many reminder requests. Please try again shortly." }, { status: 429 });
+      return json({ error: "Too many reminder requests. Please try again shortly." }, 429);
     }
 
     if (action === "list") {
@@ -207,14 +218,14 @@ export default {
 
       if (reminderError) {
         console.error("Unable to list reminders", reminderError.code, reminderError.message);
-        return Response.json({ error: "Could not load reminders." }, { status: 500 });
+        return json({ error: "Could not load reminders." }, 500);
       }
 
       const matchIds = [...new Set((reminderRows || []).map((row) => Number(row.match_id)))]
         .filter((id) => Number.isSafeInteger(id) && id > 0);
 
       if (matchIds.length === 0) {
-        return Response.json({ success: true, reminders: [] });
+        return json({ success: true, reminders: [] });
       }
 
       const { data: matches, error: matchesError } = await ctx.supabase
@@ -224,7 +235,7 @@ export default {
 
       if (matchesError) {
         console.error("Unable to load reminder matches", matchesError.code, matchesError.message);
-        return Response.json({ error: "Could not load reminder matches." }, { status: 500 });
+        return json({ error: "Could not load reminder matches." }, 500);
       }
 
       const matchesById = new Map((matches || []).map((match) => [Number(match.id), match]));
@@ -235,11 +246,11 @@ export default {
           : [];
       });
 
-      return Response.json({ success: true, reminders });
+      return json({ success: true, reminders });
     }
 
     if (!Number.isSafeInteger(matchId) || matchId <= 0) {
-      return Response.json({ error: "Invalid reminder request." }, { status: 400 });
+      return json({ error: "Invalid reminder request." }, 400);
     }
 
     if (action === "cancel") {
@@ -251,18 +262,18 @@ export default {
 
       if (cancelError) {
         console.error("Unable to cancel reminder", cancelError.code, cancelError.message);
-        return Response.json({ error: "Could not cancel reminder." }, { status: 500 });
+        return json({ error: "Could not cancel reminder." }, 500);
       }
 
-      return Response.json({ success: true, cancelled: true });
+      return json({ success: true, cancelled: true });
     }
 
     if (action !== "set") {
-      return Response.json({ error: "Unknown reminder action." }, { status: 400 });
+      return json({ error: "Unknown reminder action." }, 400);
     }
 
     if (!Number.isSafeInteger(reminderMinutes) || !ALLOWED_REMINDER_MINUTES.has(reminderMinutes)) {
-      return Response.json({ error: "Invalid reminder time." }, { status: 400 });
+      return json({ error: "Invalid reminder time." }, 400);
     }
 
     const { data: match, error: matchError } = await ctx.supabase
@@ -273,22 +284,22 @@ export default {
 
     if (matchError) {
       console.error("Unable to load reminder match", matchError.code, matchError.message);
-      return Response.json({ error: "Could not load this match right now." }, { status: 500 });
+      return json({ error: "Could not load this match right now." }, 500);
     }
 
     if (!match) {
-      return Response.json({ error: "Match not found." }, { status: 404 });
+      return json({ error: "Match not found." }, 404);
     }
 
     const matchStart = getCanonicalMatchStart(match);
     const remindAt = matchStart && new Date(matchStart.getTime() - reminderMinutes * 60_000);
 
     if (!matchStart || matchStart.getTime() <= Date.now()) {
-      return Response.json({ error: "This match has already started or has no valid start time." }, { status: 422 });
+      return json({ error: "This match has already started or has no valid start time." }, 422);
     }
 
     if (!remindAt || remindAt.getTime() <= Date.now()) {
-      return Response.json({ error: `This match starts in less than ${reminderMinutes} minutes.` }, { status: 422 });
+      return json({ error: `This match starts in less than ${reminderMinutes} minutes.` }, 422);
     }
 
     const { error: userError } = await ctx.supabaseAdmin
@@ -304,7 +315,7 @@ export default {
 
     if (userError) {
       console.error("Unable to save reminder user", userError.code);
-      return Response.json({ error: "Could not save reminder preference." }, { status: 500 });
+      return json({ error: "Could not save reminder preference." }, 500);
     }
 
     const { data: existingReminder, error: existingError } = await ctx.supabaseAdmin
@@ -317,14 +328,14 @@ export default {
 
     if (existingError) {
       console.error("Unable to check reminder", existingError.code);
-      return Response.json({ error: "Could not save reminder." }, { status: 500 });
+      return json({ error: "Could not save reminder." }, 500);
     }
 
     if (existingReminder) {
       const sameReminder = existingReminder.reminder_minutes === reminderMinutes
         && Math.abs(new Date(existingReminder.remind_at).getTime() - remindAt.getTime()) < 1000;
       if (sameReminder) {
-        return Response.json({ success: true, alreadyExists: true, reminderMinutes });
+        return json({ success: true, alreadyExists: true, reminderMinutes });
       }
 
       const { error: updateError } = await ctx.supabaseAdmin
@@ -335,10 +346,10 @@ export default {
 
       if (updateError) {
         console.error("Unable to update reminder", updateError.code);
-        return Response.json({ error: "Could not update reminder." }, { status: 500 });
+        return json({ error: "Could not update reminder." }, 500);
       }
 
-      return Response.json({ success: true, updated: true, reminderMinutes, remindAt: remindAt.toISOString() });
+      return json({ success: true, updated: true, reminderMinutes, remindAt: remindAt.toISOString() });
     }
 
     const { error: reminderError } = await ctx.supabaseAdmin
@@ -358,13 +369,13 @@ export default {
           .eq("telegram_user_id", telegramUserId)
           .eq("match_id", matchId);
         if (!raceUpdateError) {
-          return Response.json({ success: true, updated: true, reminderMinutes, remindAt: remindAt.toISOString() });
+          return json({ success: true, updated: true, reminderMinutes, remindAt: remindAt.toISOString() });
         }
       }
       console.error("Unable to create reminder", reminderError.code);
-      return Response.json({ error: "Could not save reminder." }, { status: 500 });
+        return json({ error: "Could not save reminder." }, 500);
     }
 
-    return Response.json({ success: true, reminderMinutes, remindAt: remindAt.toISOString() });
+    return json({ success: true, reminderMinutes, remindAt: remindAt.toISOString() });
   }),
 };
