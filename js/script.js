@@ -5,6 +5,8 @@ const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
 const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
 const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
+const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, competition, venue, is_big_match";
 const DEFAULT_TEAMS = [
     "Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland",
     "Namibia", "Nepal", "Netherlands", "New Zealand", "Pakistan", "Scotland",
@@ -391,7 +393,7 @@ function getLocalDayBounds(offsetDays = 0) {
 async function loadMatchesForLocalWindow(start, end, legacyStart, legacyEnd) {
     const canonicalQuery = await supabaseClient
         .from("matches")
-        .select("*")
+        .select(MATCH_SELECT)
         .gte("match_start_at", start.toISOString())
         .lt("match_start_at", end.toISOString())
         .order("match_start_at", { ascending: true });
@@ -404,7 +406,7 @@ async function loadMatchesForLocalWindow(start, end, legacyStart, legacyEnd) {
 
     return supabaseClient
         .from("matches")
-        .select("*")
+        .select(LEGACY_MATCH_SELECT)
         .gte("match_date", legacyStart)
         .lt("match_date", legacyEnd)
         .order("match_date", { ascending: true })
@@ -493,7 +495,7 @@ async function openFavouriteMatches() {
         list.innerHTML = '<p class="status-state">Loading favourite matches…</p>';
         const { data, error } = await supabaseClient
             .from("matches")
-            .select("*")
+            .select(MATCH_SELECT)
             .in("id", missingIds);
         if (!error && Array.isArray(data)) data.forEach(match => knownMatches.set(String(Number(match.id)), match));
 
@@ -1044,13 +1046,13 @@ const upcomingStart = getLocalDayBounds(2).start;
 
         let upcomingQuery = await supabaseClient
             .from("matches")
-            .select("*")
+            .select(MATCH_SELECT)
             .gte("match_start_at", upcomingStart.toISOString())
             .order("match_start_at", { ascending: true });
         if (upcomingQuery.error && String(upcomingQuery.error.message || "").includes("match_start_at")) {
             upcomingQuery = await supabaseClient
                 .from("matches")
-                .select("*")
+                .select(LEGACY_MATCH_SELECT)
                 .gt("match_date", formatLocalDate(getLocalDayBounds(1).start))
                 .order("match_date", { ascending: true })
                 .order("match_time", { ascending: true });

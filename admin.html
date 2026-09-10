@@ -324,7 +324,7 @@
     </style>
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
 </head>
 
 
@@ -814,6 +814,7 @@ async function logoutAdmin() {
 const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const BROADCAST_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/broadcast-telegram-message`;
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -1180,7 +1181,7 @@ async function loadSavedMatches() {
 
     const { data: matches, error } = await supabaseClient
         .from("matches")
-        .select("*")
+        .select(MATCH_SELECT)
         .order("match_date", { ascending: true })
         .order("match_time", { ascending: true })
         .range(0, 9999);
