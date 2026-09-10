@@ -18,6 +18,8 @@ type Match = {
   competition: string | null;
   match_date: string;
   match_time: string;
+  match_start_at?: string | null;
+  match_timezone?: string | null;
 };
 
 const keyboard = {
@@ -55,12 +57,31 @@ function formatTime(time: string) {
   return `${displayHour}:${minute} ${suffix}`;
 }
 
-function formatMatches(title: string, matches: Match[]) {
+function formatMatchTime(match: Match, timeZone: string) {
+  const start = match.match_start_at ? new Date(match.match_start_at) : null;
+  if (start && !Number.isNaN(start.getTime())) {
+    try {
+      return new Intl.DateTimeFormat("en-IN", {
+        timeZone,
+        day: "numeric",
+        month: "short",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      }).format(start);
+    } catch {
+      // Fall through to the legacy stored wall-clock value.
+    }
+  }
+  return `${formatTime(match.match_time)} IST`;
+}
+
+function formatMatches(title: string, matches: Match[], timeZone: string) {
   if (matches.length === 0) return `${title}\n\nNo matches found.`;
 
   const rows = matches.slice(0, 12).map((match, index) => {
     const competition = match.competition ? `\n${match.competition}` : "";
-    return `${index + 1}. ${match.team1} vs ${match.team2}${competition}\n🕒 ${formatTime(match.match_time)} IST`;
+    return `${index + 1}. ${match.team1} vs ${match.team2}${competition}\n🕒 ${formatMatchTime(match, timeZone)}`;
   });
 
   const extra = matches.length > 12
@@ -233,7 +254,7 @@ export default {
         botToken,
         chatId,
         `${welcome}\n\n` +
-          "Get today’s, tomorrow’s and upcoming big-match schedules in India Standard Time.\n\n" +
+          "Open the app once to set your local timezone, then get today’s, tomorrow’s and upcoming big-match schedules in that timezone.\n\n" +
           "🔔 Open any match and set a Telegram reminder for 30 minutes before it starts.\n" +
           "📲 Tap Open App for the complete match list and details.\n\n" +
           "Choose an option below to begin.",
@@ -265,9 +286,13 @@ export default {
     if (text === "🏏 Today’s Matches" || text === "📅 Tomorrow") {
       const isTomorrow = text === "📅 Tomorrow";
       const matchDate = indiaDate(isTomorrow ? 1 : 0);
+      const { data: user } = Number.isSafeInteger(telegramUserId)
+        ? await ctx.supabase.from("telegram_reminder_users").select("timezone").eq("telegram_user_id", telegramUserId).maybeSingle()
+        : { data: null };
+      const userTimeZone = user?.timezone || INDIA_TIME_ZONE;
       const { data, error } = await ctx.supabase
         .from("matches")
-        .select("team1, team2, competition, match_date, match_time")
+        .select("team1, team2, competition, match_date, match_time, match_start_at, match_timezone")
         .eq("match_date", matchDate)
         .order("match_time", { ascending: true });
       if (error) {
@@ -275,15 +300,19 @@ export default {
       }
       const reply = error
         ? "Sorry, matches could not be loaded right now."
-        : formatMatches(isTomorrow ? "📅 Tomorrow’s Matches" : "🏏 Today’s Matches", data || []);
+        : formatMatches(isTomorrow ? "📅 Tomorrow’s Matches" : "🏏 Today’s Matches", data || [], userTimeZone);
       await sendMessage(botToken, chatId, reply);
       return new Response("OK");
     }
 
     if (text === "⭐ Big Matches") {
+      const { data: user } = Number.isSafeInteger(telegramUserId)
+        ? await ctx.supabase.from("telegram_reminder_users").select("timezone").eq("telegram_user_id", telegramUserId).maybeSingle()
+        : { data: null };
+      const userTimeZone = user?.timezone || INDIA_TIME_ZONE;
       const { data, error } = await ctx.supabase
         .from("matches")
-        .select("team1, team2, competition, match_date, match_time")
+        .select("team1, team2, competition, match_date, match_time, match_start_at, match_timezone")
         .eq("is_big_match", true)
         .gte("match_date", indiaDate())
         .order("match_date", { ascending: true })
@@ -293,7 +322,7 @@ export default {
       }
       const reply = error
         ? "Sorry, big matches could not be loaded right now."
-        : formatMatches("⭐ Upcoming Big Matches", data || []);
+        : formatMatches("⭐ Upcoming Big Matches", data || [], userTimeZone);
       await sendMessage(botToken, chatId, reply);
       return new Response("OK");
     }

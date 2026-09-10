@@ -151,7 +151,7 @@ export default {
       return Response.json({ error: "Reminder service is not configured." }, { status: 500 });
     }
 
-    let body: { initData?: unknown; matchId?: unknown; action?: unknown; reminderMinutes?: unknown };
+    let body: { initData?: unknown; matchId?: unknown; action?: unknown; reminderMinutes?: unknown; timezone?: unknown };
     try {
       body = await req.json();
     } catch {
@@ -163,6 +163,16 @@ export default {
     }
 
     const telegramUserId = await verifyTelegramInitData(body.initData, botToken);
+    const requestedTimeZone = typeof body.timezone === "string" ? body.timezone.trim() : "";
+    let userTimeZone: string | null = null;
+    if (requestedTimeZone) {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: requestedTimeZone }).format();
+        userTimeZone = requestedTimeZone;
+      } catch {
+        return Response.json({ error: "Invalid timezone." }, { status: 400 });
+      }
+    }
     const action = typeof body.action === "string" ? body.action : "set";
     const matchId = Number(body.matchId);
     const reminderMinutes = body.reminderMinutes === undefined
@@ -171,6 +181,16 @@ export default {
 
     if (!telegramUserId) {
       return Response.json({ error: "Invalid reminder request." }, { status: 400 });
+    }
+
+    if (userTimeZone) {
+      const { error: timezoneError } = await ctx.supabaseAdmin
+        .from("telegram_reminder_users")
+        .upsert(
+          { telegram_user_id: telegramUserId, chat_id: telegramUserId, timezone: userTimeZone, updated_at: new Date().toISOString() },
+          { onConflict: "telegram_user_id" },
+        );
+      if (timezoneError) console.error("Unable to save Telegram timezone", timezoneError.code);
     }
 
     if (isRateLimited(telegramUserId)) {

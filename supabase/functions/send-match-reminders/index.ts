@@ -88,7 +88,13 @@ function formatMatchDateTime(start: Date, timeZone: string | null) {
   }
 }
 
-async function sendReminder(botToken: string, chatId: number, match: Match, reminderMinutes: number) {
+async function sendReminder(
+  botToken: string,
+  chatId: number,
+  match: Match,
+  reminderMinutes: number,
+  userTimeZone: string | null,
+) {
   const matchStart = getCanonicalMatchStart(match);
   if (!matchStart) return { ok: false, terminal: true, description: "Invalid match start" };
 
@@ -102,7 +108,7 @@ async function sendReminder(botToken: string, chatId: number, match: Match, remi
           `🔔 Match starts in ${reminderMinutes} minutes!\n\n` +
           `🏏 ${match.team1} vs ${match.team2}\n` +
           `${match.competition || "Cricket match"}\n` +
-          `📅 ${formatMatchDateTime(matchStart, match.match_timezone)}\n` +
+          `📅 ${formatMatchDateTime(matchStart, userTimeZone || match.match_timezone)}\n` +
           `${match.venue ? `📍 ${match.venue}` : ""}`,
         reply_markup: {
           inline_keyboard: [[{
@@ -161,7 +167,7 @@ export default {
       await Promise.all([
         ctx.supabaseAdmin
           .from("telegram_reminder_users")
-          .select("telegram_user_id, chat_id")
+          .select("telegram_user_id, chat_id, timezone")
           .in("telegram_user_id", userIds),
         ctx.supabaseAdmin
           .from("matches")
@@ -178,8 +184,8 @@ export default {
       return Response.json({ error: "Could not prepare reminders." }, { status: 500 });
     }
 
-    const chatByUserId = new Map(
-      (users || []).map((user) => [Number(user.telegram_user_id), Number(user.chat_id)]),
+    const userById = new Map(
+      (users || []).map((user) => [Number(user.telegram_user_id), user]),
     );
     const matchById = new Map(
       ((matches || []) as Match[]).map((match) => [Number(match.id), match]),
@@ -189,7 +195,8 @@ export default {
     let failed = 0;
 
     for (const reminder of reminders) {
-      const chatId = chatByUserId.get(Number(reminder.telegram_user_id));
+      const user = userById.get(Number(reminder.telegram_user_id));
+      const chatId = user?.chat_id;
       const match = matchById.get(Number(reminder.match_id));
 
       if (!Number.isSafeInteger(Number(chatId)) || !match) {
@@ -232,7 +239,13 @@ export default {
 
       if (claimError || !claimedReminder) continue;
 
-      const result = await sendReminder(botToken, Number(chatId), match, reminderMinutes);
+      const result = await sendReminder(
+        botToken,
+        Number(chatId),
+        match,
+        reminderMinutes,
+        user?.timezone || null,
+      );
       if (result.ok) {
         completedIds.push(reminder.id);
         sent += 1;

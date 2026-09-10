@@ -565,7 +565,7 @@ async function requestReminderAction(action, matchId, reminderMinutes) {
         throw new Error("Open from the bot’s Open App button");
     }
 
-    const payload = { initData, action };
+    const payload = { initData, action, timezone: browserTimeZone || undefined };
     if (Number.isSafeInteger(matchId) && matchId > 0) payload.matchId = matchId;
     if (reminderMinutes !== undefined) payload.reminderMinutes = reminderMinutes;
 
