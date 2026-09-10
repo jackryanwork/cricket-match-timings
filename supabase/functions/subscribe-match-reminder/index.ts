@@ -164,7 +164,7 @@ export default {
 
     const timeZone = validTimeZone(body.timezone);
     const { error: userError } = await ctx.supabaseAdmin.from("telegram_reminder_users").upsert({
-      telegram_user_id: userId, chat_id: Number(botUser.chat_id), ...(timeZone ? { timezone: timeZone } : {}), updated_at: new Date().toISOString(),
+      telegram_user_id: userId, chat_id: Number(botUser.chat_id), ...(timeZone ? { timezone: timeZone } : {}),
     }, { onConflict: "telegram_user_id" });
     if (userError) return json({ error: "Could not save reminder preference." }, 500);
 
