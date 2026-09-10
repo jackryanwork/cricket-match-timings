@@ -8,7 +8,6 @@ const MAX_CAPTION_LENGTH = 1024;
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
 const BATCH_SIZE = 20;
 
-type Audience = "all" | "alerts";
 type Recipient = { telegram_user_id: number; chat_id: number };
 type MediaKind = { method: "sendPhoto" | "sendVideo" | "sendDocument"; field: "photo" | "video" | "document" };
 
@@ -126,20 +125,17 @@ export default {
     }
 
     let message = "";
-    let audience: Audience = "all";
     let mediaFile: File | undefined;
 
     try {
       if (request.headers.get("content-type")?.includes("multipart/form-data")) {
         const formData = await request.formData();
         message = String(formData.get("message") || "").trim();
-        audience = formData.get("audience") === "alerts" ? "alerts" : "all";
         const media = formData.get("media");
         if (media instanceof File && media.size > 0) mediaFile = media;
       } else {
         const body = await request.json();
         message = typeof body.message === "string" ? body.message.trim() : "";
-        audience = body.audience === "alerts" ? "alerts" : "all";
       }
     } catch {
       return json({ error: "Invalid request body." }, 400);
@@ -156,10 +152,10 @@ export default {
       return json({ error: "Media must be 8 MB or smaller." }, 400);
     }
 
-    const recipientQuery = audience === "alerts"
-      ? ctx.supabaseAdmin.from("telegram_reminder_users").select("telegram_user_id, chat_id")
-      : ctx.supabaseAdmin.from("telegram_bot_users").select("telegram_user_id, chat_id").eq("is_active", true);
-    const { data, error: recipientError } = await recipientQuery;
+    const { data, error: recipientError } = await ctx.supabaseAdmin
+      .from("telegram_bot_users")
+      .select("telegram_user_id, chat_id")
+      .eq("is_active", true);
 
     if (recipientError) {
       console.error("Unable to load broadcast recipients", recipientError.code);
@@ -178,12 +174,10 @@ export default {
       failed += 1;
       if (!isBlocked) return;
       blocked += 1;
-      if (audience === "all") {
-        await ctx.supabaseAdmin
-          .from("telegram_bot_users")
-          .update({ is_active: false, updated_at: new Date().toISOString() })
-          .eq("telegram_user_id", recipient.telegram_user_id);
-      }
+      await ctx.supabaseAdmin
+        .from("telegram_bot_users")
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq("telegram_user_id", recipient.telegram_user_id);
     };
 
     if (mediaFile && mediaKind) {
@@ -215,7 +209,7 @@ export default {
 
     const { error: logError } = await ctx.supabaseAdmin.from("telegram_broadcasts").insert({
       admin_user_id: authData.user.id,
-      audience,
+      audience: "all",
       message: message || `[Media: ${mediaFile?.name || "attachment"}]`,
       total_recipients: recipients.length,
       sent_count: sent,

@@ -1,9 +1,6 @@
 [functions.sync-cricket-matches]
 verify_jwt = false
 
-[functions.subscribe-match-reminder]
-verify_jwt = false
-
 [functions.telegram-bot-webhook]
 verify_jwt = false
 
@@ -11,9 +8,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.broadcast-telegram-message]
-verify_jwt = false
-
-[functions.send-match-reminders]
 verify_jwt = false
 
 [functions.track-mini-app-open]

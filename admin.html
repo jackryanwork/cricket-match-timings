@@ -581,10 +581,9 @@
         <h2>📣 Telegram Broadcast</h2>
 
         <label>Send to</label>
-        <select id="broadcastAudience">
+          <select id="broadcastAudience">
             <option value="all">All bot users</option>
-            <option value="alerts">Alert-enabled users only</option>
-        </select>
+          </select>
 
         <label>Message</label>
         <textarea id="broadcastMessage" maxlength="4000" placeholder="Write the Telegram message here..."></textarea>
@@ -838,7 +837,6 @@ async function sendBroadcast() {
     const message = document.getElementById("broadcastMessage").value.trim();
     const mediaInput = document.getElementById("broadcastMedia");
     const media = mediaInput.files[0] || null;
-    const audience = document.getElementById("broadcastAudience").value;
     const button = document.getElementById("broadcastButton");
     const status = document.getElementById("broadcastStatus");
 
@@ -861,10 +859,7 @@ async function sendBroadcast() {
         return;
     }
 
-    const audienceLabel = audience === "alerts"
-        ? "all alert-enabled users"
-        : "all bot users";
-    if (!confirm(`Send this message to ${audienceLabel}?`)) return;
+    if (!confirm("Send this message to all bot users?")) return;
 
     const { data: sessionData } = await supabaseClient.auth.getSession();
     const accessToken = sessionData.session?.access_token;
@@ -881,7 +876,6 @@ async function sendBroadcast() {
     try {
         const formData = new FormData();
         formData.append("message", message);
-        formData.append("audience", audience);
         if (media) formData.append("media", media, media.name);
 
         const response = await fetch(BROADCAST_FUNCTION_URL, {

@@ -1,6 +1,5 @@
 const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
-const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-reminder`;
 const MINI_APP_TRACKING_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/track-mini-app-open`;
 const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
 const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
@@ -162,7 +161,7 @@ function getTelegramInitData() {
         try {
             sessionStorage.setItem(TELEGRAM_INIT_DATA_STORAGE_KEY, currentInitData);
         } catch {
-            // Reminders still work when browser storage is unavailable.
+            // Telegram tracking still works when browser storage is unavailable.
         }
         return currentInitData;
     }
@@ -463,7 +462,7 @@ function renderFavouriteMatches() {
         .filter(Boolean);
 
     if (matches.length === 0) {
-        list.innerHTML = '<p class="reminder-state">You haven’t added any favourite matches yet.</p>';
+        list.innerHTML = '<p class="status-state">You haven’t added any favourite matches yet.</p>';
         return;
     }
 
@@ -491,7 +490,7 @@ async function openFavouriteMatches() {
 
     const missingIds = [...favouriteMatchIds].filter(id => !knownMatches.has(String(id)));
     if (missingIds.length) {
-        list.innerHTML = '<p class="reminder-state">Loading favourite matches…</p>';
+        list.innerHTML = '<p class="status-state">Loading favourite matches…</p>';
         const { data, error } = await supabaseClient
             .from("matches")
             .select("*")
@@ -534,177 +533,14 @@ function openMatchDetails(match) {
     const detailContent = document.getElementById("matchDetailContent");
     const matchModal = document.getElementById("matchModal");
     const matchId = Number(match.id);
-    const reminderButton = Number.isSafeInteger(matchId) && matchId > 0
-        ? `<button class="detail-reminder" type="button" data-reminder-match-id="${matchId}" aria-expanded="false">${uiIcon("bell")}Remind me</button>`
-        : "";
-
     detailContent.innerHTML = `
         <div class="detail-tournament">${escapeHtml(match.competition || "Cricket match")}</div>
         <div class="detail-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
         <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatVisitorMatchDate(match))}</strong></div>
         <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatVisitorMatchTime(match))}</strong></div>
         <div class="detail-row"><span>Venue</span><strong>${escapeHtml(match.venue || "Venue to be confirmed")}</strong></div>
-        <div class="detail-actions">${reminderButton}</div>
-        <div class="reminder-picker" data-reminder-picker hidden>
-            <fieldset>
-                <legend>Reminder</legend>
-                <label><input type="radio" name="reminder-minutes" value="5"> 5 minutes before</label>
-                <label><input type="radio" name="reminder-minutes" value="15"> 15 minutes before</label>
-                <label><input type="radio" name="reminder-minutes" value="30" checked> 30 minutes before</label>
-                <label><input type="radio" name="reminder-minutes" value="120"> 2 hours before</label>
-            </fieldset>
-            <button class="save-reminder" type="button" data-save-reminder-match-id="${matchId}">Save Reminder</button>
-        </div>
     `;
-    const saveReminderButton = detailContent.querySelector("[data-save-reminder-match-id]");
-    const handleSaveReminder = event => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (saveReminderButton.disabled || saveReminderButton.dataset.submitting === "true") return;
-        saveReminderButton.dataset.submitting = "true";
-        void subscribeToReminder(saveReminderButton).finally(() => {
-            delete saveReminderButton.dataset.submitting;
-        });
-    };
-    saveReminderButton.onpointerdown = handleSaveReminder;
-    saveReminderButton.ontouchstart = handleSaveReminder;
-    saveReminderButton.onclick = handleSaveReminder;
-    saveReminderButton?.addEventListener("click", handleSaveReminder);
-    saveReminderButton?.addEventListener("touchend", handleSaveReminder, { passive: false });
     matchModal.classList.add("open");
-}
-
-async function requestReminderAction(action, matchId, reminderMinutes) {
-    const initData = getTelegramInitData();
-    if (!initData) {
-        throw new Error("Open from the bot’s Open App button");
-    }
-
-    const payload = { initData, action, timezone: browserTimeZone || undefined };
-    if (Number.isSafeInteger(matchId) && matchId > 0) payload.matchId = matchId;
-    if (reminderMinutes !== undefined) payload.reminderMinutes = reminderMinutes;
-
-    const response = await fetch(REMINDER_FUNCTION_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`
-        },
-        body: JSON.stringify(payload)
-    });
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        throw new Error(result.error || "Reminder request failed.");
-    }
-
-    return result;
-}
-
-function setReminderBadge(count) {
-    const badge = document.getElementById("notificationBadge");
-    const safeCount = Math.max(0, Number(count) || 0);
-    badge.textContent = safeCount > 9 ? "9+" : String(safeCount);
-    badge.classList.toggle("visible", safeCount > 0);
-    badge.setAttribute("aria-hidden", String(safeCount === 0));
-}
-
-function renderReminderList(reminders) {
-    const reminderList = document.getElementById("reminderList");
-    setReminderBadge(reminders.length);
-
-    if (reminders.length === 0) {
-        reminderList.innerHTML = '<p class="reminder-state">No match reminders set. Open a match and tap Remind me.</p>';
-        return;
-    }
-
-    reminderList.innerHTML = reminders.map(reminder => `
-        <div class="reminder-item">
-            <div class="reminder-item-title">${escapeHtml(reminder.team1)} vs ${escapeHtml(reminder.team2)}</div>
-            <div class="reminder-item-meta">
-                ${escapeHtml(reminder.competition || "Cricket match")}<br>
-                ${escapeHtml(formatVisitorMatchDate(reminder))} · ${escapeHtml(formatVisitorMatchTime(reminder))}<br>
-                ${escapeHtml(formatReminderMinutes(reminder.reminder_minutes))} before match
-            </div>
-            <button class="reminder-cancel" type="button" data-cancel-reminder-id="${Number(reminder.match_id)}">Cancel reminder</button>
-        </div>
-    `).join("");
-}
-
-function formatReminderMinutes(minutes) {
-    const value = Number(minutes);
-    if (value === 120) return "2 hours";
-    return `${value || 30} minutes`;
-}
-
-async function loadReminderCenter(showModal = true) {
-    const reminderModal = document.getElementById("reminderModal");
-    const reminderList = document.getElementById("reminderList");
-
-    if (showModal) reminderModal.classList.add("open");
-    if (!getTelegramInitData()) {
-        setReminderBadge(0);
-        reminderList.innerHTML = `<p class="reminder-state">${uiIcon("phone")} Open this Mini App from the bot’s Open App button to view reminders.</p>`;
-        return;
-    }
-
-    if (showModal) reminderList.innerHTML = '<p class="reminder-state">Loading reminders…</p>';
-
-    try {
-        const result = await requestReminderAction("list");
-        renderReminderList(Array.isArray(result.reminders) ? result.reminders : []);
-    } catch (error) {
-        if (showModal) {
-            reminderList.innerHTML = `<p class="reminder-state">${escapeHtml(error.message || "Could not load reminders.")}</p>`;
-        }
-    }
-}
-
-async function cancelReminder(button) {
-    const matchId = Number(button.dataset.cancelReminderId);
-    if (!Number.isSafeInteger(matchId) || matchId <= 0) return;
-
-    button.disabled = true;
-    button.textContent = "Cancelling…";
-
-    try {
-        await requestReminderAction("cancel", matchId);
-        await loadReminderCenter(false);
-    } catch (error) {
-        button.disabled = false;
-        button.textContent = error.message || "Try again";
-    }
-}
-
-async function subscribeToReminder(button) {
-    const matchId = Number(button.dataset.reminderMatchId);
-    const initData = getTelegramInitData();
-
-    if (!initData) {
-        button.innerHTML = `${uiIcon("phone")}Open from the bot’s Open App button`;
-        return;
-    }
-
-    if (!Number.isSafeInteger(matchId) || matchId <= 0) return;
-
-    const picker = button.closest("[data-reminder-picker]");
-    const reminderMinutes = Number(picker?.querySelector("input[name='reminder-minutes']:checked")?.value || 30);
-
-    button.disabled = true;
-    button.textContent = "Setting reminder…";
-
-    try {
-        const result = await requestReminderAction("set", matchId, reminderMinutes);
-
-        button.innerHTML = result.alreadyExists
-            ? `${uiIcon("bell")}Reminder already set for ${formatReminderMinutes(reminderMinutes)}`
-            : `${uiIcon("check")}Reminder set for ${formatReminderMinutes(reminderMinutes)} before`;
-        await loadReminderCenter(false);
-    } catch (error) {
-        button.disabled = false;
-        button.textContent = error.message || "Try setting the reminder again";
-    }
 }
 
 function closeMatchDetails() {
@@ -721,7 +557,7 @@ function isTelegramMiniApp() {
 async function openMyTeams() {
     const teamPicker = document.getElementById("teamPicker");
     document.getElementById("myTeamsModal").classList.add("open");
-    teamPicker.innerHTML = '<p class="reminder-state">Loading teams…</p>';
+    teamPicker.innerHTML = '<p class="status-state">Loading teams…</p>';
 
     const { data, error } = await supabaseClient
         .from("matches")
@@ -1330,11 +1166,6 @@ const matchContent = document.getElementById("matchContent");
 const bigMatchesPanel = document.getElementById("featuredMatch");
 const matchModal = document.getElementById("matchModal");
 const modalClose = document.getElementById("modalClose");
-const notificationButton = document.getElementById("notificationButton");
-const remindersMenuButton = document.getElementById("remindersMenuButton");
-const reminderModal = document.getElementById("reminderModal");
-const reminderModalClose = document.getElementById("reminderModalClose");
-const reminderList = document.getElementById("reminderList");
 const myTeamsMenuButton = document.getElementById("myTeamsMenuButton");
 const favouriteMatchesMenuButton = document.getElementById("favouriteMatchesMenuButton");
 const shareMenuButton = document.getElementById("shareMenuButton");
@@ -1375,7 +1206,7 @@ menuButton.addEventListener("click", () => {
 document.addEventListener("click", event => {
     if (!menuPanel.classList.contains("open")) return;
     if (menuPanel.contains(event.target) || menuButton.contains(event.target)) return;
-    if (event.target.closest("#reminderModal, #myTeamsModal, #favouriteMatchesModal, #aboutModal")) return;
+    if (event.target.closest("#myTeamsModal, #favouriteMatchesModal, #aboutModal")) return;
 
     menuPanel.classList.remove("open");
     menuButton.setAttribute("aria-expanded", "false");
@@ -1403,25 +1234,6 @@ function openDetailsFromCard(card) {
     const match = displayedMatches.get(card.dataset.matchId);
     if (match) openMatchDetails(match);
 }
-
-function saveReminderFromEvent(event) {
-    const eventElement = event.target instanceof Element
-        ? event.target
-        : event.composedPath().find(node => node instanceof Element);
-    const button = eventElement?.closest("[data-save-reminder-match-id]");
-    if (!button || button.disabled || button.dataset.submitting === "true") return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    button.dataset.submitting = "true";
-    void subscribeToReminder(button).finally(() => {
-        delete button.dataset.submitting;
-    });
-}
-
-["pointerdown", "touchstart", "touchend", "click"].forEach(eventName => {
-    document.addEventListener(eventName, saveReminderFromEvent, { capture: true, passive: false });
-});
 
 matchContent.addEventListener("click", event => {
     const favouriteButton = event.target.closest("[data-favourite-match-id]");
@@ -1457,21 +1269,8 @@ modalClose.addEventListener("click", closeMatchDetails);
 matchModal.addEventListener("click", event => {
     if (event.target === matchModal) closeMatchDetails();
 
-    const reminderButton = event.target.closest("[data-reminder-match-id]");
-    if (reminderButton && !reminderButton.disabled) {
-        const picker = matchModal.querySelector("[data-reminder-picker]");
-        const isOpen = picker && !picker.hidden;
-        if (picker) picker.hidden = isOpen;
-        reminderButton.setAttribute("aria-expanded", String(!isOpen));
-        return;
-    }
-
 });
 
-notificationButton.addEventListener("click", () => loadReminderCenter(true));
-remindersMenuButton.addEventListener("click", () => {
-    loadReminderCenter(true);
-});
 myTeamsMenuButton.addEventListener("click", () => {
     openMyTeams();
 });
@@ -1501,17 +1300,9 @@ aboutModalClose.addEventListener("click", () => aboutModal.classList.remove("ope
 aboutModal.addEventListener("click", event => {
     if (event.target === aboutModal) aboutModal.classList.remove("open");
 });
-reminderModalClose.addEventListener("click", () => reminderModal.classList.remove("open"));
-reminderModal.addEventListener("click", event => {
-    if (event.target === reminderModal) reminderModal.classList.remove("open");
-
-    const cancelButton = event.target.closest("[data-cancel-reminder-id]");
-    if (cancelButton && !cancelButton.disabled) cancelReminder(cancelButton);
-});
 document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
         closeMatchDetails();
-        reminderModal.classList.remove("open");
         myTeamsModal.classList.remove("open");
         favouriteMatchesModal.classList.remove("open");
         aboutModal.classList.remove("open");
@@ -1525,7 +1316,6 @@ refreshButton.addEventListener("click", () => {
 setInterval(updateLastUpdated, 30000);
 updateLocalTime();
 setInterval(updateLocalTime, 1000);
-loadReminderCenter(false);
 updateMyTeamsMenuCount();
 updateFavouriteMenuCount();
 

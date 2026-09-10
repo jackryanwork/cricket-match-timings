@@ -33,7 +33,7 @@
     <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="css/style.css?v=8">
-    <script src="js/script.js?v=reminders-13" defer></script>
+    <script src="js/script.js?v=app-1" defer></script>
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
@@ -102,14 +102,6 @@
                                 "text": "Yes. CricNivo displays cricket match timings in your browser's local time zone."
                             }
                         },
-                        {
-                            "@type": "Question",
-                            "name": "Can I set cricket match reminders?",
-                            "acceptedAnswer": {
-                                "@type": "Answer",
-                                "text": "Yes. CricNivo supports Telegram match reminders for supported matches."
-                            }
-                        }
                     ]
                 }
             ]
@@ -149,16 +141,12 @@
         </div>
 
         <div class="header-actions">
-            <button class="notification" id="notificationButton" type="button" aria-label="Match reminders">
-                <svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg><span class="notification-badge" id="notificationBadge" aria-hidden="true"></span>
-            </button>
             <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
 
             <nav class="menu-panel" id="menuPanel" aria-label="Menu">
                 <div class="menu-title">Menu</div>
                 <button class="menu-item" id="myTeamsMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</span><span id="myTeamsMenuCount">Select</span></button>
                 <button class="menu-item" id="favouriteMatchesMenuButton" type="button"><span class="menu-item-label">♥ My Favourite Matches</span><span id="favouriteMatchesMenuCount">Open</span></button>
-                <button class="menu-item" id="remindersMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Match reminders</span><span>Open</span></button>
                 <a class="menu-item" id="channelMenuButton" href="https://t.me/cricketmatchupdatesicc" target="_blank" rel="noopener noreferrer"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Join Our Channel</span><span>Open</span></a>
                 <a class="menu-item" id="shareMenuButton" href="https://t.me/share/url?url=https%3A%2F%2Fwww.cricnivo.com%2F&amp;text=%F0%9F%8F%8F%20Check%20cricket%20match%20schedules%20in%20your%20local%20time%20on%20CricNivo." target="_blank" rel="noopener noreferrer"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-share"></use></svg>Share App</span><span>Share</span></a>
                 <a class="menu-item" id="contactMenuButton" href="https://t.me/CricNivo" target="_blank" rel="noopener noreferrer"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-message"></use></svg>Contact Us</span><span>Open</span></a>
@@ -256,11 +244,6 @@
             </details>
 
             <details>
-                <summary>Can I get a reminder before a match starts?</summary>
-                <p>Choose 5 minutes, 15 minutes, 30 minutes, or 2 hours before the match. Supported matches use Telegram alerts.</p>
-            </details>
-
-            <details>
                 <summary>How does the Favourite button work?</summary>
                 <p>Tap <strong>♡ Favourite</strong> on any match to save it on this device and browser. Your saved matches appear under <strong>My Favourite Matches</strong> in the menu. Tap <strong>♥ Favourite</strong> again to remove a match. Favourites are not connected to an account, so clearing browser data or changing devices will remove them.</p>
             </details>
@@ -303,25 +286,13 @@
     </div>
 </div>
 
-<div class="match-modal" id="reminderModal" role="dialog" aria-modal="true" aria-label="Match reminders">
-    <div class="match-modal-sheet">
-        <div class="modal-handle"></div>
-        <button class="modal-close" id="reminderModalClose" type="button" aria-label="Close match reminders"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
-        <h2 class="reminder-heading">Match Reminders</h2>
-        <p class="reminder-intro">Your Telegram alerts for upcoming matches.</p>
-        <div class="reminder-list" id="reminderList" aria-live="polite">
-            <p class="reminder-state">Loading reminders…</p>
-        </div>
-    </div>
-</div>
-
 <div class="match-modal" id="myTeamsModal" role="dialog" aria-modal="true" aria-label="My Teams">
     <div class="match-modal-sheet">
         <div class="modal-handle"></div>
         <button class="modal-close" id="myTeamsModalClose" type="button" aria-label="Close My Teams"><svg class="ui-icon" aria-hidden="true"><use href="#icon-close"></use></svg></button>
         <h2 class="feature-heading heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</h2>
         <p class="feature-copy">Choose your teams to find their matches faster. Selected matches will appear first and be highlighted.</p>
-        <div class="team-picker" id="teamPicker"><p class="reminder-state">Loading teams…</p></div>
+        <div class="team-picker" id="teamPicker"><p class="status-state">Loading teams…</p></div>
         <button class="feature-primary" id="saveMyTeamsButton" type="button">Save Teams</button>
     </div>
 </div>
@@ -344,7 +315,6 @@
         <p class="feature-copy">CricNivo makes it easy to find cricket matches, check local start times, and follow the teams you care about.</p>
         <ul class="about-list">
             <li>🕒 Match times automatically use your browser's local time zone.</li>
-            <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg>Set a Telegram reminder before a match starts.</span></li>
             <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>Save your teams to find their matches faster.</span></li>
             <li><span class="heading-with-icon"><svg class="ui-icon" aria-hidden="true"><use href="#icon-megaphone"></use></svg>Join our channel for cricket match updates.</span></li>
         </ul>

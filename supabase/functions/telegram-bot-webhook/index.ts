@@ -234,20 +234,6 @@ export default {
     }
 
     if (text === "/start" || text.startsWith("/start ")) {
-      if (Number.isSafeInteger(telegramUserId)) {
-        const { error: alertsError } = await ctx.supabaseAdmin
-          .from("telegram_reminder_users")
-          .upsert(
-            {
-              telegram_user_id: telegramUserId,
-              chat_id: chatId,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "telegram_user_id" },
-          );
-        if (alertsError) console.error("Unable to enable automatic alerts", alertsError.code);
-      }
-
       const name = update.message?.from?.first_name?.trim();
       const welcome = name ? `🏏 Welcome, ${name}!` : "🏏 Welcome!";
       await sendMessage(
@@ -255,7 +241,6 @@ export default {
         chatId,
         `${welcome}\n\n` +
           "Open the app once to set your local timezone, then get today’s, tomorrow’s and upcoming big-match schedules in that timezone.\n\n" +
-          "🔔 Open any match and set a Telegram reminder for 30 minutes before it starts.\n" +
           "📲 Tap Open App for the complete match list and details.\n\n" +
           "Choose an option below to begin.",
       );
@@ -287,7 +272,7 @@ export default {
       const isTomorrow = text === "📅 Tomorrow";
       const matchDate = indiaDate(isTomorrow ? 1 : 0);
       const { data: user } = Number.isSafeInteger(telegramUserId)
-        ? await ctx.supabase.from("telegram_reminder_users").select("timezone").eq("telegram_user_id", telegramUserId).maybeSingle()
+        ? await ctx.supabase.from("telegram_bot_users").select("timezone").eq("telegram_user_id", telegramUserId).maybeSingle()
         : { data: null };
       const userTimeZone = user?.timezone || INDIA_TIME_ZONE;
       const { data, error } = await ctx.supabase
@@ -307,7 +292,7 @@ export default {
 
     if (text === "⭐ Big Matches") {
       const { data: user } = Number.isSafeInteger(telegramUserId)
-        ? await ctx.supabase.from("telegram_reminder_users").select("timezone").eq("telegram_user_id", telegramUserId).maybeSingle()
+        ? await ctx.supabase.from("telegram_bot_users").select("timezone").eq("telegram_user_id", telegramUserId).maybeSingle()
         : { data: null };
       const userTimeZone = user?.timezone || INDIA_TIME_ZONE;
       const { data, error } = await ctx.supabase
