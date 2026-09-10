@@ -1404,6 +1404,25 @@ function openDetailsFromCard(card) {
     if (match) openMatchDetails(match);
 }
 
+function saveReminderFromEvent(event) {
+    const eventElement = event.target instanceof Element
+        ? event.target
+        : event.composedPath().find(node => node instanceof Element);
+    const button = eventElement?.closest("[data-save-reminder-match-id]");
+    if (!button || button.disabled || button.dataset.submitting === "true") return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    button.dataset.submitting = "true";
+    void subscribeToReminder(button).finally(() => {
+        delete button.dataset.submitting;
+    });
+}
+
+["pointerdown", "touchstart", "touchend", "click"].forEach(eventName => {
+    document.addEventListener(eventName, saveReminderFromEvent, { capture: true, passive: false });
+});
+
 matchContent.addEventListener("click", event => {
     const favouriteButton = event.target.closest("[data-favourite-match-id]");
     if (favouriteButton) {
