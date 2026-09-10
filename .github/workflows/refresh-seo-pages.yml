@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out site
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Generate crawlable match pages
         run: node scripts/generate-seo-pages.mjs
       - name: Commit refreshed pages
