@@ -571,7 +571,11 @@ async function requestReminderAction(action, matchId, reminderMinutes) {
 
     const response = await fetch(REMINDER_FUNCTION_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+        },
         body: JSON.stringify(payload)
     });
     const result = await response.json().catch(() => ({}));
@@ -1430,6 +1434,8 @@ matchModal.addEventListener("click", event => {
 
     const saveReminderButton = event.target.closest("[data-save-reminder-match-id]");
     if (saveReminderButton && !saveReminderButton.disabled) {
+        event.preventDefault();
+        event.stopPropagation();
         subscribeToReminder(saveReminderButton);
         return;
     }
