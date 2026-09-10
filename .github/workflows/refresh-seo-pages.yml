@@ -1,0 +1,25 @@
+name: Refresh crawlable match pages
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out site
+        uses: actions/checkout@v4
+      - name: Generate crawlable match pages
+        run: node scripts/generate-seo-pages.mjs
+      - name: Commit refreshed pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add today-matches.html upcoming-cricket-matches.html sitemap.xml
+          git diff --cached --quiet || git commit -m "Refresh crawlable cricket match pages"
+          git push
