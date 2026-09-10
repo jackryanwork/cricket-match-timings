@@ -826,15 +826,16 @@ button {
 }
 
 .teams {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
+    gap: 6px;
     text-align: center;
     min-width: 0;
 }
 
 .team {
-    width: 40%;
+    width: auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -852,13 +853,13 @@ button {
     display: block;
     width: 100%;
     max-width: 100%;
-    font-size: clamp(10px, 2.8vw, 13px);
+    font-size: clamp(9px, 2.45vw, 13px);
     font-weight: 750;
     line-height: 1.2;
     text-align: center;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 .vs {
@@ -869,7 +870,8 @@ button {
 
 .match-vs {
     display: flex;
-    width: 20%;
+    width: auto;
+    min-width: 78px;
     flex-direction: column;
     align-items: center;
     gap: 4px;
@@ -890,7 +892,8 @@ button {
     line-height: 1.2;
     max-width: 100%;
     text-align: center;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow-wrap: normal;
 }
 
 .match-countdown.is-hidden,

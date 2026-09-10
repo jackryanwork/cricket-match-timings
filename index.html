@@ -32,7 +32,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
-    <link rel="stylesheet" href="css/style.css?v=10">
+    <link rel="stylesheet" href="css/style.css?v=11">
     <script src="js/script.js?v=app-4" defer></script>
     <script type="application/ld+json">
         {
@@ -100,6 +100,38 @@
                             "acceptedAnswer": {
                                 "@type": "Answer",
                                 "text": "Yes. CricNivo displays cricket match timings in your browser's local time zone."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "How do I set a reminder for a match?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Choose Set reminder on a match card, select when you want to be reminded, and save your preference. You can manage saved reminders from the reminder menu."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Does CricNivo show a countdown to each match?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes. Upcoming match cards show a live countdown until the scheduled start time. Live matches no longer show a pre-match countdown."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Can I see where a match is being played?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "When venue information is available, CricNivo displays the match location on the match card."
+                            }
+                        },
+                        {
+                            "@type": "Question",
+                            "name": "Can I use CricNivo from Telegram?",
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": "Yes. Open the CricNivo Telegram bot and use its Open App button to access the Mini App."
                             }
                         }
                     ]
@@ -175,10 +207,10 @@
             Welcome
         </div>
 
-        <h1 id="welcomeHeading" class="welcome-step welcome-step-2">CricNivo means your cricket navigation.</h1>
+        <h1 id="welcomeHeading" class="welcome-step welcome-step-2">CricNivo — Your Home for Cricket Matches</h1>
 
         <p class="welcome-step welcome-step-3">
-            Check today's matches, upcoming fixtures, and start times with a live countdown.
+            Find today’s matches, upcoming fixtures, local start times, venues, and live countdowns—all in one place.
         </p>
 
     </section>
@@ -247,6 +279,26 @@
             <details>
                 <summary>How does the Favourite button work?</summary>
                 <p>Tap <strong>♡ Favourite</strong> on any match to save it on this device and browser. Your saved matches appear under <strong>My Favourite Matches</strong> in the menu. Tap <strong>♥ Favourite</strong> again to remove a match. Favourites are not connected to an account, so clearing browser data or changing devices will remove them.</p>
+            </details>
+
+            <details>
+                <summary>How do I set a reminder for a match?</summary>
+                <p>Choose <strong>Set reminder</strong> on a match card, select when you want to be reminded, and save your preference. You can manage saved reminders from the reminder menu.</p>
+            </details>
+
+            <details>
+                <summary>Does CricNivo show a countdown to each match?</summary>
+                <p>Yes. Upcoming match cards show a live countdown until the scheduled start time. Live matches no longer show a pre-match countdown.</p>
+            </details>
+
+            <details>
+                <summary>Can I see where a match is being played?</summary>
+                <p>When venue information is available, CricNivo displays the match location on the match card.</p>
+            </details>
+
+            <details>
+                <summary>Can I use CricNivo from Telegram?</summary>
+                <p>Yes. Open the CricNivo Telegram bot and use its <strong>Open App</strong> button to access the Mini App.</p>
             </details>
 
         </div>
