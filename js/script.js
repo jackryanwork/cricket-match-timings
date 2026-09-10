@@ -104,7 +104,8 @@ function favouriteButton(match) {
 
 function setReminderButton(match) {
     const id = Number(match?.id);
-    return `<button class="set-reminder-button" type="button" data-reminder-match-id="${Number.isSafeInteger(id) && id > 0 ? id : 0}" aria-label="Set reminder">Set reminder</button>`;
+    const active = savedReminders.some(reminder => Number(reminder.matchId) === id);
+    return `<button class="set-reminder-button${active ? " is-set" : ""}" type="button" data-reminder-match-id="${Number.isSafeInteger(id) && id > 0 ? id : 0}" aria-label="${active ? "Reminder On" : "Set reminder"}">${active ? "Reminder On" : "Set reminder"}</button>`;
 }
 
 function formatReminderMinutes(minutes) {
@@ -611,12 +612,14 @@ async function subscribeToReminder(button) {
 
     try {
         const result = await requestReminderAction("set", matchId, reminderMinutes);
-        button.textContent = result.alreadyExists
-            ? `Reminder already set for ${formatReminderMinutes(reminderMinutes)}`
-            : `Reminder set for ${formatReminderMinutes(reminderMinutes)} before`;
+        button.textContent = "Reminder On";
         button.classList.add("is-set");
+        if (!savedReminders.some(reminder => Number(reminder.matchId) === matchId)) {
+            savedReminders.push({ matchId, reminderMinutes });
+        }
+        updateReminderMenuCount();
         document.querySelectorAll(`[data-reminder-match-id="${matchId}"]`).forEach(cardButton => {
-            cardButton.textContent = "Reminder set";
+            cardButton.textContent = "Reminder On";
             cardButton.classList.add("is-set");
         });
         if (status) status.textContent = "You will receive it in Telegram.";
@@ -636,6 +639,15 @@ function updateReminderMenuCount() {
     if (!badge) return;
     badge.textContent = String(savedReminders.length);
     badge.hidden = savedReminders.length === 0;
+}
+
+function updateReminderButtons() {
+    const activeIds = new Set(savedReminders.map(reminder => Number(reminder.matchId)));
+    document.querySelectorAll("[data-reminder-match-id]").forEach(button => {
+        const active = activeIds.has(Number(button.dataset.reminderMatchId));
+        button.textContent = active ? "Reminder On" : "Set reminder";
+        button.classList.toggle("is-set", active);
+    });
 }
 
 function renderReminderList(message = "") {
@@ -672,6 +684,7 @@ async function loadReminders() {
         const result = await requestReminderAction("list");
         savedReminders = Array.isArray(result.reminders) ? result.reminders : [];
         updateReminderMenuCount();
+        updateReminderButtons();
         renderReminderList();
     } catch (error) {
         renderReminderList(error.message || "Could not load reminders.");
@@ -687,6 +700,7 @@ async function removeReminder(button) {
         await requestReminderAction("cancel", matchId);
         savedReminders = savedReminders.filter(reminder => Number(reminder.matchId) !== matchId);
         updateReminderMenuCount();
+        updateReminderButtons();
         renderReminderList();
         document.querySelectorAll(`[data-reminder-match-id="${matchId}"]`).forEach(cardButton => {
             cardButton.textContent = "Set reminder";
