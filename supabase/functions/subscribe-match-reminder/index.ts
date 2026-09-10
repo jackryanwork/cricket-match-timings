@@ -133,6 +133,30 @@ export default {
     if (isRateLimited(userId)) return json({ error: "Too many reminder requests. Please try again shortly." }, 429);
 
     const action = typeof body.action === "string" ? body.action : "set";
+    if (action === "list") {
+      const { data: reminders, error: remindersError } = await ctx.supabaseAdmin.from("match_reminders")
+        .select("match_id, remind_at, reminder_minutes")
+        .eq("telegram_user_id", userId)
+        .gt("remind_at", new Date().toISOString())
+        .order("remind_at", { ascending: true });
+      if (remindersError) return json({ error: "Could not load reminders." }, 500);
+      const matchIds = (reminders || []).map((reminder) => Number(reminder.match_id));
+      if (!matchIds.length) return json({ success: true, reminders: [] });
+      const { data: matches, error: matchesError } = await ctx.supabaseAdmin.from("matches")
+        .select("id, team1, team2, competition")
+        .in("id", matchIds);
+      if (matchesError) return json({ error: "Could not load reminder matches." }, 500);
+      const matchById = new Map((matches || []).map((match) => [Number(match.id), match]));
+      return json({
+        success: true,
+        reminders: (reminders || []).map((reminder) => ({
+          matchId: Number(reminder.match_id),
+          remindAt: reminder.remind_at,
+          reminderMinutes: Number(reminder.reminder_minutes),
+          ...(matchById.get(Number(reminder.match_id)) || {}),
+        })),
+      });
+    }
     const matchId = Number(body.matchId);
     if (!Number.isSafeInteger(matchId) || matchId <= 0) return json({ error: "Invalid match." }, 400);
     if (action === "cancel") {

@@ -81,6 +81,7 @@ function readFavouriteMatchIds() {
 }
 
 let favouriteMatchIds = readFavouriteMatchIds();
+let savedReminders = [];
 
 function saveFavouriteMatchIds() {
     try {
@@ -579,13 +580,10 @@ async function requestReminderAction(action, matchId, reminderMinutes) {
     const initData = getTelegramInitData();
     if (!initData) throw new Error("Open this Mini App from the bot’s Open App button.");
 
-    const payload = {
-        initData,
-        action,
-        matchId,
-        reminderMinutes,
-        timezone: browserTimeZone || undefined
-    };
+    const payload = { initData, action };
+    if (matchId !== undefined) payload.matchId = matchId;
+    if (reminderMinutes !== undefined) payload.reminderMinutes = reminderMinutes;
+    if (browserTimeZone) payload.timezone = browserTimeZone;
     const response = await fetch(REMINDER_FUNCTION_URL, {
         method: "POST",
         headers: {
@@ -627,6 +625,83 @@ async function subscribeToReminder(button) {
         button.textContent = "Save reminder";
         if (status) status.textContent = error.message || "Could not save reminder.";
     }
+}
+
+function reminderMatchLabel(reminder) {
+    return `${reminder.team1 || "Team 1"} vs ${reminder.team2 || "Team 2"} · ${formatReminderMinutes(reminder.reminderMinutes)} before`;
+}
+
+function updateReminderMenuCount() {
+    const badge = document.getElementById("reminderMenuCount");
+    if (!badge) return;
+    badge.textContent = String(savedReminders.length);
+    badge.hidden = savedReminders.length === 0;
+}
+
+function renderReminderList(message = "") {
+    const list = document.getElementById("reminderList");
+    if (!list) return;
+    if (message) {
+        list.innerHTML = `<p class="status-state">${escapeHtml(message)}</p>`;
+        return;
+    }
+    if (!savedReminders.length) {
+        list.innerHTML = '<p class="status-state">You haven’t set any reminders yet.</p>';
+        return;
+    }
+    list.innerHTML = savedReminders.map(reminder => `
+        <article class="reminder-item">
+            <div class="reminder-item-main">
+                <strong>${escapeHtml(reminderMatchLabel(reminder))}</strong>
+                <span>${escapeHtml(reminder.competition || "Cricket match")}</span>
+            </div>
+            <button class="remove-reminder" type="button" data-remove-reminder-match-id="${Number(reminder.matchId)}">Remove</button>
+        </article>
+    `).join("");
+}
+
+async function loadReminders() {
+    if (!getTelegramInitData()) {
+        savedReminders = [];
+        updateReminderMenuCount();
+        renderReminderList("Open this Mini App from Telegram to view your reminders.");
+        return;
+    }
+    renderReminderList("Loading reminders…");
+    try {
+        const result = await requestReminderAction("list");
+        savedReminders = Array.isArray(result.reminders) ? result.reminders : [];
+        updateReminderMenuCount();
+        renderReminderList();
+    } catch (error) {
+        renderReminderList(error.message || "Could not load reminders.");
+    }
+}
+
+async function removeReminder(button) {
+    const matchId = Number(button.dataset.removeReminderMatchId);
+    if (!Number.isSafeInteger(matchId) || matchId <= 0) return;
+    button.disabled = true;
+    button.textContent = "Removing…";
+    try {
+        await requestReminderAction("cancel", matchId);
+        savedReminders = savedReminders.filter(reminder => Number(reminder.matchId) !== matchId);
+        updateReminderMenuCount();
+        renderReminderList();
+        document.querySelectorAll(`[data-reminder-match-id="${matchId}"]`).forEach(cardButton => {
+            cardButton.textContent = "Set reminder";
+            cardButton.classList.remove("is-set");
+        });
+    } catch (error) {
+        button.disabled = false;
+        button.textContent = "Remove";
+        renderReminderList(error.message || "Could not remove reminder.");
+    }
+}
+
+function openReminders() {
+    document.getElementById("remindersModal").classList.add("open");
+    loadReminders();
 }
 
 function closeMatchDetails() {
@@ -1249,6 +1324,7 @@ refreshMatches("today");
 setInterval(updateMatchCountdowns, 1000);
 
 const menuButton = document.getElementById("menuButton");
+const reminderButton = document.getElementById("reminderButton");
 const menuPanel = document.getElementById("menuPanel");
 const refreshButton = document.getElementById("refreshButton");
 const matchContent = document.getElementById("matchContent");
@@ -1263,6 +1339,8 @@ const myTeamsModal = document.getElementById("myTeamsModal");
 const myTeamsModalClose = document.getElementById("myTeamsModalClose");
 const favouriteMatchesModal = document.getElementById("favouriteMatchesModal");
 const favouriteMatchesModalClose = document.getElementById("favouriteMatchesModalClose");
+const remindersModal = document.getElementById("remindersModal");
+const remindersModalClose = document.getElementById("remindersModalClose");
 const saveMyTeamsButton = document.getElementById("saveMyTeamsButton");
 const aboutModal = document.getElementById("aboutModal");
 const aboutModalClose = document.getElementById("aboutModalClose");
@@ -1292,10 +1370,12 @@ menuButton.addEventListener("click", () => {
     menuButton.setAttribute("aria-expanded", String(isOpen));
 });
 
+reminderButton.addEventListener("click", openReminders);
+
 document.addEventListener("click", event => {
     if (!menuPanel.classList.contains("open")) return;
     if (menuPanel.contains(event.target) || menuButton.contains(event.target)) return;
-    if (event.target.closest("#myTeamsModal, #favouriteMatchesModal, #aboutModal")) return;
+    if (event.target.closest("#myTeamsModal, #favouriteMatchesModal, #remindersModal, #aboutModal")) return;
 
     menuPanel.classList.remove("open");
     menuButton.setAttribute("aria-expanded", "false");
@@ -1402,6 +1482,12 @@ favouriteMatchesModal.addEventListener("click", event => {
     const favouriteButton = event.target.closest("[data-favourite-match-id]");
     if (favouriteButton) toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
 });
+remindersModalClose.addEventListener("click", () => remindersModal.classList.remove("open"));
+remindersModal.addEventListener("click", event => {
+    if (event.target === remindersModal) remindersModal.classList.remove("open");
+    const removeButton = event.target.closest("[data-remove-reminder-match-id]");
+    if (removeButton) removeReminder(removeButton);
+});
 aboutModalClose.addEventListener("click", () => aboutModal.classList.remove("open"));
 aboutModal.addEventListener("click", event => {
     if (event.target === aboutModal) aboutModal.classList.remove("open");
@@ -1411,6 +1497,7 @@ document.addEventListener("keydown", event => {
         closeMatchDetails();
         myTeamsModal.classList.remove("open");
         favouriteMatchesModal.classList.remove("open");
+        remindersModal.classList.remove("open");
         aboutModal.classList.remove("open");
     }
 });
@@ -1424,6 +1511,8 @@ updateLocalTime();
 setInterval(updateLocalTime, 1000);
 updateMyTeamsMenuCount();
 updateFavouriteMenuCount();
+updateReminderMenuCount();
+if (getTelegramInitData()) loadReminders();
 
 const pullIndicator = document.getElementById("pullIndicator");
 const pullThreshold = 72;
