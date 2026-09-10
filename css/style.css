@@ -334,6 +334,7 @@ button {
 /* FEATURED NEXT MATCH */
 
 .featured-match {
+    position: relative;
     display: none;
     overflow: hidden;
     margin-bottom: 18px;
@@ -341,6 +342,37 @@ button {
     border-radius: 20px;
     background: linear-gradient(135deg, #ffffff, #e7f3ff 68%);
     box-shadow: 0 12px 28px rgba(32, 83, 132, 0.12);
+}
+
+.featured-match::after {
+    content: "";
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    border: 2px solid rgba(8, 120, 232, 0.58);
+    border-radius: inherit;
+    pointer-events: none;
+    animation: upcomingBigMatchBorder 2.4s ease-in-out infinite;
+}
+
+@keyframes upcomingBigMatchBorder {
+    0%, 100% {
+        opacity: 0.3;
+        box-shadow: inset 0 0 0 0 rgba(8, 120, 232, 0), 0 0 0 rgba(8, 120, 232, 0);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: inset 0 0 0 1px rgba(8, 120, 232, 0.18), 0 0 12px rgba(8, 120, 232, 0.2);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .featured-match::after,
+    .featured-countdown::after {
+        animation: none;
+    }
+
+    .featured-match::after { opacity: 0.65; }
 }
 
 .featured-match.visible {
@@ -365,6 +397,7 @@ button {
     font-size: 19px;
     font-weight: 800;
     line-height: 1.25;
+    text-align: center;
 }
 
 .featured-meta {
@@ -381,19 +414,32 @@ button {
 }
 
 .featured-countdown {
+    position: relative;
     margin: 0 12px 12px;
-    padding: 0;
+    padding: 9px 10px;
+    border: 1px solid rgba(8, 120, 232, 0.42);
     border-radius: 13px;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.72);
     color: var(--text);
     font-size: 13px;
     font-weight: 700;
     text-align: center;
-    transition: background 0.18s ease, box-shadow 0.18s ease, padding 0.18s ease;
+    transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.featured-countdown::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    inset: -1px;
+    border: 1px solid rgba(8, 120, 232, 0.5);
+    border-radius: inherit;
+    pointer-events: none;
+    animation: upcomingBigMatchBorder 2.4s ease-in-out infinite;
 }
 
 .featured-match.expanded .featured-countdown {
-    padding: 12px;
+    padding: 11px 12px;
     background: #dceeff;
     box-shadow: inset 0 0 0 1px rgba(8, 120, 232, 0.08);
 }
@@ -450,8 +496,27 @@ button {
 }
 
 .big-match-card {
+    padding: 0 8px 3px;
     border-top: 1px solid rgba(16, 61, 112, 0.12);
     cursor: pointer;
+}
+
+.big-match-card .match-actions {
+    margin-top: 4px;
+    padding-top: 4px;
+}
+
+.big-match-card .featured-teams {
+    padding: 8px 8px 4px;
+}
+
+.big-match-card .featured-meta {
+    padding: 0 8px 8px;
+}
+
+.big-match-card .featured-countdown {
+    margin: 0 4px 6px;
+    padding: 6px 8px;
 }
 
 .big-match-card:not(:first-child) {
@@ -771,6 +836,11 @@ button {
 .team {
     width: 40%;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .team-logo {
@@ -779,9 +849,16 @@ button {
 }
 
 .team-name-card {
-    font-size: 13px;
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    font-size: clamp(10px, 2.8vw, 13px);
     font-weight: 750;
-    overflow-wrap: anywhere;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .vs {
@@ -798,6 +875,14 @@ button {
     gap: 4px;
 }
 
+.start-in-label {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-transform: lowercase;
+}
+
 .match-countdown {
     color: var(--accent);
     font-size: 9px;
@@ -810,6 +895,10 @@ button {
 
 .match-countdown.is-hidden,
 .match-countdown:empty {
+    display: none;
+}
+
+.start-in-label.is-hidden {
     display: none;
 }
 

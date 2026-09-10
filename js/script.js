@@ -105,7 +105,10 @@ function favouriteButton(match) {
 function setReminderButton(match) {
     const id = Number(match?.id);
     const active = savedReminders.some(reminder => Number(reminder.matchId) === id);
-    return `<button class="set-reminder-button${active ? " is-set" : ""}" type="button" data-reminder-match-id="${Number.isSafeInteger(id) && id > 0 ? id : 0}" aria-label="${active ? "Reminder On" : "Set reminder"}">${active ? "Reminder On" : "Set reminder"}</button>`;
+    const validId = Number.isSafeInteger(id) && id > 0 ? id : 0;
+    return active
+        ? `<button class="set-reminder-button is-set" type="button" data-reminder-match-id="${validId}" data-cancel-reminder-match-id="${validId}" aria-label="Cancel reminder" title="Click to cancel reminder">Reminder On</button>`
+        : `<button class="set-reminder-button" type="button" data-reminder-match-id="${validId}" aria-label="Set reminder">Set reminder</button>`;
 }
 
 function formatReminderMinutes(minutes) {
@@ -446,7 +449,7 @@ function formatCountdown(start) {
     parts.push(`${minutes}m`);
     parts.push(`${seconds}s`);
 
-    return `Starts in ${parts.join(" ")}`;
+    return parts.join(" ");
 }
 
 function formatMatchCountdown(match, hideWhenStarted = false) {
@@ -618,6 +621,7 @@ async function subscribeToReminder(button) {
             savedReminders.push({ matchId, reminderMinutes });
         }
         updateReminderMenuCount();
+        updateReminderButtons();
         document.querySelectorAll(`[data-reminder-match-id="${matchId}"]`).forEach(cardButton => {
             cardButton.textContent = "Reminder On";
             cardButton.classList.add("is-set");
@@ -645,8 +649,17 @@ function updateReminderButtons() {
     const activeIds = new Set(savedReminders.map(reminder => Number(reminder.matchId)));
     document.querySelectorAll("[data-reminder-match-id]").forEach(button => {
         const active = activeIds.has(Number(button.dataset.reminderMatchId));
+        const matchId = Number(button.dataset.reminderMatchId);
         button.textContent = active ? "Reminder On" : "Set reminder";
         button.classList.toggle("is-set", active);
+        button.setAttribute("aria-label", active ? "Cancel reminder" : "Set reminder");
+        if (active) {
+            button.dataset.cancelReminderMatchId = String(matchId);
+            button.title = "Click to cancel reminder";
+        } else {
+            button.removeAttribute("data-cancel-reminder-match-id");
+            button.removeAttribute("title");
+        }
     });
 }
 
@@ -692,7 +705,7 @@ async function loadReminders() {
 }
 
 async function removeReminder(button) {
-    const matchId = Number(button.dataset.removeReminderMatchId);
+    const matchId = Number(button.dataset.cancelReminderMatchId || button.dataset.removeReminderMatchId);
     if (!Number.isSafeInteger(matchId) || matchId <= 0) return;
     button.disabled = true;
     button.textContent = "Removing…";
@@ -705,6 +718,8 @@ async function removeReminder(button) {
         document.querySelectorAll(`[data-reminder-match-id="${matchId}"]`).forEach(cardButton => {
             cardButton.textContent = "Set reminder";
             cardButton.classList.remove("is-set");
+            cardButton.removeAttribute("data-cancel-reminder-match-id");
+            cardButton.setAttribute("aria-label", "Set reminder");
         });
     } catch (error) {
         button.disabled = false;
@@ -849,13 +864,17 @@ function renderBigMatches() {
                     <span>${escapeHtml(formatTournamentName(match))}</span>
                     <span>${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))}</span>
                 </div>
-                <div class="featured-countdown" data-big-countdown-index="${index}">${formatCountdown(start)}</div>
+                <div class="featured-countdown" data-big-countdown-index="${index}">Starts in ${formatCountdown(start)}</div>
+                <div class="match-actions">
+                    ${favouriteButton(match)}
+                    ${setReminderButton(match)}
+                </div>
             </article>
         `;
     }).join("");
 
     featuredContent.innerHTML = `
-        <div class="featured-label">Featured Matches</div>
+        <div class="featured-label">Upcoming Big Matches</div>
         <div class="big-match-stack">${matchCards}</div>
         ${bigMatches.length > 1
             ? '<span class="big-match-toggle">Tap to see all matches</span>'
@@ -900,8 +919,10 @@ function updateMatchCountdowns() {
         const card = countdown.closest("[data-match-id]");
         const isTodayCountdown = Boolean(card?.querySelector("[data-today-match-status]"));
         const hideCountdown = isTodayCountdown && start && start.getTime() <= Date.now();
+        const startInLabel = card?.querySelector(".start-in-label");
 
         countdown.classList.toggle("is-hidden", hideCountdown);
+        startInLabel?.classList.toggle("is-hidden", hideCountdown);
         if (!hideCountdown) countdown.textContent = formatMatchCountdown(match);
     });
 
@@ -909,7 +930,7 @@ function updateMatchCountdowns() {
         const match = bigMatches[Number(countdown.dataset.bigCountdownIndex)];
         const start = match && getMatchStart(match);
 
-        if (start) countdown.textContent = formatCountdown(start);
+        if (start) countdown.textContent = `Starts in ${formatCountdown(start)}`;
     });
 }
 
@@ -1053,6 +1074,7 @@ if (todayMatches.length === 0) {
 
                     <div class="match-vs">
                         <div class="vs">VS</div>
+                        <div class="start-in-label">start in</div>
                         <div class="match-countdown" data-match-countdown-id="${Number(match.id)}">${escapeHtml(formatMatchCountdown(match, true))}</div>
                     </div>
 
@@ -1170,6 +1192,7 @@ if (tomorrowMatches.length === 0) {
 
                     <div class="match-vs">
                         <div class="vs">VS</div>
+                        <div class="start-in-label">start in</div>
                         <div class="match-countdown" data-match-countdown-id="${Number(match.id)}">${escapeHtml(formatMatchCountdown(match))}</div>
                     </div>
 
@@ -1291,7 +1314,11 @@ if (upcomingMatches.length === 0) {
                         </div>
                     </div>
 
-                    <div class="vs">VS</div>
+                    <div class="match-vs">
+                        <div class="vs">VS</div>
+                        <div class="start-in-label">start in</div>
+                        <div class="match-countdown" data-match-countdown-id="${Number(match.id)}">${escapeHtml(formatMatchCountdown(match))}</div>
+                    </div>
 
                     <div class="team">
                         <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
@@ -1397,6 +1424,7 @@ document.addEventListener("click", event => {
 
 function toggleBigMatches(event) {
     if (bigMatches.length < 2) return;
+    if (event.target.closest("[data-favourite-match-id], [data-reminder-match-id], [data-cancel-reminder-match-id]")) return;
 
     const clickedPanel = event.target.closest("#featuredMatch");
     if (!clickedPanel) return;
@@ -1406,8 +1434,57 @@ function toggleBigMatches(event) {
 }
 
 bigMatchesPanel.addEventListener("click", toggleBigMatches);
+bigMatchesPanel.addEventListener("click", event => {
+    const favouriteButton = event.target.closest("[data-favourite-match-id]");
+    if (favouriteButton) {
+        event.stopPropagation();
+        toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
+        return;
+    }
+
+    const cancelButton = event.target.closest("[data-cancel-reminder-match-id]");
+    if (cancelButton) {
+        event.stopPropagation();
+        removeReminder(cancelButton);
+        return;
+    }
+
+    const reminderButton = event.target.closest("[data-reminder-match-id]");
+    if (reminderButton) {
+        event.stopPropagation();
+        const card = reminderButton.closest("[data-big-match-index]");
+        const match = card && bigMatches[Number(card.dataset.bigMatchIndex)];
+        if (match) openMatchDetails(match, true);
+    }
+});
 bigMatchesPanel.addEventListener("keydown", event => {
     if (event.key !== "Enter" && event.key !== " ") return;
+
+    const favouriteButton = event.target.closest("[data-favourite-match-id]");
+    if (favouriteButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
+        return;
+    }
+
+    const cancelButton = event.target.closest("[data-cancel-reminder-match-id]");
+    if (cancelButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        removeReminder(cancelButton);
+        return;
+    }
+
+    const reminderButton = event.target.closest("[data-reminder-match-id]");
+    if (reminderButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        const card = reminderButton.closest("[data-big-match-index]");
+        const match = card && bigMatches[Number(card.dataset.bigMatchIndex)];
+        if (match) openMatchDetails(match, true);
+        return;
+    }
 
     event.preventDefault();
     toggleBigMatches(event);
@@ -1423,6 +1500,13 @@ matchContent.addEventListener("click", event => {
     if (favouriteButton) {
         event.stopPropagation();
         toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
+        return;
+    }
+
+    const cancelReminderButton = event.target.closest("[data-cancel-reminder-match-id]");
+    if (cancelReminderButton) {
+        event.stopPropagation();
+        removeReminder(cancelReminderButton);
         return;
     }
 
@@ -1444,6 +1528,14 @@ matchContent.addEventListener("keydown", event => {
         event.preventDefault();
         event.stopPropagation();
         toggleFavouriteMatch(Number(favouriteButton.dataset.favouriteMatchId));
+        return;
+    }
+
+    const cancelReminderButton = event.target.closest("[data-cancel-reminder-match-id]");
+    if (cancelReminderButton && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        event.stopPropagation();
+        removeReminder(cancelReminderButton);
         return;
     }
 
