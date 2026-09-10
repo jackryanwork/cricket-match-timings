@@ -1,5 +1,7 @@
 -- Require the CricNivo administrator to complete MFA before reading or
 -- modifying matches through an authenticated browser session.
+alter table public.matches enable row level security;
+
 drop policy if exists "Require admin MFA for match management" on public.matches;
 
 create policy "Require admin MFA for match management"
