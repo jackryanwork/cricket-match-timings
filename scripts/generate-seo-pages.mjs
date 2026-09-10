@@ -31,6 +31,8 @@ const teamFlag = team => ({
   "Sri Lanka": "🇱🇰", "West Indies": "🏏", Zimbabwe: "🇿🇼",
 }[team] || "🏏");
 
+const teamSlug = team => String(team).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
 const readKey = async () => {
   if (process.env.SUPABASE_KEY) return process.env.SUPABASE_KEY;
   const script = await fs.readFile(path.join(root, "js/script.js"), "utf8");
@@ -81,6 +83,10 @@ const page = ({ title, description, canonical, heading, intro, matches }) => {
 </main></body></html>`;
 };
 
+const teamDirectoryPage = teams => `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cricket Team Schedules &amp; Fixtures | CricNivo</title><meta name="description" content="Browse cricket team schedules, upcoming fixtures, venues, and start times on CricNivo."><meta name="robots" content="index, follow"><link rel="canonical" href="https://www.cricnivo.com/team-schedules.html"><link rel="stylesheet" href="css/style.css?v=11"><style>.team-directory{display:grid;gap:9px;margin-top:20px}.team-directory a{display:block;padding:13px 14px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--accent);font-size:14px;font-weight:800;text-decoration:none}</style></head><body><main class="content-page"><header class="content-header"><a class="content-logo" href="index.html" aria-label="CricNivo home"><img class="brand-logo" src="assets/cricnivo-logo-small.png" width="750" height="202" alt="CricNivo"></a><a class="content-home-link" href="index.html">Open live schedule</a></header><article class="content-card"><p class="welcome-label">Team schedules</p><h1>Cricket Team Schedules</h1><p class="content-lead">Browse upcoming cricket fixtures by team, including competitions, venues, dates, and scheduled start times.</p><nav class="team-directory" aria-label="Cricket team schedules">${teams.map(team => `<a href="${teamSlug(team)}-cricket-schedule.html">${htmlEscape(team)} cricket schedule</a>`).join("")}</nav></article><footer class="footer"><p class="footer-note">Match times are shown in your local time on the live schedule</p><p class="footer-copyright">© 2026 CricNivo. All rights reserved.</p><nav class="footer-links"><a href="index.html">Home</a> <a href="today-matches.html">Today’s matches</a> <a href="upcoming-cricket-matches.html">Upcoming matches</a></nav></footer></main></body></html>`;
+
 const matches = (await loadMatches()).sort((a, b) => a.start - b.start);
 const now = new Date();
 const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -100,7 +106,31 @@ await fs.writeFile(path.join(root, "upcoming-cricket-matches.html"), page({
   canonical: "https://www.cricnivo.com/upcoming-cricket-matches.html", heading: "Upcoming Cricket Matches",
   intro: "See upcoming cricket fixtures, including teams, competitions, venues, and scheduled start times.", matches: upcoming,
 }));
-await fs.writeFile(path.join(root, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://www.cricnivo.com/</loc><changefreq>daily</changefreq><priority>1.0</priority></url><url><loc>https://www.cricnivo.com/today-matches.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url><url><loc>https://www.cricnivo.com/upcoming-cricket-matches.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url><url><loc>https://www.cricnivo.com/today-cricket-match.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url><url><loc>https://www.cricnivo.com/privacy.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url><url><loc>https://www.cricnivo.com/terms.html</loc><changefreq>monthly</changefreq><priority>0.3</priority></url></urlset>
-`);
-console.log(`Generated ${today.length} today's matches and ${upcoming.length} upcoming matches.`);
+
+const teamNames = [...new Set(upcoming.flatMap(({ match }) => [match.team1, match.team2]).filter(Boolean))].sort();
+for (const team of teamNames) {
+  const slug = teamSlug(team);
+  await fs.writeFile(path.join(root, `${slug}-cricket-schedule.html`), page({
+    title: `${team} Cricket Schedule & Fixtures | CricNivo`,
+    description: `Find upcoming ${team} cricket matches, fixtures, venues, and start times on CricNivo.`,
+    canonical: `https://www.cricnivo.com/${slug}-cricket-schedule.html`,
+    heading: `${team} Cricket Schedule`,
+    intro: `Follow upcoming ${team} matches with fixture details, competitions, venues, and scheduled start times.`,
+    matches: upcoming.filter(({ match }) => match.team1 === team || match.team2 === team),
+  }));
+}
+await fs.writeFile(path.join(root, "team-schedules.html"), teamDirectoryPage(teamNames));
+
+const urls = [
+  ["/", "daily", "1.0"],
+  ["/today-matches.html", "daily", "0.9"],
+  ["/upcoming-cricket-matches.html", "daily", "0.9"],
+  ["/team-schedules.html", "daily", "0.8"],
+  ["/today-cricket-match.html", "daily", "0.8"],
+  ...teamNames.map(team => [`/${teamSlug(team)}-cricket-schedule.html`, "daily", "0.7"]),
+  ["/privacy.html", "monthly", "0.3"],
+  ["/terms.html", "monthly", "0.3"],
+];
+const sitemapRows = urls.map(([url, frequency, priority]) => `<url><loc>https://www.cricnivo.com${url}</loc><changefreq>${frequency}</changefreq><priority>${priority}</priority></url>`).join("");
+await fs.writeFile(path.join(root, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${sitemapRows}</urlset>\n`);
+console.log(`Generated ${today.length} today's matches, ${upcoming.length} upcoming matches, and ${teamNames.length} team pages.`);
