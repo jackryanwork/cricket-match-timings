@@ -992,13 +992,13 @@ function updateTodayMatchStatuses() {
 async function loadBigMatches() {
     let bigMatchQuery = await supabaseClient
         .from("matches")
-        .select("team1, team2, competition, match_date, match_time, match_start_at, match_timezone")
+        .select("id, team1, team2, competition, match_date, match_time, match_start_at, match_timezone")
         .eq("is_big_match", true)
         .gte("match_start_at", new Date().toISOString());
     if (bigMatchQuery.error && String(bigMatchQuery.error.message || "").includes("match_start_at")) {
         bigMatchQuery = await supabaseClient
             .from("matches")
-            .select("team1, team2, competition, match_date, match_time")
+            .select("id, team1, team2, competition, match_date, match_time")
             .eq("is_big_match", true)
             .gte("match_date", formatIndiaDate(new Date()));
     }
