@@ -430,6 +430,34 @@ html.dark-mode .about-modal {
     font-size: 22px;
 }
 
+.welcome-heading-line {
+    display: block;
+}
+
+.welcome-heading-line-1 {
+    color: #164a82;
+}
+
+.welcome-heading-line-2 {
+    color: #0878e8;
+}
+
+.welcome-heading-line-3 {
+    color: #4aa8ee;
+}
+
+html.dark-mode .welcome-heading-line-1 {
+    color: #dbeeff;
+}
+
+html.dark-mode .welcome-heading-line-2 {
+    color: #55b7ff;
+}
+
+html.dark-mode .welcome-heading-line-3 {
+    color: #9bd6ff;
+}
+
 .welcome p {
     margin: 0;
     color: var(--muted);
