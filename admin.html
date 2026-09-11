@@ -604,7 +604,7 @@
         <div class="broadcast-status" id="broadcastStatus" aria-live="polite"></div>
 
         <div class="broadcast-note">
-            The button post is published to <strong>@cricketmatchupdatesicc</strong>. The bot must be a channel administrator with permission to post messages.
+            The button post is published to <strong>@cricketmatchupdatesicc</strong>. You can include an image. The bot must be a channel administrator with permission to post messages.
         </div>
 
         <button id="channelMiniAppButton" onclick="sendChannelMiniAppPost()">
@@ -921,10 +921,23 @@ async function sendBroadcast() {
 async function sendChannelMiniAppPost() {
     const messageField = document.getElementById("broadcastMessage");
     const message = messageField.value.trim() || "Open CricNivo to check cricket matches and set reminders.";
+    const mediaInput = document.getElementById("broadcastMedia");
+    const media = mediaInput.files[0] || null;
     const button = document.getElementById("channelMiniAppButton");
     const status = document.getElementById("channelMiniAppStatus");
 
     if (!confirm("Publish a new Mini App button post to @cricketmatchupdatesicc?")) return;
+
+    if (media && !media.type.startsWith("image/")) {
+        status.textContent = "Only image attachments can be used in channel button posts.";
+        status.className = "broadcast-status error";
+        return;
+    }
+    if (media && media.size > 8 * 1024 * 1024) {
+        status.textContent = "Image must be 8 MB or smaller.";
+        status.className = "broadcast-status error";
+        return;
+    }
 
     const { data: sessionData } = await supabaseClient.auth.getSession();
     const accessToken = sessionData.session?.access_token;
@@ -940,19 +953,24 @@ async function sendChannelMiniAppPost() {
     status.className = "broadcast-status";
 
     try {
+        const formData = new FormData();
+        formData.append("channelPost", "true");
+        formData.append("message", message);
+        if (media) formData.append("media", media, media.name);
+
         const response = await fetch(BROADCAST_FUNCTION_URL, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
                 "apikey": SUPABASE_KEY
             },
-            body: JSON.stringify({ channelPost: true, message })
+            body: formData
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || "Channel post failed.");
         status.textContent = "Published. Open the channel, then pin this new post.";
         status.className = "broadcast-status success";
+        mediaInput.value = "";
     } catch (error) {
         status.textContent = error.message || "Channel post failed.";
         status.className = "broadcast-status error";

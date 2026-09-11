@@ -42,21 +42,38 @@ function getMediaKind(file: File): MediaKind {
   return { method: "sendDocument", field: "document" };
 }
 
-async function sendChannelMiniAppPost(botToken: string, message: string) {
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+async function sendChannelMiniAppPost(botToken: string, message: string, mediaFile?: File) {
+  const replyMarkup = JSON.stringify({
+    inline_keyboard: [[{
+      text: "Open CricNivo Mini App",
+      url: MINI_APP_DIRECT_LINK,
+    }]],
+  });
+  let body: BodyInit;
+  let headers: HeadersInit | undefined;
+
+  if (mediaFile) {
+    const formData = new FormData();
+    formData.append("chat_id", CHANNEL_ID);
+    formData.append("photo", mediaFile, mediaFile.name);
+    formData.append("caption", message);
+    formData.append("reply_markup", replyMarkup);
+    body = formData;
+  } else {
+    headers = { "Content-Type": "application/json" };
+    body = JSON.stringify({
       chat_id: CHANNEL_ID,
       text: message,
       disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: [[{
-          text: "Open CricNivo Mini App",
-          url: MINI_APP_DIRECT_LINK,
-        }]],
-      },
-    }),
+      reply_markup: JSON.parse(replyMarkup),
+    });
+  }
+
+  const method = mediaFile ? "sendPhoto" : "sendMessage";
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+    method: "POST",
+    headers,
+    body,
   });
   const result = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) {
@@ -156,6 +173,7 @@ export default {
       if (request.headers.get("content-type")?.includes("multipart/form-data")) {
         const formData = await request.formData();
         message = String(formData.get("message") || "").trim();
+        channelPost = formData.get("channelPost") === "true";
         const media = formData.get("media");
         if (media instanceof File && media.size > 0) mediaFile = media;
       } else {
@@ -179,8 +197,10 @@ export default {
     }
 
     if (channelPost) {
-      if (mediaFile) return json({ error: "Channel Mini App posts support text only." }, 400);
-      const result = await sendChannelMiniAppPost(botToken, message);
+      if (mediaFile && !mediaFile.type.startsWith("image/")) {
+        return json({ error: "Channel Mini App posts support images only." }, 400);
+      }
+      const result = await sendChannelMiniAppPost(botToken, message, mediaFile);
       return result.ok
         ? json({ success: true, channel: CHANNEL_ID })
         : json({ error: result.error }, 502);
