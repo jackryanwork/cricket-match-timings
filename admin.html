@@ -603,6 +603,16 @@
 
         <div class="broadcast-status" id="broadcastStatus" aria-live="polite"></div>
 
+        <div class="broadcast-note">
+            The button post is published to <strong>@cricketmatchupdatesicc</strong>. The bot must be a channel administrator with permission to post messages.
+        </div>
+
+        <button id="channelMiniAppButton" onclick="sendChannelMiniAppPost()">
+            📲 Post Mini App Button to Channel
+        </button>
+
+        <div class="broadcast-status" id="channelMiniAppStatus" aria-live="polite"></div>
+
     </div>
 
 
@@ -905,6 +915,50 @@ async function sendBroadcast() {
     } finally {
         button.disabled = false;
         button.textContent = "📣 Send Broadcast";
+    }
+}
+
+async function sendChannelMiniAppPost() {
+    const messageField = document.getElementById("broadcastMessage");
+    const message = messageField.value.trim() || "Open CricNivo to check cricket matches and set reminders.";
+    const button = document.getElementById("channelMiniAppButton");
+    const status = document.getElementById("channelMiniAppStatus");
+
+    if (!confirm("Publish a new Mini App button post to @cricketmatchupdatesicc?")) return;
+
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+        status.textContent = "Your admin session expired. Please log in again.";
+        status.className = "broadcast-status error";
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Publishing...";
+    status.textContent = "Publishing the channel post...";
+    status.className = "broadcast-status";
+
+    try {
+        const response = await fetch(BROADCAST_FUNCTION_URL, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+                "apikey": SUPABASE_KEY
+            },
+            body: JSON.stringify({ channelPost: true, message })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || "Channel post failed.");
+        status.textContent = "Published. Open the channel, then pin this new post.";
+        status.className = "broadcast-status success";
+    } catch (error) {
+        status.textContent = error.message || "Channel post failed.";
+        status.className = "broadcast-status error";
+    } finally {
+        button.disabled = false;
+        button.textContent = "📲 Post Mini App Button to Channel";
     }
 }
 

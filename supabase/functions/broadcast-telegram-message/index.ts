@@ -3,6 +3,8 @@ import { withSupabase } from "jsr:@supabase/server@^1";
 
 const ADMIN_USER_ID = "749c0b4a-ae6d-41cc-b046-1695089f191c";
 const MINI_APP_URL = "https://www.cricnivo.com/?v=4";
+const MINI_APP_DIRECT_LINK = "https://t.me/Cricketmatchupdates_bot?startapp";
+const CHANNEL_ID = "@cricketmatchupdatesicc";
 const MAX_TEXT_LENGTH = 4000;
 const MAX_CAPTION_LENGTH = 1024;
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
@@ -38,6 +40,30 @@ function getMediaKind(file: File): MediaKind {
   if (file.type.startsWith("image/")) return { method: "sendPhoto", field: "photo" };
   if (file.type === "video/mp4") return { method: "sendVideo", field: "video" };
   return { method: "sendDocument", field: "document" };
+}
+
+async function sendChannelMiniAppPost(botToken: string, message: string) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: CHANNEL_ID,
+      text: message,
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: [[{
+          text: "Open CricNivo Mini App",
+          url: MINI_APP_DIRECT_LINK,
+        }]],
+      },
+    }),
+  });
+  const result = await response.json().catch(() => ({})) as Record<string, unknown>;
+  if (!response.ok) {
+    console.error("Unable to publish Mini App channel post", result.description || response.status);
+    return { ok: false, error: typeof result.description === "string" ? result.description : "Telegram rejected the channel post." };
+  }
+  return { ok: true, error: "" };
 }
 
 function extractFileId(result: Record<string, unknown>, kind: MediaKind) {
@@ -123,6 +149,7 @@ export default {
     }
 
     let message = "";
+    let channelPost = false;
     let mediaFile: File | undefined;
 
     try {
@@ -134,6 +161,7 @@ export default {
       } else {
         const body = await request.json();
         message = typeof body.message === "string" ? body.message.trim() : "";
+        channelPost = body.channelPost === true;
       }
     } catch {
       return json({ error: "Invalid request body." }, 400);
@@ -148,6 +176,14 @@ export default {
     }
     if (mediaFile && mediaFile.size > MAX_MEDIA_BYTES) {
       return json({ error: "Media must be 8 MB or smaller." }, 400);
+    }
+
+    if (channelPost) {
+      if (mediaFile) return json({ error: "Channel Mini App posts support text only." }, 400);
+      const result = await sendChannelMiniAppPost(botToken, message);
+      return result.ok
+        ? json({ success: true, channel: CHANNEL_ID })
+        : json({ error: result.error }, 502);
     }
 
     const { data, error: recipientError } = await ctx.supabaseAdmin
