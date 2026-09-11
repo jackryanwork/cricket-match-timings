@@ -693,6 +693,7 @@ function updateReminderButtons() {
         const matchId = Number(button.dataset.reminderMatchId);
         button.textContent = active ? "Reminder On" : "Set reminder";
         button.classList.toggle("is-set", active);
+        button.disabled = false;
         button.setAttribute("aria-label", active ? "Cancel reminder" : "Set reminder");
         if (active) {
             button.dataset.cancelReminderMatchId = String(matchId);
@@ -757,6 +758,7 @@ async function removeReminder(button) {
         updateReminderButtons();
         renderReminderList();
         document.querySelectorAll(`[data-reminder-match-id="${matchId}"]`).forEach(cardButton => {
+            cardButton.disabled = false;
             cardButton.textContent = "Set reminder";
             cardButton.classList.remove("is-set");
             cardButton.removeAttribute("data-cancel-reminder-match-id");
