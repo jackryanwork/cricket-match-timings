@@ -65,6 +65,8 @@ const page = ({ title, description, canonical, heading, intro, matches }) => {
   const events = matches.map(({ match, start }) => ({
     "@type": "SportsEvent", name: `${match.team1} vs ${match.team2}`, sport: "Cricket",
     startDate: start.toISOString(), eventStatus: "https://schema.org/EventScheduled",
+    image: ["https://www.cricnivo.com/assets/icon-512x512.png"],
+    description: `${match.team1} vs ${match.team2} cricket match${match.competition ? ` in ${match.competition}` : ""}. View the scheduled start time and venue on CricNivo.`,
     location: { "@type": "Place", name: match.venue || "Venue to be confirmed" },
   }));
   const schema = JSON.stringify({ "@context": "https://schema.org", "@graph": [
@@ -120,6 +122,34 @@ for (const team of teamNames) {
   }));
 }
 await fs.writeFile(path.join(root, "team-schedules.html"), teamDirectoryPage(teamNames));
+
+// Keep older team pages valid when a team temporarily disappears from the feed.
+// These pages can remain published and should receive the same complete event markup.
+const generatedTeamFiles = new Set(teamNames.map(team => `${teamSlug(team)}-cricket-schedule.html`));
+const existingTeamFiles = (await fs.readdir(root)).filter(file => file.endsWith("-cricket-schedule.html"));
+for (const file of existingTeamFiles.filter(file => !generatedTeamFiles.has(file))) {
+  const filePath = path.join(root, file);
+  const html = await fs.readFile(filePath, "utf8");
+  const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  if (!match) continue;
+  const schema = JSON.parse(match[1]);
+  let changed = false;
+  for (const event of schema["@graph"] || []) {
+    if (event["@type"] !== "SportsEvent") continue;
+    if (!event.image) {
+      event.image = ["https://www.cricnivo.com/assets/icon-512x512.png"];
+      changed = true;
+    }
+    if (!event.description) {
+      event.description = `${event.name} cricket match. View the scheduled start time and venue on CricNivo.`;
+      changed = true;
+    }
+  }
+  if (changed) {
+    const updatedSchema = JSON.stringify(schema).replaceAll("<", "\\u003c");
+    await fs.writeFile(filePath, html.slice(0, match.index) + `<script type="application/ld+json">${updatedSchema}</script>` + html.slice(match.index + match[0].length));
+  }
+}
 
 const urls = [
   ["/", "daily", "1.0"],
