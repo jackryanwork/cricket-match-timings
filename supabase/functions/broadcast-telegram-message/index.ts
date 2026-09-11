@@ -45,7 +45,7 @@ function getMediaKind(file: File): MediaKind {
 async function sendChannelMiniAppPost(botToken: string, message: string, mediaFile?: File) {
   const replyMarkup = JSON.stringify({
     inline_keyboard: [[{
-      text: "Open CricNivo Mini App",
+      text: "Open App",
       url: MINI_APP_DIRECT_LINK,
     }]],
   });
