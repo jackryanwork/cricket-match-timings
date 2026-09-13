@@ -1466,6 +1466,7 @@ document.querySelectorAll("[data-match-filter]").forEach(button => {
 
 document.getElementById("buddyMessageClose").addEventListener("click", () => {
     buddyMessage.hidden = true;
+    buddyMessage.dataset.dismissed = "true";
     cricketBuddy.focus({ preventScroll: true });
 });
 
@@ -1475,6 +1476,22 @@ cricketBuddy.addEventListener("click", () => {
     cricketBuddy.classList.add("user-wave");
     window.setTimeout(() => cricketBuddy.classList.remove("user-wave"), 800);
 });
+
+// Keep the Mini App's floating buddy from covering the Follow CricNivo section.
+// The public website keeps its existing behavior unchanged.
+if (isTelegramMiniApp()) {
+    const followCricNivoSection = document.querySelector(".social-section");
+    if (followCricNivoSection && "IntersectionObserver" in window) {
+        const buddyVisibilityObserver = new IntersectionObserver(([entry]) => {
+            const followSectionVisible = entry.isIntersecting;
+            cricketBuddy.hidden = followSectionVisible;
+            if (buddyMessage.dataset.dismissed !== "true") {
+                buddyMessage.hidden = followSectionVisible;
+            }
+        }, { threshold: 0.1 });
+        buddyVisibilityObserver.observe(followCricNivoSection);
+    }
+}
 
 menuButton.addEventListener("click", () => {
     const isOpen = menuPanel.classList.toggle("open");
