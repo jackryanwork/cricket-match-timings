@@ -25,11 +25,33 @@ const timeText = date => `${new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
 }).format(date)} UTC`;
 
-const teamFlag = team => ({
-  Afghanistan: "🇦🇫", Australia: "🇦🇺", Bangladesh: "🇧🇩", England: "🏴", India: "🇮🇳",
-  Ireland: "🇮🇪", "New Zealand": "🇳🇿", Pakistan: "🇵🇰", "South Africa": "🇿🇦",
-  "Sri Lanka": "🇱🇰", "West Indies": "🏏", Zimbabwe: "🇿🇼",
-}[team] || "🏏");
+const TEAM_COUNTRY_CODES = {
+  Afghanistan: "AF", Australia: "AU", Bangladesh: "BD", Bahamas: "BS", Bermuda: "BM",
+  Botswana: "BW", Brazil: "BR", Canada: "CA", "Cayman Islands": "KY", England: "GB-ENG",
+  India: "IN", Ireland: "IE", Japan: "JP", Kenya: "KE", Malaysia: "MY", Namibia: "NA",
+  Nepal: "NP", Netherlands: "NL", "New Zealand": "NZ", Pakistan: "PK", Rwanda: "RW",
+  "Sierra Leone": "SL", Scotland: "GB-SCT", "South Africa": "ZA", "Sri Lanka": "LK",
+  Uganda: "UG", "United Arab Emirates": "AE", "United States of America": "US", Zimbabwe: "ZW",
+};
+
+const flagFromCountryCode = code => {
+  if (code === "GB-ENG") return "🏴";
+  if (code === "GB-SCT") return "🏴";
+  return [...code].map(letter => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("");
+};
+
+const teamCountryName = team => String(team || "").replace(/\s+Women$/, "");
+
+const teamFlag = team => {
+  const countryName = teamCountryName(team);
+  if (countryName === "West Indies") return null;
+  const countryCode = TEAM_COUNTRY_CODES[countryName];
+  return countryCode ? flagFromCountryCode(countryCode) : "🏏";
+};
+
+const teamFlagMarkup = team => teamCountryName(team) === "West Indies"
+  ? '<img class="team-flag-icon" src="assets/flags/west-indies.png" alt="" aria-hidden="true">'
+  : htmlEscape(teamFlag(team));
 
 const teamSlug = team => String(team).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -56,7 +78,7 @@ const loadMatches = async () => {
 const page = ({ title, description, canonical, heading, intro, matches }) => {
   const cards = matches.length ? matches.map(({ match, start }) => `
         <article class="seo-match-card">
-            <h2>${htmlEscape(teamFlag(match.team1))} ${htmlEscape(match.team1)} vs ${htmlEscape(match.team2)} ${htmlEscape(teamFlag(match.team2))}</h2>
+            <h2>${teamFlagMarkup(match.team1)} ${htmlEscape(match.team1)} vs ${htmlEscape(match.team2)} ${teamFlagMarkup(match.team2)}</h2>
             <p class="seo-competition">${htmlEscape(match.competition || "Cricket match")}</p>
             <p><strong>Date:</strong> <time datetime="${start.toISOString()}">${htmlEscape(dateText(start))}</time></p>
             <p><strong>Start time:</strong> <time datetime="${start.toISOString()}">${htmlEscape(timeText(start))}</time></p>
@@ -92,7 +114,9 @@ const teamDirectoryPage = teams => `<!DOCTYPE html>
 const matches = (await loadMatches()).sort((a, b) => a.start - b.start);
 const now = new Date();
 const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-const fortnight = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+const fortnight = new Date(now);
+fortnight.setUTCDate(fortnight.getUTCDate() + 14);
+fortnight.setUTCHours(23, 59, 59, 999);
 const today = matches.filter(({ start }) => start >= now && start < tomorrow);
 const upcoming = matches.filter(({ start }) => start >= now && start < fortnight);
 
