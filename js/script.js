@@ -506,9 +506,14 @@ function formatMatchCountdown(match, hideWhenStarted = false) {
 let bigMatches = [];
 let bigMatchesExpanded = false;
 let currentMatchType = "today";
+let matchRefreshVersion = 0;
 let lastUpdatedAt = null;
 let displayedMatches = new Map();
 let knownMatches = new Map();
+
+function isCurrentMatchRequest(type, version) {
+    return version === matchRefreshVersion && type === currentMatchType;
+}
 
 function setDisplayedMatches(matches) {
     displayedMatches = new Map(
@@ -995,7 +1000,7 @@ function updateTodayMatchStatuses() {
     });
 }
 
-async function loadBigMatches() {
+async function loadBigMatches(version = matchRefreshVersion) {
     let bigMatchQuery = await supabaseClient
         .from("matches")
         .select("id, team1, team2, competition, match_date, match_time, match_start_at, match_timezone")
@@ -1009,6 +1014,8 @@ async function loadBigMatches() {
             .gte("match_date", formatIndiaDate(new Date()));
     }
     const { data: matches, error } = bigMatchQuery;
+
+    if (version !== matchRefreshVersion) return;
 
     if (error) {
         console.error("Error loading big matches:", error);
@@ -1027,11 +1034,14 @@ async function loadBigMatches() {
 
 async function refreshMatches(type = currentMatchType) {
     currentMatchType = type;
+    const version = ++matchRefreshVersion;
     const refreshButton = document.getElementById("refreshButton");
     refreshButton.disabled = true;
     refreshButton.textContent = "Refreshing…";
 
-    const [matchesLoaded] = await Promise.all([showMatches(type), loadBigMatches()]);
+    const [matchesLoaded] = await Promise.all([showMatches(type, version), loadBigMatches(version)]);
+
+    if (version !== matchRefreshVersion) return;
 
     if (matchesLoaded) {
         lastUpdatedAt = new Date();
@@ -1042,7 +1052,7 @@ async function refreshMatches(type = currentMatchType) {
     refreshButton.innerHTML = `${uiIcon("refresh")}Update Matches`;
 }
 
-    async function showMatches(type) {
+    async function showMatches(type, version = matchRefreshVersion) {
 
     const filters = document.querySelectorAll(".filter");
 
@@ -1066,6 +1076,8 @@ if (error) {
     console.error("Error loading matches:", error);
     return false;
 }
+
+if (!isCurrentMatchRequest(type, version)) return false;
 
 const today = todayBounds.label;
 
@@ -1184,6 +1196,8 @@ if (error) {
     console.error("Error loading matches:", error);
     return false;
 }
+
+if (!isCurrentMatchRequest(type, version)) return false;
 
 
 
@@ -1308,6 +1322,8 @@ if (error) {
     console.error("Error loading matches:", error);
     return false;
 }
+
+if (!isCurrentMatchRequest(type, version)) return false;
 
 
 
