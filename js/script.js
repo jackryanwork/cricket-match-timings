@@ -51,11 +51,15 @@ function flagFromCountryCode(code) {
 }
 
 function teamFlag(teamName) {
-    if (teamName === "England") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
-    if (teamName === "Scotland") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}";
-    if (teamName === "West Indies") return "🏏";
+    const countryTeamName = String(teamName || "").replace(/\s+Women$/, "");
 
-    const countryCode = TEAM_COUNTRY_CODES[teamName];
+    if (countryTeamName === "England") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
+    if (countryTeamName === "Scotland") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}";
+    if (countryTeamName === "West Indies") {
+        return '<img class="team-flag-icon" src="assets/flags/west-indies.png" alt="" aria-hidden="true">';
+    }
+
+    const countryCode = TEAM_COUNTRY_CODES[countryTeamName];
     return countryCode ? flagFromCountryCode(countryCode) : "🏏";
 }
 
