@@ -1622,9 +1622,16 @@ if (isTelegramMiniApp()) {
     }
 }
 
-menuButton.addEventListener("click", () => {
-    const isOpen = menuPanel.classList.toggle("open");
+function setMenuOpen(isOpen) {
+    menuPanel.classList.toggle("open", isOpen);
+    menuButton.classList.toggle("open", isOpen);
     menuButton.setAttribute("aria-expanded", String(isOpen));
+    menuButton.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+    menuPanel.setAttribute("aria-hidden", String(!isOpen));
+}
+
+menuButton.addEventListener("click", () => {
+    setMenuOpen(!menuPanel.classList.contains("open"));
 });
 
 reminderButton.addEventListener("click", openReminders);
@@ -1634,8 +1641,7 @@ document.addEventListener("click", event => {
     if (menuPanel.contains(event.target) || menuButton.contains(event.target)) return;
     if (event.target.closest("#myTeamsModal, #favouriteMatchesModal, #remindersModal, #aboutModal")) return;
 
-    menuPanel.classList.remove("open");
-    menuButton.setAttribute("aria-expanded", "false");
+    setMenuOpen(false);
 });
 
 function toggleBigMatches(event) {
@@ -1783,8 +1789,7 @@ myTeamsMenuButton.addEventListener("click", () => {
     openMyTeams();
 });
 favouriteMatchesMenuButton.addEventListener("click", () => {
-    menuPanel.classList.remove("open");
-    menuButton.setAttribute("aria-expanded", "false");
+    setMenuOpen(false);
     openFavouriteMatches();
 });
 shareMenuButton.addEventListener("click", event => {

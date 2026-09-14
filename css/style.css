@@ -129,6 +129,26 @@ button {
     height: 20px;
 }
 
+.menu-button .menu-icon {
+    transition: opacity 240ms ease, transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.menu-button .menu-icon-close {
+    position: absolute;
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.65);
+}
+
+.menu-button.open .menu-icon-bars {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.65);
+}
+
+.menu-button.open .menu-icon-close {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
 .header-actions {
     display: flex;
     align-items: center;
@@ -172,6 +192,8 @@ button {
 }
 
 .menu-button {
+    position: relative;
+    overflow: hidden;
     display: grid;
     place-items: center;
     width: 40px;
@@ -186,7 +208,7 @@ button {
 }
 
 .menu-panel {
-    display: none;
+    display: block;
     position: absolute;
     z-index: 10;
     top: 54px;
@@ -199,6 +221,12 @@ button {
     border-radius: 18px;
     background: #ffffff;
     box-shadow: 0 18px 35px rgba(28, 67, 108, 0.18);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-8px) scale(0.96);
+    transform-origin: top right;
+    transition: opacity 320ms cubic-bezier(0.25, 0.8, 0.25, 1), transform 320ms cubic-bezier(0.25, 0.8, 0.25, 1), visibility 0s linear 320ms;
 }
 
 html.dark-mode .menu-panel,
@@ -293,7 +321,19 @@ html.dark-mode .about-modal {
 }
 
 .menu-panel.open {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    transition: opacity 320ms cubic-bezier(0.25, 0.8, 0.25, 1), transform 320ms cubic-bezier(0.25, 0.8, 0.25, 1), visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .menu-button .menu-icon,
+    .menu-panel,
+    .menu-panel.open {
+        transition: none;
+    }
 }
 
 .menu-title {

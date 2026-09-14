@@ -183,9 +183,12 @@
 
         <div class="header-actions">
             <button class="reminder-button" id="reminderButton" type="button" aria-label="View reminders" aria-haspopup="dialog"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bell"></use></svg><span class="reminder-badge" id="reminderMenuCount" hidden>0</span></button>
-            <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#icon-menu"></use></svg></button>
+            <button class="menu-button" id="menuButton" type="button" aria-label="Open menu" aria-expanded="false">
+                <svg class="ui-icon menu-icon menu-icon-bars" aria-hidden="true"><use href="#icon-menu"></use></svg>
+                <svg class="ui-icon menu-icon menu-icon-close" aria-hidden="true"><use href="#icon-close"></use></svg>
+            </button>
 
-            <nav class="menu-panel" id="menuPanel" aria-label="Menu">
+            <nav class="menu-panel" id="menuPanel" aria-label="Menu" aria-hidden="true">
                 <div class="menu-title">Menu</div>
                 <button class="menu-item" id="myTeamsMenuButton" type="button"><span class="menu-item-label"><svg class="ui-icon" aria-hidden="true"><use href="#icon-star"></use></svg>My Teams</span><span id="myTeamsMenuCount">Select</span></button>
                 <button class="menu-item" id="favouriteMatchesMenuButton" type="button"><span class="menu-item-label">♥ My Favourite Matches</span><span id="favouriteMatchesMenuCount">Open</span></button>
