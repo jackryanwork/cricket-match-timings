@@ -4,7 +4,7 @@ import { withSupabase } from "jsr:@supabase/server@^1";
 const ADMIN_USER_ID = "749c0b4a-ae6d-41cc-b046-1695089f191c";
 const MINI_APP_URL = "https://www.cricnivo.com/?v=4";
 const MINI_APP_DIRECT_LINK = "https://t.me/Cricketmatchupdates_bot?startapp";
-const CHANNEL_ID = "@cricketmatchupdatesicc";
+const CHANNEL_ID = "@cricnivo_updates";
 const MAX_TEXT_LENGTH = 4000;
 const MAX_CAPTION_LENGTH = 1024;
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024;

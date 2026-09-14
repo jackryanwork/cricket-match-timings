@@ -88,7 +88,7 @@ async function sendChannelMessage(botToken: string, chatId: number) {
         reply_markup: {
           inline_keyboard: [[{
             text: "📢 Join our channel",
-            url: "https://t.me/cricketmatchupdatesicc",
+            url: "https://t.me/cricnivo_updates",
           }]],
         },
         disable_web_page_preview: true,

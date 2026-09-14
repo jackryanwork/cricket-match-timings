@@ -646,7 +646,7 @@
         <div class="broadcast-status" id="broadcastStatus" aria-live="polite"></div>
 
         <div class="broadcast-note">
-            The button post is published to <strong>@cricketmatchupdatesicc</strong>. You can include an image. The bot must be a channel administrator with permission to post messages.
+            The button post is published to <strong>@cricnivo_updates</strong>. You can include an image. The bot must be a channel administrator with permission to post messages.
         </div>
 
         <button id="channelMiniAppButton" onclick="sendChannelMiniAppPost()">
@@ -985,7 +985,7 @@ async function sendChannelMiniAppPost() {
     const button = document.getElementById("channelMiniAppButton");
     const status = document.getElementById("channelMiniAppStatus");
 
-    if (!confirm("Publish a new Mini App button post to @cricketmatchupdatesicc?")) return;
+    if (!confirm("Publish a new Mini App button post to @cricnivo_updates?")) return;
 
     if (media && !media.type.startsWith("image/")) {
         status.textContent = "Only image attachments can be used in channel button posts.";
