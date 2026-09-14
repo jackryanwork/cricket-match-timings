@@ -127,10 +127,10 @@ await fs.writeFile(path.join(root, "today-matches.html"), page({
   intro: "Browse today’s scheduled cricket fixtures with teams, competitions, venues, and start times.", matches: today,
 }));
 await fs.writeFile(path.join(root, "upcoming-cricket-matches.html"), page({
-  title: "Upcoming Cricket Matches & Fixtures | CricNivo",
-  description: "Find upcoming cricket matches, fixtures, venues, and start times on CricNivo.",
-  canonical: "https://www.cricnivo.com/upcoming-cricket-matches.html", heading: "Upcoming Cricket Matches",
-  intro: "See upcoming cricket fixtures, including teams, competitions, venues, and scheduled start times.", matches: upcoming,
+  title: "Upcoming Cricket Matches & Tomorrow's Fixtures | CricNivo",
+  description: "See upcoming and tomorrow's cricket matches, T20 fixtures, venues, dates, and start times on CricNivo.",
+  canonical: "https://www.cricnivo.com/upcoming-cricket-matches.html", heading: "Upcoming Cricket Matches & Tomorrow's Fixtures",
+  intro: "Find upcoming cricket fixtures, including tomorrow's matches, T20 schedules, venues, dates, and start times.", matches: upcoming,
 }));
 
 const teamNames = [...new Set(upcoming.flatMap(({ match }) => [match.team1, match.team2]).filter(Boolean))].sort();
