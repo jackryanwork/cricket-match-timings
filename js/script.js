@@ -465,12 +465,15 @@ async function loadScheduleMatches(forceReload = false) {
     }
 
     const start = getLocalDayBounds().start;
+    const finishedWindowStart = new Date(start);
+    finishedWindowStart.setDate(finishedWindowStart.getDate() - 7);
+    const finishedWindowDate = formatLocalDate(finishedWindowStart);
     scheduleMatchesCacheDate = cacheDate;
     scheduleMatchesCachePromise = (async () => {
         const canonicalQuery = await supabaseClient
             .from("matches")
             .select(MATCH_SELECT)
-            .gte("match_start_at", start.toISOString())
+            .gte("match_start_at", finishedWindowStart.toISOString())
             .order("match_start_at", { ascending: true });
 
         if (!canonicalQuery.error) {
@@ -478,7 +481,7 @@ async function loadScheduleMatches(forceReload = false) {
             const legacyQuery = await supabaseClient
                 .from("matches")
                 .select(LEGACY_MATCH_SELECT)
-                .gte("match_date", cacheDate)
+                .gte("match_date", finishedWindowDate)
                 .order("match_date", { ascending: true })
                 .order("match_time", { ascending: true });
 
@@ -499,7 +502,7 @@ async function loadScheduleMatches(forceReload = false) {
         return supabaseClient
             .from("matches")
             .select(LEGACY_MATCH_SELECT)
-            .gte("match_date", cacheDate)
+            .gte("match_date", finishedWindowDate)
             .order("match_date", { ascending: true })
             .order("match_time", { ascending: true });
     })();
