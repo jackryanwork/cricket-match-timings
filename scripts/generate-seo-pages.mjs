@@ -134,14 +134,28 @@ await fs.writeFile(path.join(root, "upcoming-cricket-matches.html"), page({
 }));
 
 const teamNames = [...new Set(upcoming.flatMap(({ match }) => [match.team1, match.team2]).filter(Boolean))].sort();
+const TEAM_SEO_OVERRIDES = {
+  India: {
+    title: "India Cricket Schedule & Match Timings | CricNivo",
+    description: "Check India's cricket schedule, match timetable, upcoming T20 fixtures, venues, dates, and start times on CricNivo.",
+    heading: "India Cricket Schedule & Match Timings",
+    intro: "Follow India's upcoming cricket fixtures with T20 match dates, venues, and scheduled start times.",
+  },
+};
 for (const team of teamNames) {
   const slug = teamSlug(team);
-  await fs.writeFile(path.join(root, `${slug}-cricket-schedule.html`), page({
+  const seo = TEAM_SEO_OVERRIDES[team] || {
     title: `${team} Cricket Schedule & Fixtures | CricNivo`,
     description: `Find upcoming ${team} cricket matches, fixtures, venues, and start times on CricNivo.`,
-    canonical: `https://www.cricnivo.com/${slug}-cricket-schedule.html`,
     heading: `${team} Cricket Schedule`,
     intro: `Follow upcoming ${team} matches with fixture details, competitions, venues, and scheduled start times.`,
+  };
+  await fs.writeFile(path.join(root, `${slug}-cricket-schedule.html`), page({
+    title: seo.title,
+    description: seo.description,
+    canonical: `https://www.cricnivo.com/${slug}-cricket-schedule.html`,
+    heading: seo.heading,
+    intro: seo.intro,
     matches: upcoming.filter(({ match }) => match.team1 === team || match.team2 === team),
   }));
 }
