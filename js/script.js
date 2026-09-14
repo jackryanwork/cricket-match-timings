@@ -437,44 +437,73 @@ function getLocalDayBounds(offsetDays = 0) {
     return { start, end, label: formatLocalDate(start) };
 }
 
-async function loadMatchesForLocalWindow(start, end, legacyStart, legacyEnd) {
-    const canonicalQuery = await supabaseClient
-        .from("matches")
-        .select(MATCH_SELECT)
-        .gte("match_start_at", start.toISOString())
-        .lt("match_start_at", end.toISOString())
-        .order("match_start_at", { ascending: true });
+let scheduleMatchesCacheDate = null;
+let scheduleMatchesCache = null;
+let scheduleMatchesCachePromise = null;
 
-    if (!canonicalQuery.error) {
-        // Include older admin-created rows that predate match_start_at.
-        const legacyQuery = await supabaseClient
-            .from("matches")
-            .select(LEGACY_MATCH_SELECT)
-            .gte("match_date", legacyStart)
-            .lt("match_date", legacyEnd)
-            .order("match_date", { ascending: true })
-            .order("match_time", { ascending: true });
+function invalidateScheduleMatchesCache() {
+    if (scheduleMatchesCachePromise) return;
+    scheduleMatchesCacheDate = null;
+    scheduleMatchesCache = null;
+}
 
-        if (legacyQuery.error) return canonicalQuery;
+async function loadScheduleMatches(forceReload = false) {
+    const cacheDate = getLocalDayBounds().label;
 
-        const matchesById = new Map(
-            [...(canonicalQuery.data || []), ...(legacyQuery.data || [])]
-                .map(match => [Number(match.id), match])
-        );
-        return { ...canonicalQuery, data: [...matchesById.values()] };
+    if (forceReload) invalidateScheduleMatchesCache();
+    if (scheduleMatchesCacheDate === cacheDate && Array.isArray(scheduleMatchesCache)) {
+        return { data: scheduleMatchesCache, error: null };
+    }
+    if (scheduleMatchesCachePromise && scheduleMatchesCacheDate === cacheDate) {
+        return scheduleMatchesCachePromise;
     }
 
-    const missingCanonicalColumn = canonicalQuery.error.code === "42703"
-        || String(canonicalQuery.error.message || "").includes("match_start_at");
-    if (!missingCanonicalColumn) return canonicalQuery;
+    const start = getLocalDayBounds().start;
+    scheduleMatchesCacheDate = cacheDate;
+    scheduleMatchesCachePromise = (async () => {
+        const canonicalQuery = await supabaseClient
+            .from("matches")
+            .select(MATCH_SELECT)
+            .gte("match_start_at", start.toISOString())
+            .order("match_start_at", { ascending: true });
 
-    return supabaseClient
-        .from("matches")
-        .select(LEGACY_MATCH_SELECT)
-        .gte("match_date", legacyStart)
-        .lt("match_date", legacyEnd)
-        .order("match_date", { ascending: true })
-        .order("match_time", { ascending: true });
+        if (!canonicalQuery.error) {
+            // Include older admin-created rows that predate match_start_at.
+            const legacyQuery = await supabaseClient
+                .from("matches")
+                .select(LEGACY_MATCH_SELECT)
+                .gte("match_date", cacheDate)
+                .order("match_date", { ascending: true })
+                .order("match_time", { ascending: true });
+
+            if (legacyQuery.error) return canonicalQuery;
+
+            const matchesById = new Map(
+                [...(legacyQuery.data || []), ...(canonicalQuery.data || [])]
+                    .map(match => [Number(match.id), match])
+            );
+            return { ...canonicalQuery, data: [...matchesById.values()] };
+        }
+
+        const missingCanonicalColumn = canonicalQuery.error.code === "42703"
+            || String(canonicalQuery.error.message || "").includes("match_start_at");
+        if (!missingCanonicalColumn) return canonicalQuery;
+
+        return supabaseClient
+            .from("matches")
+            .select(LEGACY_MATCH_SELECT)
+            .gte("match_date", cacheDate)
+            .order("match_date", { ascending: true })
+            .order("match_time", { ascending: true });
+    })();
+
+    try {
+        const result = await scheduleMatchesCachePromise;
+        if (!result.error && Array.isArray(result.data)) scheduleMatchesCache = result.data;
+        return result;
+    } finally {
+        scheduleMatchesCachePromise = null;
+    }
 }
 
 function formatCountdown(start) {
@@ -1001,19 +1030,7 @@ function updateTodayMatchStatuses() {
 }
 
 async function loadBigMatches(version = matchRefreshVersion) {
-    let bigMatchQuery = await supabaseClient
-        .from("matches")
-        .select("id, team1, team2, competition, match_date, match_time, match_start_at, match_timezone")
-        .eq("is_big_match", true)
-        .gte("match_start_at", new Date().toISOString());
-    if (bigMatchQuery.error && String(bigMatchQuery.error.message || "").includes("match_start_at")) {
-        bigMatchQuery = await supabaseClient
-            .from("matches")
-            .select("id, team1, team2, competition, match_date, match_time")
-            .eq("is_big_match", true)
-            .gte("match_date", formatIndiaDate(new Date()));
-    }
-    const { data: matches, error } = bigMatchQuery;
+    const { data: matches, error } = await loadScheduleMatches();
 
     if (version !== matchRefreshVersion) return;
 
@@ -1023,6 +1040,7 @@ async function loadBigMatches(version = matchRefreshVersion) {
     }
 
     bigMatches = (matches || [])
+        .filter(match => match.is_big_match)
         .map(match => ({ match, start: getMatchStart(match) }))
         .filter(({ start }) => start && start.getTime() > Date.now())
         .sort((a, b) => a.start.getTime() - b.start.getTime())
@@ -1032,9 +1050,10 @@ async function loadBigMatches(version = matchRefreshVersion) {
     renderBigMatches();
 }
 
-async function refreshMatches(type = currentMatchType) {
+async function refreshMatches(type = currentMatchType, forceReload = false) {
     currentMatchType = type;
     const version = ++matchRefreshVersion;
+    if (forceReload) invalidateScheduleMatchesCache();
     const refreshButton = document.getElementById("refreshButton");
     refreshButton.disabled = true;
     refreshButton.textContent = "Refreshing…";
@@ -1065,12 +1084,7 @@ async function refreshMatches(type = currentMatchType) {
 
         const todayBounds = getLocalDayBounds();
 
-     const { data: matches, error } = await loadMatchesForLocalWindow(
-        todayBounds.start,
-        todayBounds.end,
-        todayBounds.label,
-        formatLocalDate(todayBounds.end)
-    );
+     const { data: matches, error } = await loadScheduleMatches();
 
 if (error) {
     console.error("Error loading matches:", error);
@@ -1185,12 +1199,7 @@ return true;
 const tomorrowBounds = getLocalDayBounds(1);
 const tomorrow = tomorrowBounds.label;
 
-        const { data: matches, error } = await loadMatchesForLocalWindow(
-            tomorrowBounds.start,
-            tomorrowBounds.end,
-            tomorrowBounds.label,
-            formatLocalDate(tomorrowBounds.end)
-        );
+        const { data: matches, error } = await loadScheduleMatches();
 
 if (error) {
     console.error("Error loading matches:", error);
@@ -1303,20 +1312,7 @@ return true;
 
 const upcomingStart = getLocalDayBounds(2).start;
 
-        let upcomingQuery = await supabaseClient
-            .from("matches")
-            .select(MATCH_SELECT)
-            .gte("match_start_at", upcomingStart.toISOString())
-            .order("match_start_at", { ascending: true });
-        if (upcomingQuery.error && String(upcomingQuery.error.message || "").includes("match_start_at")) {
-            upcomingQuery = await supabaseClient
-                .from("matches")
-                .select(LEGACY_MATCH_SELECT)
-                .gt("match_date", formatLocalDate(getLocalDayBounds(1).start))
-                .order("match_date", { ascending: true })
-                .order("match_time", { ascending: true });
-        }
-        const { data: matches, error } = upcomingQuery;
+        const { data: matches, error } = await loadScheduleMatches();
 
 if (error) {
     console.error("Error loading matches:", error);
@@ -1712,7 +1708,7 @@ document.addEventListener("keydown", event => {
 });
 
 refreshButton.addEventListener("click", () => {
-    refreshMatches();
+    refreshMatches(currentMatchType, true);
 });
 
 setInterval(updateLastUpdated, 30000);
@@ -1757,7 +1753,7 @@ document.addEventListener("touchend", async () => {
     if (pullDistance >= pullThreshold) {
         pullIndicator.classList.add("visible", "ready");
         pullIndicator.textContent = "Refreshing matches…";
-        await refreshMatches();
+        await refreshMatches(currentMatchType, true);
     }
 
     resetPullIndicator();
