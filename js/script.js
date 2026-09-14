@@ -1543,6 +1543,8 @@ setInterval(updateMatchCountdowns, 1000);
 const menuButton = document.getElementById("menuButton");
 const reminderButton = document.getElementById("reminderButton");
 const menuPanel = document.getElementById("menuPanel");
+const desktopMyTeamsButton = document.getElementById("desktopMyTeamsButton");
+const desktopFavouriteMatchesButton = document.getElementById("desktopFavouriteMatchesButton");
 const refreshButton = document.getElementById("refreshButton");
 const matchContent = document.getElementById("matchContent");
 const bigMatchesPanel = document.getElementById("featuredMatch");
@@ -1788,8 +1790,14 @@ matchModal.addEventListener("click", event => {
 myTeamsMenuButton.addEventListener("click", () => {
     openMyTeams();
 });
+desktopMyTeamsButton?.addEventListener("click", () => {
+    openMyTeams();
+});
 favouriteMatchesMenuButton.addEventListener("click", () => {
     setMenuOpen(false);
+    openFavouriteMatches();
+});
+desktopFavouriteMatchesButton?.addEventListener("click", () => {
     openFavouriteMatches();
 });
 shareMenuButton.addEventListener("click", event => {

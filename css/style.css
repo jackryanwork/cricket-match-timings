@@ -156,6 +156,47 @@ button {
     position: relative;
 }
 
+.desktop-quick-actions {
+    display: none;
+}
+
+.desktop-quick-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.desktop-quick-action:hover,
+.desktop-quick-action:focus-visible {
+    border-color: rgba(8, 120, 232, 0.35);
+    background: var(--accent-soft);
+}
+
+.desktop-quick-action-channel {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+.desktop-quick-action-channel:hover,
+.desktop-quick-action-channel:focus-visible {
+    border-color: var(--accent);
+    background: #066bcf;
+    color: #fff;
+}
+
 .reminder-button {
     position: relative;
     display: grid;
@@ -2120,6 +2161,12 @@ html.dark-mode .welcome-heading-line-3 {
 
     .header {
         margin-bottom: 26px;
+    }
+
+    .desktop-quick-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .brand-logo {
