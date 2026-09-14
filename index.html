@@ -39,7 +39,7 @@
             }
         } catch {}
     </script>
-    <link rel="stylesheet" href="css/style.css?v=5763dad802fd">
+    <link rel="stylesheet" href="css/style.css?v=local-layout-fix">
     <script src="js/script.js?v=5763dad802fd" defer></script>
     <script type="application/ld+json">
         {
@@ -226,14 +226,17 @@
     </section>
 
 
-    <!-- UPCOMING BIG MATCHES -->
-    <section class="featured-match" id="featuredMatch" aria-live="polite">
-        <div id="featuredMatchContent"></div>
-    </section>
+    <div class="schedule-layout">
+        <div class="featured-column">
+            <!-- UPCOMING BIG MATCHES -->
+            <section class="featured-match" id="featuredMatch" aria-live="polite">
+                <div id="featuredMatchContent"></div>
+            </section>
+        </div>
 
-
-   <!-- FILTERS -->
-<nav class="filters" aria-label="Match filters">
+        <div class="matches-column">
+            <!-- FILTERS -->
+            <nav class="filters" aria-label="Match filters">
 
     <button class="filter today active" type="button" data-match-filter="today">
         Today's Matches
@@ -279,6 +282,8 @@
     <section class="finished-results" id="finishedResults" aria-labelledby="finishedResultsHeading" aria-live="polite" hidden>
         <div id="finishedResultsContent"></div>
     </section>
+        </div>
+    </div>
 
     <section class="schedule-guide" aria-labelledby="schedulePagesHeading">
         <div class="section-header">

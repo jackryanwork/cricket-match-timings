@@ -2107,18 +2107,22 @@ html.dark-mode .welcome-heading-line-3 {
         font-size: 15px;
     }
 
-    .featured-match {
-        grid-column: 1;
-        grid-row: 4 / span 3;
-        align-self: start;
-        margin-bottom: 0;
+    .schedule-layout {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        column-gap: 28px;
+        align-items: start;
     }
 
-    .filters,
-    .finished-filter-row,
-    .match-tools,
-    #matchContent {
-        grid-column: 2;
+    .featured-column,
+    .matches-column {
+        min-width: 0;
+    }
+
+    .featured-match {
+        align-self: start;
+        margin-bottom: 0;
     }
 
     .schedule-guide {
@@ -2132,6 +2136,11 @@ html.dark-mode .welcome-heading-line-3 {
 
     .finished-filter-row {
         margin-top: -6px;
+        margin-bottom: 8px;
+    }
+
+    .match-tools {
+        margin-top: 0;
     }
 
     .filter {
