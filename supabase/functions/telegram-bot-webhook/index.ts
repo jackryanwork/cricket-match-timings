@@ -170,8 +170,8 @@ export default {
         botToken,
         chatId,
         `${welcome}\n\n` +
-          "Open the app once to set your local timezone, then get today’s, tomorrow’s and upcoming big-match schedules in that timezone.\n\n" +
-          "📲 Tap Open App for the complete match list and details.\n\n" +
+          "Never miss a cricket match. Get today’s matches, tomorrow’s fixtures, upcoming games, match details, and reminders—all in one place.\n\n" +
+          "📲 Tap Open App to explore the complete cricket schedule and follow your favourite matches.\n\n" +
           "Choose an option below to begin.",
       );
       if (isNewBotUser && Number.isSafeInteger(adminChatId)) {
