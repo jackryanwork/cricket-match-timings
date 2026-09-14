@@ -1049,14 +1049,8 @@ function formatMatchResult(match) {
     return "Result pending";
 }
 
-function renderFinishedMatches(matches, version = matchRefreshVersion) {
-    if (version !== matchRefreshVersion) return;
-
-    const section = document.getElementById("finishedResults");
-    const content = document.getElementById("finishedResultsContent");
-    if (!section || !content) return;
-
-    const finishedMatches = (matches || [])
+function getFinishedMatches(matches) {
+    return (matches || [])
         .filter(match => match.match_status === "finished")
         .sort((left, right) => {
             const leftStart = getMatchStart(left)?.getTime() || 0;
@@ -1064,28 +1058,58 @@ function renderFinishedMatches(matches, version = matchRefreshVersion) {
             return rightStart - leftStart;
         })
         .slice(0, 20);
+}
 
-    section.hidden = finishedMatches.length === 0;
-    if (!finishedMatches.length) {
+function finishedResultCardsMarkup(finishedMatches) {
+    return finishedMatches.map(match => `
+        <article class="finished-result-card" data-finished-match-id="${Number(match.id)}">
+            <span class="finished-result-badge">Finished</span>
+            <div class="finished-result-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
+            <div class="finished-result-summary">${escapeHtml(formatMatchResult(match))}</div>
+            ${match.result_summary ? `<div class="finished-result-summary">${escapeHtml(match.result_summary)}</div>` : ""}
+            <div class="finished-result-meta">${escapeHtml(formatTournamentName(match))} · ${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</div>
+        </article>
+    `).join("");
+}
+
+function renderFinishedMatches(matches, version = matchRefreshVersion) {
+    if (version !== matchRefreshVersion) return;
+
+    const section = document.getElementById("finishedResults");
+    const content = document.getElementById("finishedResultsContent");
+    if (!section || !content) return;
+
+    const finishedMatches = getFinishedMatches(matches);
+
+    if (currentMatchType === "finished") {
+        section.hidden = true;
         content.innerHTML = "";
+
+        let html = `
+            <div class="section-header">
+                <h2>Finished Match Results</h2>
+                <span>Latest results</span>
+            </div>
+        `;
+
+        if (!finishedMatches.length) {
+            html += `
+                <article class="match-card">
+                    <div class="match-bottom">
+                        No finished match results available.
+                    </div>
+                </article>
+            `;
+        } else {
+            html += finishedResultCardsMarkup(finishedMatches);
+        }
+
+        document.getElementById("matchContent").innerHTML = html;
         return;
     }
 
-    content.innerHTML = `
-        <div class="section-header">
-            <h2 id="finishedResultsHeading">Finished Match Results</h2>
-            <span>Latest results</span>
-        </div>
-        ${finishedMatches.map(match => `
-            <article class="finished-result-card" data-finished-match-id="${Number(match.id)}">
-                <span class="finished-result-badge">Finished</span>
-                <div class="finished-result-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
-                <div class="finished-result-summary">${escapeHtml(formatMatchResult(match))}</div>
-                ${match.result_summary ? `<div class="finished-result-summary">${escapeHtml(match.result_summary)}</div>` : ""}
-                <div class="finished-result-meta">${escapeHtml(formatTournamentName(match))} · ${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</div>
-            </article>
-        `).join("")}
-    `;
+    section.hidden = true;
+    content.innerHTML = "";
 }
 
 async function loadBigMatches(version = matchRefreshVersion) {
@@ -1145,7 +1169,7 @@ async function refreshMatches(type = currentMatchType, forceReload = false) {
     refreshButton.innerHTML = `${uiIcon("refresh")}Update Matches`;
 }
 
-    async function showMatches(type, version = matchRefreshVersion) {
+async function showMatches(type, version = matchRefreshVersion) {
 
     const filters = document.querySelectorAll(".filter");
 
@@ -1153,8 +1177,25 @@ async function refreshMatches(type = currentMatchType, forceReload = false) {
         button.classList.remove("active");
     });
 
+    if (type === "finished") {
+        document.querySelector('[data-match-filter="finished"]')?.classList.add("active");
+
+        const { data: matches, error } = await loadScheduleMatches();
+
+        if (error) {
+            console.error("Error loading finished matches:", error);
+            return false;
+        }
+
+        if (!isCurrentMatchRequest(type, version)) return false;
+
+        setDisplayedMatches(getFinishedMatches(matches));
+        renderFinishedMatches(matches, version);
+        return true;
+    }
+
     if (type === "today") {
-        filters[0].classList.add("active");
+        document.querySelector('[data-match-filter="today"]')?.classList.add("active");
 
         const todayBounds = getLocalDayBounds();
 
@@ -1269,7 +1310,7 @@ return true;
     }
 
     if (type === "tomorrow") {
-        filters[1].classList.add("active");
+        document.querySelector('[data-match-filter="tomorrow"]')?.classList.add("active");
 
 const tomorrowBounds = getLocalDayBounds(1);
 const tomorrow = tomorrowBounds.label;
@@ -1384,7 +1425,7 @@ return true;
     }
 
     if (type === "upcoming") {
-        filters[2].classList.add("active");
+        document.querySelector('[data-match-filter="upcoming"]')?.classList.add("active");
 
 const upcomingStart = getLocalDayBounds(2).start;
 

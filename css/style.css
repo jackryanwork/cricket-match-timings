@@ -727,6 +727,26 @@ html.dark-mode .welcome-heading-line-3 {
     color: #ffffff;
 }
 
+.filter.finished {
+    background: #d9f5e5;
+    border-color: #a8dfbf;
+    color: #176b43;
+}
+
+.filter.finished.active {
+    background: #1f9d68;
+    border-color: #1f9d68;
+    color: #ffffff;
+}
+
+.finished-filter-row {
+    margin: -10px 0 20px;
+}
+
+.finished-filter-row .filter {
+    display: inline-block;
+}
+
 .match-tools {
     display: flex;
     align-items: center;
@@ -2108,6 +2128,7 @@ html.dark-mode .welcome-heading-line-3 {
     }
 
     .filters,
+    .finished-filter-row,
     .match-tools,
     #matchContent {
         grid-column: 2;
@@ -2120,6 +2141,10 @@ html.dark-mode .welcome-heading-line-3 {
 
     .filters {
         margin-bottom: 14px;
+    }
+
+    .finished-filter-row {
+        margin-top: -6px;
     }
 
     .filter {
