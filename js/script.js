@@ -7,6 +7,7 @@ const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
 const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
 const THEME_STORAGE_KEY = "cricnivoTheme";
+const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
 const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
 const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, competition, venue, is_big_match";
 const REMINDER_OPTIONS = [5, 30, 60, 120];
@@ -1709,6 +1710,28 @@ document.addEventListener("keydown", event => {
 
 refreshButton.addEventListener("click", () => {
     refreshMatches(currentMatchType, true);
+});
+
+let externalMatchRefreshInFlight = false;
+function refreshAfterExternalMatchChange() {
+    if (externalMatchRefreshInFlight || document.hidden) return;
+    externalMatchRefreshInFlight = true;
+    refreshMatches(currentMatchType, true).finally(() => {
+        externalMatchRefreshInFlight = false;
+    });
+}
+
+window.addEventListener("storage", event => {
+    if (event.key === MATCH_DATA_SYNC_KEY && event.newValue !== event.oldValue) {
+        refreshAfterExternalMatchChange();
+    }
+});
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden || !lastUpdatedAt) return;
+    if (Date.now() - lastUpdatedAt.getTime() >= 60_000) {
+        refreshAfterExternalMatchChange();
+    }
 });
 
 setInterval(updateLastUpdated, 30000);

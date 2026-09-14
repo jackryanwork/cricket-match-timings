@@ -826,6 +826,7 @@ async function logoutAdmin() {
 const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const BROADCAST_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/broadcast-telegram-message`;
+const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
 const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
 
 const supabaseClient = window.supabase.createClient(
@@ -842,9 +843,18 @@ document.getElementById("mfaCode").addEventListener("keydown", event => {
 checkSession();
 
 let editingMatchId = null;
+let matchSaveInFlight = false;
 let savedMatchesById = new Map();
 let savedMatches = [];
 let selectedMatchFilter = "today";
+
+function notifyMatchDataChanged() {
+    try {
+        localStorage.setItem(MATCH_DATA_SYNC_KEY, String(Date.now()));
+    } catch {
+        // The admin list still refreshes when storage is unavailable.
+    }
+}
 
 async function sendBroadcast() {
     const message = document.getElementById("broadcastMessage").value.trim();
@@ -982,7 +992,10 @@ async function sendChannelMiniAppPost() {
 
 async function saveMatch() {
 
+    if (matchSaveInFlight) return;
+
     const saveStatus = document.getElementById("matchSaveStatus");
+    const saveButton = document.getElementById("saveMatchButton");
     saveStatus.textContent = "";
 
     const team1 = document.getElementById("team1").value.trim();
@@ -1022,20 +1035,34 @@ async function saveMatch() {
         is_big_match: isBigMatch
     };
 
-    const isEditing = editingMatchId !== null;
-    const query = isEditing
-        ? supabaseClient.from("matches").update(matchPayload).eq("id", editingMatchId)
-        : supabaseClient.from("matches").insert([matchPayload]);
-    const { error } = await query;
+    const targetMatchId = editingMatchId;
+    const isEditing = Number.isSafeInteger(targetMatchId) && targetMatchId > 0;
+    matchSaveInFlight = true;
+    saveButton.disabled = true;
+    saveButton.textContent = isEditing ? "Updating..." : "Saving...";
 
-    if (error) {
-        alert(`Error ${isEditing ? "updating" : "saving"} match: ${error.message}`);
-        return;
+    try {
+        const query = isEditing
+            ? supabaseClient.from("matches").update(matchPayload).eq("id", targetMatchId)
+            : supabaseClient.from("matches").insert([matchPayload]);
+        const { error } = await query;
+
+        if (error) {
+            alert(`Error ${isEditing ? "updating" : "saving"} match: ${error.message}`);
+            return;
+        }
+
+        cancelEdit();
+        await loadSavedMatches();
+        notifyMatchDataChanged();
+        saveStatus.textContent = isEditing ? "Match updated" : "Match saved";
+    } finally {
+        matchSaveInFlight = false;
+        saveButton.disabled = false;
+        saveButton.textContent = editingMatchId === null
+            ? "➕ Save Match"
+            : "✅ Update Match";
     }
-
-    cancelEdit();
-    loadSavedMatches();
-    saveStatus.textContent = isEditing ? "Match updated" : "Match saved";
 }
 
 function convertTo24HourTime(timeInput, period) {
@@ -1128,7 +1155,8 @@ async function toggleBigMatch(id, isCurrentlyBig) {
     alert(isCurrentlyBig
         ? "Match removed from Upcoming Big Matches."
         : "Match added to Upcoming Big Matches! ⭐");
-    loadSavedMatches();
+    await loadSavedMatches();
+    notifyMatchDataChanged();
 }
 
 function escapeHtml(value) {
@@ -1318,7 +1346,8 @@ async function deleteMatch(id) {
 
     alert("Match deleted successfully! ✅");
 
-    loadSavedMatches();
+    await loadSavedMatches();
+    notifyMatchDataChanged();
 }
 </script>
 
