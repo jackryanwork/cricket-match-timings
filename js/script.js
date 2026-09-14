@@ -8,7 +8,7 @@ const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
 const THEME_STORAGE_KEY = "cricnivoTheme";
 const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
-const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, match_status, result_type, result_summary, finished_at";
 const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, competition, venue, is_big_match";
 const REMINDER_OPTIONS = [5, 30, 60, 120];
 const DEFAULT_TEAMS = [
@@ -438,6 +438,11 @@ function getLocalDayBounds(offsetDays = 0) {
     return { start, end, label: formatLocalDate(start) };
 }
 
+function isMissingResultColumns(error) {
+    const message = String(error?.message || "");
+    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at/.test(message);
+}
+
 let scheduleMatchesCacheDate = null;
 let scheduleMatchesCache = null;
 let scheduleMatchesCachePromise = null;
@@ -487,7 +492,8 @@ async function loadScheduleMatches(forceReload = false) {
         }
 
         const missingCanonicalColumn = canonicalQuery.error.code === "42703"
-            || String(canonicalQuery.error.message || "").includes("match_start_at");
+            || String(canonicalQuery.error.message || "").includes("match_start_at")
+            || isMissingResultColumns(canonicalQuery.error);
         if (!missingCanonicalColumn) return canonicalQuery;
 
         return supabaseClient
@@ -1030,6 +1036,55 @@ function updateTodayMatchStatuses() {
     });
 }
 
+function formatMatchResult(match) {
+    if (match.result_type === "team1") return `${match.team1} won`;
+    if (match.result_type === "team2") return `${match.team2} won`;
+    if (match.result_type === "tie") return "Match tied";
+    if (match.result_type === "draw") return "Match drawn";
+    if (match.result_type === "no_result") return "No result";
+    if (match.result_type === "abandoned") return "Match abandoned";
+    return "Result pending";
+}
+
+function renderFinishedMatches(matches, version = matchRefreshVersion) {
+    if (version !== matchRefreshVersion) return;
+
+    const section = document.getElementById("finishedResults");
+    const content = document.getElementById("finishedResultsContent");
+    if (!section || !content) return;
+
+    const finishedMatches = (matches || [])
+        .filter(match => match.match_status === "finished")
+        .sort((left, right) => {
+            const leftStart = getMatchStart(left)?.getTime() || 0;
+            const rightStart = getMatchStart(right)?.getTime() || 0;
+            return rightStart - leftStart;
+        })
+        .slice(0, 20);
+
+    section.hidden = finishedMatches.length === 0;
+    if (!finishedMatches.length) {
+        content.innerHTML = "";
+        return;
+    }
+
+    content.innerHTML = `
+        <div class="section-header">
+            <h2 id="finishedResultsHeading">Finished Match Results</h2>
+            <span>Latest results</span>
+        </div>
+        ${finishedMatches.map(match => `
+            <article class="finished-result-card" data-finished-match-id="${Number(match.id)}">
+                <span class="finished-result-badge">Finished</span>
+                <div class="finished-result-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
+                <div class="finished-result-summary">${escapeHtml(formatMatchResult(match))}</div>
+                ${match.result_summary ? `<div class="finished-result-summary">${escapeHtml(match.result_summary)}</div>` : ""}
+                <div class="finished-result-meta">${escapeHtml(formatTournamentName(match))} · ${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</div>
+            </article>
+        `).join("")}
+    `;
+}
+
 async function loadBigMatches(version = matchRefreshVersion) {
     const { data: matches, error } = await loadScheduleMatches();
 
@@ -1041,7 +1096,7 @@ async function loadBigMatches(version = matchRefreshVersion) {
     }
 
     bigMatches = (matches || [])
-        .filter(match => match.is_big_match)
+        .filter(match => match.is_big_match && match.match_status !== "finished")
         .map(match => ({ match, start: getMatchStart(match) }))
         .filter(({ start }) => start && start.getTime() > Date.now())
         .sort((a, b) => a.start.getTime() - b.start.getTime())
@@ -1049,6 +1104,17 @@ async function loadBigMatches(version = matchRefreshVersion) {
 
     if (bigMatches.length < 2) bigMatchesExpanded = false;
     renderBigMatches();
+}
+
+async function loadFinishedMatches(version = matchRefreshVersion) {
+    const { data: matches, error } = await loadScheduleMatches();
+    if (version !== matchRefreshVersion) return false;
+    if (error) {
+        console.error("Error loading finished matches:", error);
+        return false;
+    }
+    renderFinishedMatches(matches, version);
+    return true;
 }
 
 async function refreshMatches(type = currentMatchType, forceReload = false) {
@@ -1059,7 +1125,11 @@ async function refreshMatches(type = currentMatchType, forceReload = false) {
     refreshButton.disabled = true;
     refreshButton.textContent = "Refreshing…";
 
-    const [matchesLoaded] = await Promise.all([showMatches(type, version), loadBigMatches(version)]);
+    const [matchesLoaded] = await Promise.all([
+        showMatches(type, version),
+        loadBigMatches(version),
+        loadFinishedMatches(version)
+    ]);
 
     if (version !== matchRefreshVersion) return;
 
@@ -1097,7 +1167,8 @@ if (!isCurrentMatchRequest(type, version)) return false;
 const today = todayBounds.label;
 
 const todayMatches = sortFavouriteMatches(matches.filter(function(match) {
-  return getMatchStart(match)?.getTime() >= todayBounds.start.getTime()
+  return match.match_status !== "finished"
+      && getMatchStart(match)?.getTime() >= todayBounds.start.getTime()
       && getMatchStart(match)?.getTime() < todayBounds.end.getTime();
 }));
 
@@ -1212,7 +1283,8 @@ if (!isCurrentMatchRequest(type, version)) return false;
 
 
 const tomorrowMatches = sortFavouriteMatches(matches.filter(function(match) {
-    return getMatchStart(match)?.getTime() >= tomorrowBounds.start.getTime()
+    return match.match_status !== "finished"
+        && getMatchStart(match)?.getTime() >= tomorrowBounds.start.getTime()
         && getMatchStart(match)?.getTime() < tomorrowBounds.end.getTime();
 }));
 
@@ -1326,7 +1398,7 @@ if (!isCurrentMatchRequest(type, version)) return false;
 
 const upcomingMatches = sortFavouriteMatches(matches.filter(function(match) {
     const start = getMatchStart(match);
-    return start && start.getTime() >= upcomingStart.getTime();
+    return match.match_status !== "finished" && start && start.getTime() >= upcomingStart.getTime();
 }));
 
 setDisplayedMatches(upcomingMatches);

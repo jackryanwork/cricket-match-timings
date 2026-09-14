@@ -110,6 +110,25 @@
             line-height: 1.45;
         }
 
+        .match-result-fields {
+            margin-top: 16px;
+            padding: 12px;
+            border: 1px solid #34415e;
+            border-radius: 10px;
+            background: rgba(12, 19, 36, 0.75);
+        }
+
+        .match-result-badge {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(84, 217, 155, 0.14);
+            color: #54d99b;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
         .match-item {
             background: #0c1324;
             border: 1px solid #303b59;
@@ -563,6 +582,29 @@
             <span>⭐ Show in Upcoming Big Matches</span>
         </label>
 
+        <div id="matchResultFields" class="match-result-fields" hidden>
+            <label>Match status</label>
+            <select id="matchStatus">
+                <option value="scheduled">Scheduled</option>
+                <option value="live">Live</option>
+                <option value="finished">Finished</option>
+            </select>
+
+            <label>Match result</label>
+            <select id="resultType">
+                <option value="">Result pending</option>
+                <option value="team1">Team 1 won</option>
+                <option value="team2">Team 2 won</option>
+                <option value="tie">Match tied</option>
+                <option value="draw">Match drawn</option>
+                <option value="no_result">No result</option>
+                <option value="abandoned">Match abandoned</option>
+            </select>
+
+            <label>Result details (optional)</label>
+            <input type="text" id="resultSummary" placeholder="India won by 7 wickets">
+        </div>
+
         <button id="saveMatchButton" onclick="saveMatch()">
             ➕ Save Match
         </button>
@@ -628,6 +670,7 @@
                 <button type="button" class="match-filter-button active" data-match-filter="today" onclick="setMatchFilter('today')">Today</button>
                 <button type="button" class="match-filter-button" data-match-filter="tomorrow" onclick="setMatchFilter('tomorrow')">Tomorrow</button>
                 <button type="button" class="match-filter-button" data-match-filter="upcoming" onclick="setMatchFilter('upcoming')">Upcoming</button>
+                <button type="button" class="match-filter-button" data-match-filter="finished" onclick="setMatchFilter('finished')">Finished Results</button>
                 <button type="button" class="match-filter-button" data-match-filter="expired" onclick="setMatchFilter('expired')">Expired</button>
                 <button type="button" class="match-filter-button" data-match-filter="all" onclick="setMatchFilter('all')">All matches (including expired)</button>
             </div>
@@ -827,7 +870,8 @@ const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const BROADCAST_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/broadcast-telegram-message`;
 const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
-const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, match_status, result_type, result_summary, finished_at";
+const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -854,6 +898,11 @@ function notifyMatchDataChanged() {
     } catch {
         // The admin list still refreshes when storage is unavailable.
     }
+}
+
+function isMissingResultColumns(error) {
+    const message = String(error?.message || "");
+    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at/.test(message);
 }
 
 async function sendBroadcast() {
@@ -1008,6 +1057,12 @@ async function saveMatch() {
     const competition = customCompetition || selectedCompetition;
     const venue = document.getElementById("venue").value.trim();
     const isBigMatch = document.getElementById("isBigMatch").checked;
+    const matchStatus = document.getElementById("matchStatus").value;
+    const resultType = document.getElementById("resultType").value || null;
+    const resultSummary = document.getElementById("resultSummary").value.trim() || null;
+    const targetMatchId = editingMatchId;
+    const isEditing = Number.isSafeInteger(targetMatchId) && targetMatchId > 0;
+    const existingMatch = isEditing ? savedMatchesById.get(targetMatchId) : null;
 
     if (!team1 || !team2 || !date || !timeInput) {
 
@@ -1032,11 +1087,15 @@ async function saveMatch() {
         match_timezone: "Asia/Kolkata",
         competition: competition,
         venue: venue,
-        is_big_match: isBigMatch
+        is_big_match: isBigMatch,
+        match_status: matchStatus,
+        result_type: matchStatus === "finished" ? resultType : null,
+        result_summary: matchStatus === "finished" ? resultSummary : null,
+        finished_at: matchStatus === "finished"
+            ? (existingMatch?.finished_at || new Date().toISOString())
+            : null
     };
 
-    const targetMatchId = editingMatchId;
-    const isEditing = Number.isSafeInteger(targetMatchId) && targetMatchId > 0;
     matchSaveInFlight = true;
     saveButton.disabled = true;
     saveButton.textContent = isEditing ? "Updating..." : "Saving...";
@@ -1106,6 +1165,10 @@ function resetMatchForm() {
     document.getElementById("customCompetition").value = "";
     document.getElementById("venue").value = "";
     document.getElementById("isBigMatch").checked = false;
+    document.getElementById("matchStatus").value = "scheduled";
+    document.getElementById("resultType").value = "";
+    document.getElementById("resultSummary").value = "";
+    document.getElementById("matchResultFields").hidden = true;
 }
 
 function cancelEdit() {
@@ -1135,10 +1198,44 @@ function editMatch(id) {
     document.getElementById("customCompetition").value = competitionExists ? "" : (match.competition || "");
     document.getElementById("venue").value = match.venue || "";
     document.getElementById("isBigMatch").checked = Boolean(match.is_big_match);
+    document.getElementById("matchStatus").value = match.match_status || "scheduled";
+    document.getElementById("resultType").value = match.result_type || "";
+    document.getElementById("resultSummary").value = match.result_summary || "";
+    document.getElementById("matchResultFields").hidden = false;
 
     document.getElementById("saveMatchButton").textContent = "✅ Update Match";
     document.getElementById("cancelEditButton").style.display = "block";
     document.getElementById("addMatchCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function markMatchFinished(id) {
+    const match = savedMatchesById.get(Number(id));
+    if (!match || !confirm(`Mark ${match.team1} vs ${match.team2} as finished?`)) return;
+
+    const { error } = await supabaseClient
+        .from("matches")
+        .update({
+            match_status: "finished",
+            result_type: null,
+            result_summary: null,
+            finished_at: new Date().toISOString()
+        })
+        .eq("id", Number(id));
+
+    if (error) {
+        alert("Error marking match finished: " + error.message);
+        return;
+    }
+
+    await loadSavedMatches();
+    notifyMatchDataChanged();
+}
+
+function reopenMatch(id) {
+    editMatch(id);
+    document.getElementById("matchStatus").value = "scheduled";
+    document.getElementById("resultType").value = "";
+    document.getElementById("resultSummary").value = "";
 }
 
 async function toggleBigMatch(id, isCurrentlyBig) {
@@ -1227,15 +1324,27 @@ function getMatchFilterDates() {
     };
 }
 
+function getMatchResultLabel(match) {
+    if (match.result_type === "team1") return `${match.team1} won`;
+    if (match.result_type === "team2") return `${match.team2} won`;
+    if (match.result_type === "tie") return "Match tied";
+    if (match.result_type === "draw") return "Match drawn";
+    if (match.result_type === "no_result") return "No result";
+    if (match.result_type === "abandoned") return "Match abandoned";
+    return "Result pending";
+}
+
 function renderSavedMatches() {
     const container = document.getElementById("savedMatches");
     const summary = document.getElementById("matchesSummary");
     const { today, tomorrow } = getMatchFilterDates();
     const filteredMatches = savedMatches.filter(match => {
-        if (selectedMatchFilter === "today") return match.match_date === today;
-        if (selectedMatchFilter === "tomorrow") return match.match_date === tomorrow;
-        if (selectedMatchFilter === "upcoming") return match.match_date > tomorrow;
-        if (selectedMatchFilter === "expired") return match.match_date < today;
+        const isFinished = match.match_status === "finished";
+        if (selectedMatchFilter === "today") return !isFinished && match.match_date === today;
+        if (selectedMatchFilter === "tomorrow") return !isFinished && match.match_date === tomorrow;
+        if (selectedMatchFilter === "upcoming") return !isFinished && match.match_date > tomorrow;
+        if (selectedMatchFilter === "finished") return isFinished;
+        if (selectedMatchFilter === "expired") return !isFinished && match.match_date < today;
         return true;
     });
 
@@ -1243,6 +1352,7 @@ function renderSavedMatches() {
         today: "today",
         tomorrow: "tomorrow",
         upcoming: "upcoming",
+        finished: "finished matches",
         expired: "expired matches",
         all: "all matches (including expired)"
     };
@@ -1254,7 +1364,8 @@ function renderSavedMatches() {
     }
 
     container.innerHTML = filteredMatches.map(match => {
-        const isExpired = match.match_date < today;
+        const isFinished = match.match_status === "finished";
+        const isExpired = !isFinished && match.match_date < today;
         return `
             <div class="match-item${isExpired ? " expired" : ""}">
                 <strong>${escapeHtml(match.team1)} vs ${escapeHtml(match.team2)}</strong>
@@ -1266,10 +1377,15 @@ function renderSavedMatches() {
                 🏏 ${escapeHtml(match.competition || "No competition")}
                 <br>
                 🏟️ ${escapeHtml(match.venue || "No venue")}
+                ${isFinished ? `<br><span class="match-result-badge">FINISHED · ${escapeHtml(getMatchResultLabel(match))}</span>` : ''}
+                ${isFinished && match.result_summary ? `<br><span>${escapeHtml(match.result_summary)}</span>` : ''}
                 ${isExpired ? '<br><span class="expired-badge">EXPIRED</span>' : ''}
                 ${match.is_big_match ? '<br><span class="big-match-badge">⭐ BIG MATCH</span>' : ''}
                 <div class="match-actions">
                     <button class="edit-match-button" onclick="editMatch(${Number(match.id)})">✏️ Edit</button>
+                    ${isFinished
+                        ? `<button class="big-match-button" onclick="reopenMatch(${Number(match.id)})">↩️ Reopen Match</button>`
+                        : `<button class="big-match-button" onclick="markMatchFinished(${Number(match.id)})">✅ Mark Finished</button>`}
                     <button class="big-match-button" onclick="toggleBigMatch(${Number(match.id)}, ${Boolean(match.is_big_match)})">
                         ${match.is_big_match ? "⭐ Remove Big Match" : "⭐ Add to Big Match"}
                     </button>
@@ -1288,12 +1404,21 @@ async function loadSavedMatches() {
 
     container.innerHTML = "Loading...";
 
-    const { data: matches, error } = await supabaseClient
+    let { data: matches, error } = await supabaseClient
         .from("matches")
         .select(MATCH_SELECT)
         .order("match_date", { ascending: true })
         .order("match_time", { ascending: true })
         .range(0, 9999);
+
+    if (error && isMissingResultColumns(error)) {
+        ({ data: matches, error } = await supabaseClient
+            .from("matches")
+            .select(LEGACY_MATCH_SELECT)
+            .order("match_date", { ascending: true })
+            .order("match_time", { ascending: true })
+            .range(0, 9999));
+    }
 
     if (error) {
 

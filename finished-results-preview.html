@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CricNivo Finished Results Preview</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .results-preview { max-width: 720px; margin: 0 auto; padding: 22px 14px 40px; }
+        .preview-header, .preview-card { border: 1px solid var(--border); border-radius: 18px; background: var(--card); padding: 18px; box-shadow: 0 10px 30px rgba(16, 61, 112, 0.08); }
+        .preview-header { margin-bottom: 16px; }
+        .preview-eyebrow { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+        .preview-header h1 { margin: 6px 0 8px; font-size: clamp(24px, 6vw, 34px); }
+        .preview-header p { margin: 0; color: var(--muted); line-height: 1.55; }
+        .preview-warning { margin-top: 14px !important; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); color: var(--text) !important; font-size: 13px; font-weight: 700; }
+        .preview-section { margin-top: 16px; }
+        .preview-section h2 { margin: 0 0 10px; font-size: 19px; }
+        .preview-match { display: grid; gap: 12px; border-top: 1px solid var(--border); padding: 14px 0; }
+        .preview-match:first-child { border-top: 0; padding-top: 0; }
+        .preview-match-teams { font-size: 17px; font-weight: 800; }
+        .preview-match-meta { color: var(--muted); font-size: 13px; line-height: 1.5; }
+        .preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .preview-button, .preview-select, .preview-input { min-height: 40px; border: 1px solid var(--border); border-radius: 10px; font: inherit; }
+        .preview-button { padding: 8px 13px; background: var(--accent); color: #fff; cursor: pointer; font-weight: 800; }
+        .preview-button.secondary { background: var(--card-light); color: var(--text); }
+        .preview-button:disabled { cursor: not-allowed; opacity: .55; }
+        .preview-select, .preview-input { width: 100%; padding: 8px 10px; background: var(--card); color: var(--text); }
+        .preview-result-editor { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: var(--card-light); }
+        .preview-result-editor label { color: var(--muted); font-size: 12px; font-weight: 800; }
+        .preview-result-badge { display: inline-flex; width: fit-content; padding: 5px 9px; border-radius: 999px; background: rgba(15, 159, 110, .14); color: var(--success); font-size: 12px; font-weight: 800; }
+        .preview-empty { color: var(--muted); margin: 0; }
+        .preview-reset { margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <main class="results-preview">
+        <header class="preview-header">
+            <div class="preview-eyebrow">Local prototype</div>
+            <h1>Finished Match Results</h1>
+            <p>This preview uses browser test data only. It does not connect to Supabase or change production matches.</p>
+            <p class="preview-warning">Test flow: mark today’s match finished, choose the result, and watch the public result card update below.</p>
+        </header>
+
+        <section class="preview-card preview-section" aria-labelledby="adminPreviewHeading">
+            <h2 id="adminPreviewHeading">Admin panel preview</h2>
+            <div id="adminPreviewMatches"></div>
+        </section>
+
+        <section class="preview-card preview-section" aria-labelledby="publicPreviewHeading">
+            <h2 id="publicPreviewHeading">Mini App &amp; website preview</h2>
+            <div id="finishedResultsPreview"></div>
+        </section>
+
+        <button class="preview-button secondary preview-reset" id="resetPreview" type="button">Reset local demo data</button>
+    </main>
+    <script src="js/finished-results-preview.js"></script>
+</body>
+</html>

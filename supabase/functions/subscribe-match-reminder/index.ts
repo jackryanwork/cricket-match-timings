@@ -172,13 +172,14 @@ export default {
     }
 
     const { data: match, error: matchError } = await ctx.supabaseAdmin.from("matches")
-      .select("id, match_date, match_time, match_start_at, match_timezone")
+      .select("id, match_date, match_time, match_start_at, match_timezone, match_status")
       .eq("id", matchId).maybeSingle();
     if (matchError) return json({ error: "Could not load this match right now." }, 500);
     if (!match) return json({ error: "Match not found." }, 404);
 
     const start = matchStart(match);
     const remindAt = start ? new Date(start.getTime() - reminderMinutes * 60_000) : null;
+    if (match.match_status === "finished") return json({ error: "Finished matches cannot have reminders." }, 422);
     if (!start || start.getTime() <= Date.now()) return json({ error: "This match has already started or has no valid start time." }, 422);
     if (!remindAt || remindAt.getTime() <= Date.now()) return json({ error: `This match starts in less than ${reminderMinutes} minutes.` }, 422);
 

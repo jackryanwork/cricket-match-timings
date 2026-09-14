@@ -64,7 +64,7 @@ export default {
     const matchIds = [...new Set(reminders.map((row) => Number(row.match_id)))];
     const [{ data: users, error: usersError }, { data: matches, error: matchesError }] = await Promise.all([
       ctx.supabaseAdmin.from("telegram_reminder_users").select("telegram_user_id, chat_id, timezone").in("telegram_user_id", userIds),
-      ctx.supabaseAdmin.from("matches").select("id, team1, team2, competition, match_date, match_time, match_start_at, match_timezone, venue").in("id", matchIds),
+      ctx.supabaseAdmin.from("matches").select("id, team1, team2, competition, match_date, match_time, match_start_at, match_timezone, venue, match_status").in("id", matchIds),
     ]);
     if (usersError || matchesError) return Response.json({ error: "Could not prepare reminders." }, { status: 500 });
 
@@ -79,7 +79,7 @@ export default {
       const user = userById.get(Number(reminder.telegram_user_id));
       const start = match && matchStart(match);
       const expected = start && new Date(start.getTime() - Number(reminder.reminder_minutes) * 60_000);
-      if (!match || !user?.chat_id || !start || !expected || expected.getTime() <= now.getTime() - RETRY_WINDOW_MINUTES * 60_000) {
+      if (!match || match.match_status === "finished" || match.match_status === "live" || !user?.chat_id || !start || !expected || expected.getTime() <= now.getTime() - RETRY_WINDOW_MINUTES * 60_000) {
         completedIds.push(Number(reminder.id));
         continue;
       }
