@@ -1309,6 +1309,10 @@ html.dark-mode .welcome-heading-line-3 {
     padding-top: 7px;
 }
 
+.match-actions[hidden] {
+    display: none;
+}
+
 .match-actions .favourite-button,
 .match-actions .set-reminder-button {
     min-width: 132px;

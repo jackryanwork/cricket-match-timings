@@ -131,6 +131,13 @@ function setReminderButton(match) {
         : `<button class="set-reminder-button" type="button" data-reminder-match-id="${validId}" aria-label="Set reminder">Set reminder</button>`;
 }
 
+function matchActions(match) {
+    return `<div class="match-actions" data-match-actions${isMatchLive(match) ? " hidden" : ""}>
+        ${favouriteButton(match)}
+        ${setReminderButton(match)}
+    </div>`;
+}
+
 function formatReminderMinutes(minutes) {
     const value = Number(minutes);
     if (value === 60) return "1 hour";
@@ -441,6 +448,17 @@ function getMatchStart(match) {
 
     if (!match.match_date || !match.match_time) return null;
     return parseZonedDateTime(match.match_date, match.match_time, match.match_timezone);
+}
+
+function isMatchLive(match) {
+    if (!match) return false;
+
+    const status = String(match.match_status || "").trim().toLowerCase();
+    if (status === "finished") return false;
+    if (status === "live") return true;
+
+    const start = getMatchStart(match);
+    return Boolean(start && start.getTime() <= Date.now());
 }
 
 function getLocalDayBounds(offsetDays = 0) {
@@ -970,10 +988,7 @@ function renderBigMatches() {
                     <span>${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))}</span>
                 </div>
                 <div class="featured-countdown" data-big-countdown-index="${index}">Starts in ${formatCountdown(start)}</div>
-                <div class="match-actions">
-                    ${favouriteButton(match)}
-                    ${setReminderButton(match)}
-                </div>
+                ${matchActions(match)}
             </article>
         `;
     }).join("");
@@ -1023,7 +1038,7 @@ function updateMatchCountdowns() {
         const start = getMatchStart(match);
         const card = countdown.closest("[data-match-id]");
         const isTodayCountdown = Boolean(card?.querySelector("[data-today-match-status]"));
-        const hideCountdown = isTodayCountdown && start && start.getTime() <= Date.now();
+        const hideCountdown = isTodayCountdown && isMatchLive(match);
         const startInLabel = card?.querySelector(".start-in-label");
 
         countdown.classList.toggle("is-hidden", hideCountdown);
@@ -1042,14 +1057,16 @@ function updateMatchCountdowns() {
 function updateTodayMatchStatuses() {
     document.querySelectorAll("[data-today-match-status]").forEach(status => {
         const match = displayedMatches.get(status.dataset.matchId);
-        const start = match && getMatchStart(match);
-        const isLive = Boolean(start && start.getTime() <= Date.now());
+        const isLive = isMatchLive(match);
+        const card = status.closest("[data-match-id]");
+        const actions = card?.querySelector("[data-match-actions]");
 
         status.classList.toggle("today", !isLive);
         status.classList.toggle("live", isLive);
         status.innerHTML = isLive
             ? '<span class="match-live-dot" aria-hidden="true"></span>LIVE'
             : "TODAY";
+        if (actions) actions.hidden = isLive;
     });
 }
 
@@ -1305,10 +1322,7 @@ if (todayMatches.length === 0) {
 
                 </div>
 
-                <div class="match-actions">
-                    ${favouriteButton(match)}
-                    ${setReminderButton(match)}
-                </div>
+                ${matchActions(match)}
 
             </article>
         `;
@@ -1421,10 +1435,7 @@ if (tomorrowMatches.length === 0) {
 
                 </div>
 
-                <div class="match-actions">
-                    ${favouriteButton(match)}
-                    ${setReminderButton(match)}
-                </div>
+                ${matchActions(match)}
 
             </article>
         `;
@@ -1534,10 +1545,7 @@ if (upcomingMatches.length === 0) {
 
                 </div>
 
-                <div class="match-actions">
-                    ${favouriteButton(match)}
-                    ${setReminderButton(match)}
-                </div>
+                ${matchActions(match)}
 
             </article>
         `;
