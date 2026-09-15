@@ -1184,7 +1184,7 @@ html.dark-mode .welcome-heading-line-3 {
     display: block;
     width: 100%;
     max-width: 100%;
-    font-size: clamp(9px, 2.45vw, 13px);
+    font-size: clamp(10px, 2.7vw, 14px);
     font-weight: 750;
     line-height: 1.2;
     text-align: center;
@@ -1210,7 +1210,7 @@ html.dark-mode .welcome-heading-line-3 {
 
 .start-in-label {
     color: var(--muted);
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 800;
     line-height: 1.1;
     text-transform: lowercase;
@@ -1218,9 +1218,9 @@ html.dark-mode .welcome-heading-line-3 {
 
 .match-countdown {
     color: var(--accent);
-    font-size: 9px;
-    font-weight: 800;
-    line-height: 1.2;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
     max-width: 100%;
     text-align: center;
     white-space: nowrap;
@@ -2193,7 +2193,7 @@ html.dark-mode .welcome-heading-line-3 {
     }
 
     .team-name-card {
-        font-size: 12px;
+        font-size: 13px;
     }
 
     .welcome h1,
