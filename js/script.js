@@ -849,24 +849,6 @@ function isTelegramMiniApp() {
         || (platform !== "" && platform !== "unknown" && Boolean(telegramApp?.initDataUnsafe?.user));
 }
 
-function openSupportEmail(event) {
-    if (!isTelegramMiniApp()) return;
-
-    const telegramApp = window.Telegram?.WebApp;
-    if (typeof telegramApp?.openLink !== "function") return;
-
-    event.preventDefault();
-    try {
-        telegramApp.openLink(event.currentTarget.href);
-    } catch {
-        window.location.href = event.currentTarget.href;
-    }
-}
-
-document.querySelectorAll('a[href^="mailto:"]').forEach(link => {
-    link.addEventListener("click", openSupportEmail);
-});
-
 async function openMyTeams() {
     const teamPicker = document.getElementById("teamPicker");
     document.getElementById("myTeamsModal").classList.add("open");

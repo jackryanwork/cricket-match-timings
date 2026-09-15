@@ -255,7 +255,7 @@ button {
     top: 54px;
     right: 0;
     width: min(300px, calc(100vw - 28px));
-    max-height: min(70vh, 520px);
+    max-height: min(calc(100vh - 84px), 680px);
     padding: 10px;
     overflow-y: auto;
     border: 1px solid var(--border);
@@ -464,6 +464,15 @@ html.dark-mode .about-modal {
 .menu-contact-link:focus-visible {
     background: var(--accent-soft);
     color: var(--text);
+}
+
+.menu-contact-email {
+    display: block;
+    cursor: default;
+}
+
+.menu-contact-email:hover {
+    background: transparent;
 }
 
 .menu-social {
@@ -1560,6 +1569,11 @@ html.dark-mode .welcome-heading-line-3 {
 .footer-contact-title {
     color: var(--text);
     font-weight: 800;
+}
+
+.footer-contact-email {
+    color: var(--muted);
+    font-weight: 700;
 }
 
 .match-modal {
