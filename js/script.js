@@ -1080,10 +1080,23 @@ function formatMatchResult(match) {
     return "Result pending";
 }
 
+function finishedAtTimestamp(match) {
+    const timestamp = Date.parse(match?.finished_at || "");
+    return Number.isFinite(timestamp) ? timestamp : null;
+}
+
 function getFinishedMatches(matches) {
     return (matches || [])
         .filter(match => match.match_status === "finished")
         .sort((left, right) => {
+            const leftFinishedAt = finishedAtTimestamp(left);
+            const rightFinishedAt = finishedAtTimestamp(right);
+            if (leftFinishedAt !== null || rightFinishedAt !== null) {
+                if (leftFinishedAt === null) return 1;
+                if (rightFinishedAt === null) return -1;
+                if (rightFinishedAt !== leftFinishedAt) return rightFinishedAt - leftFinishedAt;
+            }
+
             const leftStart = getMatchStart(left)?.getTime() || 0;
             const rightStart = getMatchStart(right)?.getTime() || 0;
             return rightStart - leftStart;

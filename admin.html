@@ -1368,6 +1368,27 @@ function getMatchResultLabel(match) {
     return "Result pending";
 }
 
+function finishedAtTimestamp(match) {
+    const timestamp = Date.parse(match?.finished_at || "");
+    return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function sortFinishedMatches(matches) {
+    return [...matches].sort((left, right) => {
+        const leftFinishedAt = finishedAtTimestamp(left);
+        const rightFinishedAt = finishedAtTimestamp(right);
+        if (leftFinishedAt !== null || rightFinishedAt !== null) {
+            if (leftFinishedAt === null) return 1;
+            if (rightFinishedAt === null) return -1;
+            if (rightFinishedAt !== leftFinishedAt) return rightFinishedAt - leftFinishedAt;
+        }
+
+        return `${right.match_date || ""} ${right.match_time || ""}`.localeCompare(
+            `${left.match_date || ""} ${left.match_time || ""}`
+        );
+    });
+}
+
 function renderSavedMatches() {
     const container = document.getElementById("savedMatches");
     const summary = document.getElementById("matchesSummary");
@@ -1390,6 +1411,9 @@ function renderSavedMatches() {
         expired: "expired matches",
         all: "all matches (including expired)"
     };
+    const matchesToRender = selectedMatchFilter === "finished"
+        ? sortFinishedMatches(filteredMatches)
+        : filteredMatches;
     summary.textContent = `${filteredMatches.length} ${filterLabels[selectedMatchFilter]} found`;
 
     if (filteredMatches.length === 0) {
@@ -1397,7 +1421,7 @@ function renderSavedMatches() {
         return;
     }
 
-    container.innerHTML = filteredMatches.map(match => {
+    container.innerHTML = matchesToRender.map(match => {
         const isFinished = match.match_status === "finished";
         const isExpired = !isFinished && match.match_date < today;
         return `
