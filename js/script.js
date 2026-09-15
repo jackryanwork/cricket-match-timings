@@ -62,7 +62,11 @@ function flagFromCountryCode(code) {
 }
 
 function teamFlag(teamName) {
-    const countryTeamName = String(teamName || "").replace(/\s+Women$/, "");
+    const countryTeamName = String(teamName || "")
+        .trim()
+        .replace(/\s+(?:A\s+)?Women$/i, "")
+        .replace(/\s+Under[- ]?19s?$/i, "")
+        .trim();
 
     if (countryTeamName === "England") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}";
     if (countryTeamName === "Scotland") return "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}";
