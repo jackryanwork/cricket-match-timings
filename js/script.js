@@ -15,7 +15,17 @@ const DEFAULT_TEAMS = [
     "Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland",
     "Namibia", "Nepal", "Netherlands", "New Zealand", "Pakistan", "Scotland",
     "South Africa", "Sri Lanka", "United Arab Emirates", "United States of America",
-    "West Indies", "Zimbabwe"
+    "West Indies", "Zimbabwe",
+    "Afghanistan Women", "Australia Women", "Bangladesh Women", "England Women",
+    "India Women", "Ireland Women", "Japan Women", "Malaysia Women",
+    "Nepal Women", "Netherlands Women", "New Zealand Women", "Pakistan Women",
+    "Scotland Women", "South Africa Women", "Sri Lanka Women", "Thailand Women",
+    "United Arab Emirates Women", "West Indies Women", "Zimbabwe Women",
+    "Afghanistan Under 19", "Australia Under 19", "Bangladesh Under 19",
+    "England Under 19", "India Under 19", "Ireland Under 19", "Nepal Under 19",
+    "New Zealand Under 19", "Pakistan Under 19", "Scotland Under 19",
+    "South Africa Under 19", "Sri Lanka Under 19", "United Arab Emirates Under 19",
+    "West Indies Under 19", "Zimbabwe Under 19"
 ];
 const TEAM_COUNTRY_CODES = {
     "Afghanistan": "AF", "Argentina": "AR", "Australia": "AU", "Austria": "AT",
