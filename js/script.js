@@ -1580,6 +1580,8 @@ const aboutModal = document.getElementById("aboutModal");
 const aboutModalClose = document.getElementById("aboutModalClose");
 const cricketBuddy = document.getElementById("cricketBuddy");
 const buddyMessage = document.getElementById("buddyMessage");
+let menuIsOpen = false;
+let followCricNivoSectionVisible = false;
 
 function updateThemeToggle() {
     const dark = isDarkMode();
@@ -1628,22 +1630,31 @@ if (isTelegramMiniApp()) {
     const followCricNivoSection = document.querySelector(".social-section");
     if (followCricNivoSection && "IntersectionObserver" in window) {
         const buddyVisibilityObserver = new IntersectionObserver(([entry]) => {
-            const followSectionVisible = entry.isIntersecting;
-            cricketBuddy.hidden = followSectionVisible;
-            if (buddyMessage.dataset.dismissed !== "true") {
-                buddyMessage.hidden = followSectionVisible;
-            }
+            followCricNivoSectionVisible = entry.isIntersecting;
+            updateBuddyVisibility();
         }, { threshold: 0.1 });
         buddyVisibilityObserver.observe(followCricNivoSection);
     }
 }
 
+function updateBuddyVisibility() {
+    if (!isTelegramMiniApp()) return;
+
+    const shouldHideBuddy = menuIsOpen || followCricNivoSectionVisible;
+    cricketBuddy.hidden = shouldHideBuddy;
+    if (buddyMessage.dataset.dismissed !== "true") {
+        buddyMessage.hidden = shouldHideBuddy;
+    }
+}
+
 function setMenuOpen(isOpen) {
+    menuIsOpen = isOpen;
     menuPanel.classList.toggle("open", isOpen);
     menuButton.classList.toggle("open", isOpen);
     menuButton.setAttribute("aria-expanded", String(isOpen));
     menuButton.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
     menuPanel.setAttribute("aria-hidden", String(!isOpen));
+    updateBuddyVisibility();
 }
 
 menuButton.addEventListener("click", () => {
