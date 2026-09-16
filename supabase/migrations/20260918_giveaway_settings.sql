@@ -21,7 +21,7 @@ drop policy if exists "Require admin MFA for giveaway settings" on public.giveaw
 
 create policy "Require admin MFA for giveaway settings"
 on public.giveaway_settings
-as restrictive
+as permissive
 for all
 to authenticated
 using (
