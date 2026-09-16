@@ -190,9 +190,8 @@ export default {
         botToken,
         chatId,
         `${welcome}\n\n` +
-          "📲 Tap Open APP to explore the complete cricket schedule and follow your favourite matches.\n\n" +
-          "In App you can set match reminders, you can see countdown time for every match.\n\n" +
-          "Click on Open APP button to start the CricNivo APP.",
+          "📲 Open the app for cricket schedules, local times, and match reminders.\n\n" +
+          "🎁 Check our latest giveaways by tapping GIVEAWAYS.",
       );
       if (isNewBotUser && Number.isSafeInteger(adminChatId)) {
         const firstName = update.message?.from?.first_name?.trim() || "Not provided";
