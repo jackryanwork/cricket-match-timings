@@ -578,7 +578,7 @@ html.dark-mode .about-modal {
 .welcome h1,
 .welcome h2 {
     margin: 7px 0 5px;
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .welcome-heading-line {
@@ -923,6 +923,15 @@ html.dark-mode .welcome-heading-line-3 {
     font-weight: 700;
 }
 
+.filters .filter {
+    padding: 8px 12px;
+    font-size: 11px;
+}
+
+.today-filter-break {
+    display: none;
+}
+
 .filter.active {
     color: #ffffff;
 }
@@ -962,6 +971,8 @@ html.dark-mode .welcome-heading-line-3 {
 
 .finished-filter-row .filter {
     display: inline-block;
+    padding: 6px 10px;
+    font-size: 10px;
 }
 
 .match-tools {
@@ -2362,7 +2373,7 @@ html.dark-mode .welcome-heading-line-3 {
 
     .welcome h1,
     .welcome h2 {
-        font-size: 20px;
+        font-size: 18px;
     }
 
     .featured-meta {
@@ -2395,6 +2406,27 @@ html.dark-mode .welcome-heading-line-3 {
 
     .footer-contact-item {
         justify-content: center;
+    }
+
+    .filters {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        overflow: visible;
+        padding-bottom: 0;
+    }
+
+    .filters .filter {
+        width: 100%;
+        min-width: 0;
+        padding: 8px 4px;
+        text-align: center;
+        white-space: normal;
+        line-height: 1.2;
+    }
+
+    .today-filter-break {
+        display: inline;
     }
 }
 
