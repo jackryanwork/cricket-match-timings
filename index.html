@@ -39,8 +39,8 @@
             }
         } catch {}
     </script>
-    <link rel="stylesheet" href="css/style.css?v=7d4b65396bdc">
-    <script src="js/script.js?v=7d4b65396bdc" defer></script>
+    <link rel="stylesheet" href="css/style.css?v=local-mail-link-fix-1">
+    <script src="js/script.js?v=local-mail-link-fix-1" defer></script>
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
@@ -204,7 +204,10 @@
                 <div class="menu-contact-group">
                     <div class="menu-contact-title"><svg class="ui-icon" aria-hidden="true"><use href="#icon-message"></use></svg>Contact Us</div>
                     <a class="menu-contact-link" href="https://t.me/CricNivo" target="_blank" rel="noopener noreferrer">Telegram – @cricnivo</a>
-                    <span class="menu-contact-link menu-contact-email">Mail Us – support@cricnivo.com</span>
+                    <div class="menu-contact-item">
+                        <span class="menu-contact-label">Mail Us</span>
+                        <a class="menu-contact-link menu-contact-email" data-support-email href="mailto:support@cricnivo.com">support@cricnivo.com</a>
+                    </div>
                 </div>
                 <div class="menu-social" aria-label="CricNivo social media">
                     <div class="menu-social-title">Follow CricNivo</div>
@@ -387,7 +390,7 @@
                 </div>
                 <div class="footer-contact-item">
                     <span class="footer-contact-label">Mail Us</span>
-                    <a class="footer-contact-email" href="mailto:support@cricnivo.com">support@cricnivo.com</a>
+                    <a class="footer-contact-email" data-support-email href="mailto:support@cricnivo.com">support@cricnivo.com</a>
                 </div>
             </div>
         </nav>

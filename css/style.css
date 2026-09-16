@@ -460,6 +460,28 @@ html.dark-mode .about-modal {
     text-decoration: none;
 }
 
+.menu-contact-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    padding: 0 8px;
+}
+
+.menu-contact-label {
+    flex: 0 0 auto;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.menu-contact-item .menu-contact-link {
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    overflow-wrap: anywhere;
+}
+
 .menu-contact-link:hover,
 .menu-contact-link:focus-visible {
     background: var(--accent-soft);
@@ -468,11 +490,11 @@ html.dark-mode .about-modal {
 
 .menu-contact-email {
     display: block;
-    cursor: default;
+    cursor: pointer;
 }
 
 .menu-contact-email:hover {
-    background: transparent;
+    background: var(--accent-soft);
 }
 
 .menu-social {

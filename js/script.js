@@ -867,6 +867,25 @@ function isTelegramMiniApp() {
         || (platform !== "" && platform !== "unknown" && Boolean(telegramApp?.initDataUnsafe?.user));
 }
 
+function openSupportEmail(event) {
+    const emailLink = event.currentTarget;
+    const mailtoUrl = emailLink.getAttribute("href");
+    const telegramApp = window.Telegram?.WebApp;
+
+    if (!isTelegramMiniApp() || typeof telegramApp?.openLink !== "function" || !mailtoUrl) return;
+
+    event.preventDefault();
+    try {
+        telegramApp.openLink(mailtoUrl);
+    } catch {
+        window.location.href = mailtoUrl;
+    }
+}
+
+document.querySelectorAll("[data-support-email]").forEach(emailLink => {
+    emailLink.addEventListener("click", openSupportEmail);
+});
+
 async function openMyTeams() {
     const teamPicker = document.getElementById("teamPicker");
     document.getElementById("myTeamsModal").classList.add("open");
