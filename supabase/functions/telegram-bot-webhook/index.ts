@@ -14,7 +14,7 @@ type TelegramUpdate = {
 const keyboard = {
   keyboard: [
     [{ text: "📢 Join our channel" }, { text: "💬 Contact Us" }],
-    [{ text: "📲 Open App", web_app: { url: MINI_APP_URL } }],
+    [{ text: "📲 Open App", web_app: { url: MINI_APP_URL } }, { text: "🎁 GIVEAWAYS" }],
   ],
   resize_keyboard: true,
   is_persistent: true,
@@ -97,6 +97,26 @@ async function sendChannelMessage(botToken: string, chatId: number) {
   } catch {
     console.error("Unable to send channel link.");
   }
+}
+
+async function sendGiveawayMessage(botToken: string, chatId: number, supabaseAdmin: { from: (table: string) => any }) {
+  let giveawayMessage = "";
+  try {
+    const { data } = await supabaseAdmin
+      .from("giveaway_settings")
+      .select("message, is_active")
+      .eq("id", 1)
+      .maybeSingle();
+    if (data?.is_active && typeof data.message === "string") giveawayMessage = data.message.trim();
+  } catch {
+    console.error("Unable to load giveaway settings.");
+  }
+
+  await sendMessage(
+    botToken,
+    chatId,
+    giveawayMessage || "There are no active giveaways right now.",
+  );
 }
 
 export default {
@@ -195,6 +215,11 @@ export default {
 
     if (text === "📢 Join our channel") {
       await sendChannelMessage(botToken, chatId);
+      return new Response("OK");
+    }
+
+    if (text === "🎁 GIVEAWAYS") {
+      await sendGiveawayMessage(botToken, chatId, ctx.supabaseAdmin);
       return new Response("OK");
     }
 

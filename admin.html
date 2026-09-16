@@ -692,6 +692,29 @@
     </div>
 
 
+    <!-- GIVEAWAY MESSAGE -->
+
+    <div class="card">
+
+        <h2>🎁 Giveaway Message</h2>
+
+        <label for="giveawayMessage">Text shown when users tap GIVEAWAYS</label>
+        <textarea id="giveawayMessage" maxlength="4000" placeholder="Write the current giveaway details here..."></textarea>
+
+        <label class="big-match-option">
+            <input type="checkbox" id="giveawayActive">
+            <span>Show this message as the active giveaway</span>
+        </label>
+
+        <button id="saveGiveawayButton" onclick="saveGiveaway()">
+            💾 Save Giveaway Message
+        </button>
+
+        <div class="broadcast-status" id="giveawayStatus" aria-live="polite"></div>
+
+    </div>
+
+
     <!-- SAVED MATCHES -->
 
     <div class="card">
@@ -890,6 +913,7 @@ function showScreen(screen) {
 function showAdminPanel() {
     showScreen("admin");
     loadSavedMatches();
+    loadGiveaway();
 }
 
 async function logoutAdmin() {
@@ -1008,6 +1032,75 @@ async function sendBroadcast() {
     } finally {
         button.disabled = false;
         button.textContent = "📣 Send Broadcast";
+    }
+}
+
+async function loadGiveaway() {
+    const messageField = document.getElementById("giveawayMessage");
+    const activeField = document.getElementById("giveawayActive");
+    const status = document.getElementById("giveawayStatus");
+
+    status.className = "broadcast-status";
+    status.textContent = "Loading giveaway settings...";
+
+    const { data, error } = await supabaseClient
+        .from("giveaway_settings")
+        .select("message, is_active")
+        .eq("id", 1)
+        .maybeSingle();
+
+    if (error) {
+        status.textContent = "Could not load giveaway settings: " + error.message;
+        status.classList.add("error");
+        return;
+    }
+
+    messageField.value = data?.message || "";
+    activeField.checked = Boolean(data?.is_active);
+    status.textContent = activeField.checked ? "Active giveaway loaded." : "No active giveaway.";
+}
+
+async function saveGiveaway() {
+    const messageField = document.getElementById("giveawayMessage");
+    const activeField = document.getElementById("giveawayActive");
+    const button = document.getElementById("saveGiveawayButton");
+    const status = document.getElementById("giveawayStatus");
+    const message = messageField.value.trim();
+    const isActive = activeField.checked;
+
+    status.className = "broadcast-status";
+    if (isActive && !message) {
+        status.textContent = "Write a giveaway message before activating it.";
+        status.classList.add("error");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Saving...";
+    status.textContent = "Saving giveaway settings...";
+
+    try {
+        const { error } = await supabaseClient
+            .from("giveaway_settings")
+            .upsert({
+                id: 1,
+                message,
+                is_active: isActive,
+                updated_at: new Date().toISOString()
+            });
+
+        if (error) throw error;
+
+        status.textContent = isActive
+            ? "Giveaway saved and activated."
+            : "Giveaway saved and deactivated.";
+        status.classList.add("success");
+    } catch (error) {
+        status.textContent = error.message || "Could not save giveaway settings.";
+        status.classList.add("error");
+    } finally {
+        button.disabled = false;
+        button.textContent = "💾 Save Giveaway Message";
     }
 }
 

@@ -16,7 +16,7 @@ type MediaKind = { method: "sendPhoto" | "sendVideo" | "sendDocument"; field: "p
 const keyboard = {
   keyboard: [
     [{ text: "📢 Join our channel" }, { text: "💬 Contact Us" }],
-    [{ text: "📲 Open App", web_app: { url: MINI_APP_URL } }],
+    [{ text: "📲 Open App", web_app: { url: MINI_APP_URL } }, { text: "🎁 GIVEAWAYS" }],
   ],
   resize_keyboard: true,
   is_persistent: true,
