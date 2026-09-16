@@ -982,10 +982,24 @@ function renderBigMatches() {
 
         return `
             <article class="big-match-card" data-big-match-index="${index}">
-                <div class="featured-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
+                <div class="featured-teams">
+                    <div class="featured-team">
+                        <span class="featured-team-flag" aria-hidden="true">${teamFlag(match.team1)}</span>
+                        <span class="featured-team-name">${escapeHtml(match.team1)}</span>
+                    </div>
+                    <span class="featured-vs" aria-hidden="true">VS</span>
+                    <div class="featured-team">
+                        <span class="featured-team-flag" aria-hidden="true">${teamFlag(match.team2)}</span>
+                        <span class="featured-team-name">${escapeHtml(match.team2)}</span>
+                    </div>
+                </div>
                 <div class="featured-meta">
-                    <span>${escapeHtml(formatTournamentName(match))}</span>
-                    <span>${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))}</span>
+                    <span class="featured-meta-item">
+                        <span class="featured-meta-value">${escapeHtml(formatTournamentName(match))}</span>
+                    </span>
+                    <span class="featured-meta-item featured-meta-date">
+                        <span class="featured-meta-value">${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))}</span>
+                    </span>
                 </div>
                 <div class="featured-countdown" data-big-countdown-index="${index}">Starts in ${formatCountdown(start)}</div>
                 ${matchActions(match)}
