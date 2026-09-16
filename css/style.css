@@ -1181,16 +1181,19 @@ html.dark-mode .welcome-heading-line-3 {
 }
 
 .team-name-card {
-    display: block;
+    display: -webkit-box;
     width: 100%;
     max-width: 100%;
+    min-height: calc(2 * 1.2em);
     font-size: clamp(10px, 2.7vw, 14px);
     font-weight: 750;
     line-height: 1.2;
     text-align: center;
-    white-space: nowrap;
-    overflow: visible;
-    text-overflow: clip;
+    white-space: normal;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .vs {
