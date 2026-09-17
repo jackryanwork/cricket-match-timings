@@ -346,7 +346,8 @@ html.dark-mode .buddy-message {
 }
 
 html.dark-mode .buddy-message {
-    background: var(--card);
+    background: #0878e8;
+    color: #ffffff;
 }
 
 html.dark-mode .modal-handle {
@@ -547,7 +548,7 @@ html.dark-mode .about-modal {
     border: 1px solid rgba(8, 120, 232, 0.18);
     border-radius: 20px;
     padding: 2px 20px;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
 }
 
 .welcome-label {
@@ -635,7 +636,7 @@ html.dark-mode .welcome-heading-line-3 {
     position: relative;
     display: none;
     overflow: hidden;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
     border: 1px solid rgba(8, 120, 232, 0.24);
     border-radius: 20px;
     background: linear-gradient(135deg, #ffffff, #e7f3ff 68%);
@@ -2454,17 +2455,22 @@ html.dark-mode .tournament-countdown-value {
     right: max(12px, env(safe-area-inset-right));
     bottom: calc(max(14px, env(safe-area-inset-bottom)) + 120px);
     max-width: calc(100vw - 24px);
-    padding: 12px 44px 12px 14px;
-    border-radius: 14px;
-    background: #ffffff;
-    color: #0f172a;
-    font-size: 13px;
+    padding: 8px 7px 8px 12px;
+    border-radius: 20px;
+    background: #0878e8;
+    color: #ffffff;
+    font-size: 12px;
     font-weight: 400;
-    line-height: 1.4;
+    line-height: 0.4;
     box-shadow: 0 10px 23px rgba(0, 0, 0, 0.24);
 }
 .buddy-message a { color: inherit; text-decoration: none; }
 .buddy-message a:hover { text-decoration: underline; }
+.buddy-smile {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.16em;
+}
 .buddy-message-close {
     position: absolute;
     top: 0;
@@ -2474,11 +2480,11 @@ html.dark-mode .tournament-countdown-value {
     border: 0;
     border-radius: 14px;
     background: transparent;
-    color: #475569;
+    color: rgba(255, 255, 255, 0.92);
     font-size: 24px;
     cursor: pointer;
 }
-.buddy-message-close:hover { background: #e2e8f0; }
+.buddy-message-close:hover { background: rgba(255, 255, 255, 0.14); }
 .buddy-message-close:focus-visible, .buddy-message a:focus-visible {
     outline: 3px solid #0284c7;
     outline-offset: 2px;
@@ -2489,7 +2495,7 @@ html.dark-mode .tournament-countdown-value {
     right: 30px;
     top: 100%;
     border: 7px solid transparent;
-    border-top-color: #ffffff;
+    border-top-color: #0878e8;
     border-bottom: 0;
 }
 .buddy-antenna {
@@ -2556,16 +2562,11 @@ html.dark-mode .tournament-countdown-value {
 .buddy-body::after {
     content: "";
     position: absolute;
-    top: 10px;
-    left: 11px;
-    width: 14px;
-    height: 14px;
-    border: 2px solid #ffd2d2;
-    border-radius: 50%;
-    background:
-        linear-gradient(72deg, transparent 43%, #fff 44% 49%, transparent 50% 54%, #fff 55% 59%, transparent 60%),
-        #b91c1c;
-    box-shadow: 0 0 0 4px #102238;
+    top: 6px;
+    left: 9px;
+    width: 22px;
+    height: 22px;
+    background: url("../assets/app-icon.png") center / contain no-repeat;
 }
 .buddy-arm, .buddy-leg {
     position: absolute;
@@ -2736,7 +2737,7 @@ html.dark-mode .tournament-countdown-value {
         flex-direction: column;
         justify-content: center;
         padding: 2px 32px;
-        margin-bottom: 28px;
+        margin-bottom: 16px;
         background:
             radial-gradient(circle at 86% 35%, rgba(33, 165, 232, 0.16), transparent 28%),
             linear-gradient(125deg, #ffffff, #e6f3ff 62%);
