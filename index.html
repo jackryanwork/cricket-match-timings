@@ -273,6 +273,20 @@
     </button>
 </div>
 
+<div class="tournaments-filter-row">
+    <button class="filter tournaments" type="button" id="tournamentsButton" aria-expanded="false" aria-controls="tournamentsSection">
+        🏆 Tournaments
+    </button>
+</div>
+
+<section class="tournaments-section" id="tournamentsSection" aria-labelledby="tournamentsHeading" hidden>
+    <div class="section-header">
+        <h2 id="tournamentsHeading">Cricket Tournaments</h2>
+        <span>Series and fixtures</span>
+    </div>
+    <div id="tournamentsContent" aria-live="polite"></div>
+</section>
+
     <div class="match-tools">
         <span class="last-updated" id="lastUpdated">Loading matches…</span>
         <button class="refresh-button" id="refreshButton" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>Update Matches</button>

@@ -47,6 +47,68 @@
             margin-bottom: 20px;
         }
 
+        .tournament-admin-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .tournament-admin-item {
+            padding: 12px;
+            border: 1px solid #303b59;
+            border-radius: 10px;
+            background: #0c1324;
+        }
+
+        .tournament-admin-item strong {
+            display: block;
+            margin-bottom: 4px;
+            overflow-wrap: anywhere;
+        }
+
+        .tournament-admin-meta {
+            color: #9aa4b5;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .tournament-admin-actions {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+            margin-top: 10px;
+        }
+
+        .tournament-admin-actions button {
+            margin-top: 0;
+            padding: 9px 7px;
+            font-size: 12px;
+        }
+
+        .tournament-selection {
+            display: none;
+            margin-top: 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(61, 114, 255, 0.45);
+            border-radius: 9px;
+            background: rgba(61, 114, 255, 0.12);
+            color: #dbe7ff;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .tournament-selection.visible {
+            display: block;
+        }
+
+        .tournament-selection button {
+            width: auto;
+            margin: 7px 0 0;
+            padding: 6px 9px;
+            background: #475569;
+            font-size: 11px;
+        }
+
         label {
             display: block;
             margin-top: 15px;
@@ -338,6 +400,10 @@
             .match-actions {
                 grid-template-columns: 1fr;
             }
+
+            .tournament-admin-actions {
+                grid-template-columns: 1fr;
+            }
         }
 
     </style>
@@ -387,6 +453,38 @@
     </div>
 
     <button class="secondary-button" onclick="logoutAdmin()">Sign out securely</button>
+
+
+    <!-- TOURNAMENTS -->
+
+    <div class="card" id="tournamentsAdminCard">
+
+        <h2>🏆 Tournaments</h2>
+        <p class="broadcast-note">Create a tournament, then use “Add match” to add selected fixtures. Tournament matches continue to appear automatically in the normal Today, Tomorrow, Upcoming, Finished, and Big Match sections.</p>
+
+        <label for="tournamentName">Tournament name</label>
+        <input type="text" id="tournamentName" maxlength="160" placeholder="Asia Cup 2026">
+
+        <label for="tournamentStartDate">Start date (optional)</label>
+        <input type="date" id="tournamentStartDate">
+
+        <label for="tournamentEndDate">End date (optional)</label>
+        <input type="date" id="tournamentEndDate">
+
+        <label for="tournamentDescription">Description (optional)</label>
+        <textarea id="tournamentDescription" maxlength="1000" placeholder="Short details about this tournament"></textarea>
+
+        <label class="big-match-option">
+            <input type="checkbox" id="tournamentActive" checked>
+            <span>Show this tournament to users</span>
+        </label>
+
+        <button id="saveTournamentButton" onclick="saveTournament()">➕ Save Tournament</button>
+        <button id="cancelTournamentEditButton" class="secondary-button" onclick="cancelTournamentEdit()" style="display:none">Cancel Tournament Edit</button>
+        <div class="broadcast-status" id="tournamentSaveStatus" aria-live="polite"></div>
+        <div class="tournament-admin-list" id="tournamentAdminList">Loading tournaments…</div>
+
+    </div>
 
 
     <!-- ADD MATCH -->
@@ -610,6 +708,12 @@
 
         <label>Venue</label>
         <input type="text" id="venue" placeholder="Mumbai">
+
+        <input type="hidden" id="matchTournamentId">
+        <div class="tournament-selection" id="matchTournamentSelection">
+            <span id="matchTournamentSelectionText"></span>
+            <button type="button" onclick="clearMatchTournament()">Remove tournament</button>
+        </div>
 
         <label class="big-match-option">
             <input type="checkbox" id="isBigMatch">
@@ -914,6 +1018,7 @@ function showAdminPanel() {
     showScreen("admin");
     loadSavedMatches();
     loadGiveaway();
+    loadAdminTournaments();
 }
 
 async function logoutAdmin() {
@@ -928,8 +1033,9 @@ const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const BROADCAST_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/broadcast-telegram-message`;
 const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
-const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, match_status, result_type, result_summary, finished_at";
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, tournament_id, match_status, result_type, result_summary, finished_at";
 const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
+const TOURNAMENT_SELECT = "id, name, description, start_date, end_date, is_active";
 
 const supabaseClient = window.supabase.createClient(
     SUPABASE_URL,
@@ -949,6 +1055,160 @@ let matchSaveInFlight = false;
 let savedMatchesById = new Map();
 let savedMatches = [];
 let selectedMatchFilter = "today";
+let editingTournamentId = null;
+let adminTournaments = [];
+
+function formatTournamentAdminDates(tournament) {
+    const start = tournament.start_date || "";
+    const end = tournament.end_date || "";
+    if (start && end) return `${start} – ${end}`;
+    return start || end || "Dates not set";
+}
+
+async function loadAdminTournaments() {
+    const container = document.getElementById("tournamentAdminList");
+    if (!container) return;
+    container.textContent = "Loading tournaments…";
+
+    const { data, error } = await supabaseClient
+        .from("tournaments")
+        .select(TOURNAMENT_SELECT)
+        .order("is_active", { ascending: false })
+        .order("start_date", { ascending: true, nullsFirst: false })
+        .order("name", { ascending: true });
+
+    if (error) {
+        container.innerHTML = '<div class="empty">Create the tournaments table in Supabase before using this section.</div>';
+        return;
+    }
+
+    adminTournaments = data || [];
+    if (!adminTournaments.length) {
+        container.innerHTML = '<div class="empty">No tournaments created yet.</div>';
+        return;
+    }
+
+    container.innerHTML = adminTournaments.map(tournament => {
+        const matchCount = savedMatches.filter(match => Number(match.tournament_id) === Number(tournament.id)).length;
+        return `
+            <div class="tournament-admin-item">
+                <strong>🏆 ${escapeHtml(tournament.name)}</strong>
+                <div class="tournament-admin-meta">${escapeHtml(formatTournamentAdminDates(tournament))} · ${matchCount} ${matchCount === 1 ? "match" : "matches"} · ${tournament.is_active ? "Visible" : "Hidden"}</div>
+                <div class="tournament-admin-actions">
+                    <button type="button" class="edit-match-button" onclick="editTournament(${Number(tournament.id)})">✏️ Edit</button>
+                    <button type="button" class="big-match-button" onclick="addMatchToTournament(${Number(tournament.id)})">➕ Add match</button>
+                    <button type="button" class="secondary-button" onclick="toggleTournamentActive(${Number(tournament.id)}, ${Boolean(tournament.is_active)})">${tournament.is_active ? "Hide" : "Show"}</button>
+                </div>
+            </div>
+        `;
+    }).join("");
+    if (savedMatches.length) renderSavedMatches();
+}
+
+function resetTournamentForm() {
+    document.getElementById("tournamentName").value = "";
+    document.getElementById("tournamentStartDate").value = "";
+    document.getElementById("tournamentEndDate").value = "";
+    document.getElementById("tournamentDescription").value = "";
+    document.getElementById("tournamentActive").checked = true;
+}
+
+function cancelTournamentEdit() {
+    editingTournamentId = null;
+    resetTournamentForm();
+    document.getElementById("saveTournamentButton").textContent = "➕ Save Tournament";
+    document.getElementById("cancelTournamentEditButton").style.display = "none";
+}
+
+function editTournament(id) {
+    const tournament = adminTournaments.find(item => Number(item.id) === Number(id));
+    if (!tournament) return;
+    editingTournamentId = Number(id);
+    document.getElementById("tournamentName").value = tournament.name || "";
+    document.getElementById("tournamentStartDate").value = tournament.start_date || "";
+    document.getElementById("tournamentEndDate").value = tournament.end_date || "";
+    document.getElementById("tournamentDescription").value = tournament.description || "";
+    document.getElementById("tournamentActive").checked = Boolean(tournament.is_active);
+    document.getElementById("saveTournamentButton").textContent = "✅ Update Tournament";
+    document.getElementById("cancelTournamentEditButton").style.display = "block";
+    document.getElementById("tournamentsAdminCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function saveTournament() {
+    const nameField = document.getElementById("tournamentName");
+    const startDate = document.getElementById("tournamentStartDate").value || null;
+    const endDate = document.getElementById("tournamentEndDate").value || null;
+    const description = document.getElementById("tournamentDescription").value.trim() || null;
+    const isActive = document.getElementById("tournamentActive").checked;
+    const status = document.getElementById("tournamentSaveStatus");
+    const button = document.getElementById("saveTournamentButton");
+    const name = nameField.value.trim();
+
+    status.className = "broadcast-status";
+    if (!name) {
+        status.textContent = "Enter a tournament name.";
+        status.classList.add("error");
+        return;
+    }
+    if (startDate && endDate && endDate < startDate) {
+        status.textContent = "End date cannot be before the start date.";
+        status.classList.add("error");
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = editingTournamentId ? "Updating…" : "Saving…";
+    try {
+        const payload = { name, start_date: startDate, end_date: endDate, description, is_active: isActive, updated_at: new Date().toISOString() };
+        const query = editingTournamentId
+            ? supabaseClient.from("tournaments").update(payload).eq("id", editingTournamentId)
+            : supabaseClient.from("tournaments").insert([payload]);
+        const { error } = await query;
+        if (error) throw error;
+        status.textContent = editingTournamentId ? "Tournament updated." : "Tournament created.";
+        status.classList.add("success");
+        cancelTournamentEdit();
+        await loadAdminTournaments();
+    } catch (error) {
+        status.textContent = error.message || "Could not save tournament.";
+        status.classList.add("error");
+    } finally {
+        button.disabled = false;
+        button.textContent = editingTournamentId ? "✅ Update Tournament" : "➕ Save Tournament";
+    }
+}
+
+async function toggleTournamentActive(id, isActive) {
+    const { error } = await supabaseClient
+        .from("tournaments")
+        .update({ is_active: !isActive, updated_at: new Date().toISOString() })
+        .eq("id", Number(id));
+    if (error) {
+        alert("Error changing tournament visibility: " + error.message);
+        return;
+    }
+    await loadAdminTournaments();
+}
+
+function setMatchTournament(tournament) {
+    document.getElementById("matchTournamentId").value = String(Number(tournament.id));
+    document.getElementById("matchTournamentSelectionText").textContent = `Tournament: ${tournament.name}`;
+    document.getElementById("matchTournamentSelection").classList.add("visible");
+}
+
+function clearMatchTournament() {
+    document.getElementById("matchTournamentId").value = "";
+    document.getElementById("matchTournamentSelectionText").textContent = "";
+    document.getElementById("matchTournamentSelection").classList.remove("visible");
+}
+
+function addMatchToTournament(id) {
+    const tournament = adminTournaments.find(item => Number(item.id) === Number(id));
+    if (!tournament) return;
+    cancelEdit();
+    setMatchTournament(tournament);
+    document.getElementById("addMatchCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 function notifyMatchDataChanged() {
     try {
@@ -960,7 +1220,7 @@ function notifyMatchDataChanged() {
 
 function isMissingResultColumns(error) {
     const message = String(error?.message || "");
-    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at/.test(message);
+    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at|tournament_id/.test(message);
 }
 
 async function sendBroadcast() {
@@ -1183,6 +1443,7 @@ async function saveMatch() {
     const customCompetition = document.getElementById("customCompetition").value.trim();
     const competition = customCompetition || selectedCompetition;
     const venue = document.getElementById("venue").value.trim();
+    const tournamentId = Number(document.getElementById("matchTournamentId").value);
     const isBigMatch = document.getElementById("isBigMatch").checked;
     const matchStatus = document.getElementById("matchStatus").value;
     const resultType = document.getElementById("resultType").value || null;
@@ -1215,6 +1476,7 @@ async function saveMatch() {
         competition: competition,
         venue: venue,
         is_big_match: isBigMatch,
+        tournament_id: Number.isSafeInteger(tournamentId) && tournamentId > 0 ? tournamentId : null,
         match_status: matchStatus,
         result_type: matchStatus === "finished" ? resultType : null,
         result_summary: matchStatus === "finished" ? resultSummary : null,
@@ -1291,6 +1553,7 @@ function resetMatchForm() {
     document.getElementById("competition").value = "";
     document.getElementById("customCompetition").value = "";
     document.getElementById("venue").value = "";
+    clearMatchTournament();
     document.getElementById("isBigMatch").checked = false;
     document.getElementById("matchStatus").value = "scheduled";
     document.getElementById("resultType").value = "";
@@ -1324,6 +1587,9 @@ function editMatch(id) {
     competitionSelect.value = competitionExists ? match.competition : "Other";
     document.getElementById("customCompetition").value = competitionExists ? "" : (match.competition || "");
     document.getElementById("venue").value = match.venue || "";
+    const tournament = adminTournaments.find(item => Number(item.id) === Number(match.tournament_id));
+    if (tournament) setMatchTournament(tournament);
+    else clearMatchTournament();
     document.getElementById("isBigMatch").checked = Boolean(match.is_big_match);
     document.getElementById("matchStatus").value = match.match_status || "scheduled";
     document.getElementById("resultType").value = match.result_type || "";
@@ -1528,6 +1794,7 @@ function renderSavedMatches() {
                 🏏 ${escapeHtml(match.competition || "No competition")}
                 <br>
                 🏟️ ${escapeHtml(match.venue || "No venue")}
+                ${match.tournament_id ? `<br>🏆 ${escapeHtml(adminTournaments.find(item => Number(item.id) === Number(match.tournament_id))?.name || "Tournament")}` : ''}
                 ${isFinished ? `<br><span class="match-result-badge">FINISHED · ${escapeHtml(getMatchResultLabel(match))}</span>` : ''}
                 ${isFinished && match.result_summary ? `<br><span>${escapeHtml(match.result_summary)}</span>` : ''}
                 ${isExpired ? '<br><span class="expired-badge">EXPIRED</span>' : ''}
@@ -1597,6 +1864,7 @@ async function loadSavedMatches() {
     }
 
     renderSavedMatches();
+    await loadAdminTournaments();
 
 }
 

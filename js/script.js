@@ -8,8 +8,9 @@ const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
 const THEME_STORAGE_KEY = "cricnivoTheme";
 const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
-const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, match_status, result_type, result_summary, finished_at";
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, tournament_id, match_status, result_type, result_summary, finished_at";
 const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, competition, venue, is_big_match";
+const TOURNAMENT_SELECT = "id, name, description, start_date, end_date, is_active";
 const REMINDER_OPTIONS = [5, 30, 60, 120];
 const DEFAULT_TEAMS = [
     "Afghanistan", "Australia", "Bangladesh", "England", "India", "Ireland",
@@ -472,7 +473,7 @@ function getLocalDayBounds(offsetDays = 0) {
 
 function isMissingResultColumns(error) {
     const message = String(error?.message || "");
-    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at/.test(message);
+    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at|tournament_id/.test(message);
 }
 
 let scheduleMatchesCacheDate = null;
@@ -1170,6 +1171,109 @@ function renderFinishedMatches(matches, version = matchRefreshVersion) {
     content.innerHTML = "";
 }
 
+let tournaments = [];
+let tournamentMatches = new Map();
+
+function formatTournamentDateRange(tournament) {
+    const start = tournament?.start_date ? formatDateLabel(tournament.start_date) : "";
+    const end = tournament?.end_date ? formatDateLabel(tournament.end_date) : "";
+    if (start && end) return `${start} – ${end}`;
+    return start || end || "Dates to be confirmed";
+}
+
+function tournamentMatchStatus(match) {
+    if (match.match_status === "finished") return "Finished";
+    if (isMatchLive(match)) return "Live now";
+    return "Upcoming";
+}
+
+function tournamentMatchMarkup(match) {
+    return `
+        <button class="tournament-match-row" type="button" data-tournament-match-id="${Number(match.id)}">
+            <span class="tournament-match-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</span>
+            <span class="tournament-match-meta"><span>${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</span><strong>${escapeHtml(tournamentMatchStatus(match))}</strong></span>
+        </button>
+    `;
+}
+
+function renderTournaments() {
+    const content = document.getElementById("tournamentsContent");
+    if (!content) return;
+
+    if (!tournaments.length) {
+        content.innerHTML = '<p class="status-state">No active tournaments available yet.</p>';
+        return;
+    }
+
+    content.innerHTML = tournaments.map(tournament => {
+        const matches = tournamentMatches.get(Number(tournament.id)) || [];
+        return `
+            <details class="tournament-card">
+                <summary>
+                    <span class="tournament-card-title">🏆 ${escapeHtml(tournament.name)}</span>
+                    <span class="tournament-card-count">${matches.length} ${matches.length === 1 ? "match" : "matches"}</span>
+                </summary>
+                <div class="tournament-card-body">
+                    <div class="tournament-card-dates">${escapeHtml(formatTournamentDateRange(tournament))}</div>
+                    ${tournament.description ? `<p class="tournament-card-description">${escapeHtml(tournament.description)}</p>` : ""}
+                    <div class="tournament-match-list">
+                        ${matches.length ? matches.map(tournamentMatchMarkup).join("") : '<p class="status-state">No matches have been added to this tournament yet.</p>'}
+                    </div>
+                </div>
+            </details>
+        `;
+    }).join("");
+}
+
+async function loadTournaments() {
+    const section = document.getElementById("tournamentsSection");
+    const content = document.getElementById("tournamentsContent");
+    const button = document.getElementById("tournamentsButton");
+    if (!section || !content) return;
+
+    section.hidden = false;
+    button?.setAttribute("aria-expanded", "true");
+    content.innerHTML = '<p class="status-state">Loading tournaments…</p>';
+
+    const { data, error } = await supabaseClient
+        .from("tournaments")
+        .select(TOURNAMENT_SELECT)
+        .eq("is_active", true)
+        .order("start_date", { ascending: true, nullsFirst: false })
+        .order("name", { ascending: true });
+
+    if (error) {
+        console.error("Error loading tournaments:", error);
+        content.innerHTML = '<p class="status-state">Tournaments are being prepared. Please check back soon.</p>';
+        return;
+    }
+
+    tournaments = data || [];
+    tournamentMatches = new Map();
+
+    if (tournaments.length) {
+        const tournamentIds = tournaments.map(tournament => Number(tournament.id)).filter(Number.isSafeInteger);
+        const { data: matches, error: matchError } = await supabaseClient
+            .from("matches")
+            .select(MATCH_SELECT)
+            .in("tournament_id", tournamentIds)
+            .order("match_start_at", { ascending: true });
+
+        if (!matchError) {
+            (matches || []).forEach(match => {
+                const tournamentId = Number(match.tournament_id);
+                if (!tournamentMatches.has(tournamentId)) tournamentMatches.set(tournamentId, []);
+                tournamentMatches.get(tournamentId).push(match);
+                knownMatches.set(String(Number(match.id)), match);
+            });
+        } else {
+            console.error("Error loading tournament matches:", matchError);
+        }
+    }
+
+    renderTournaments();
+}
+
 async function loadBigMatches(version = matchRefreshVersion) {
     const { data: matches, error } = await loadScheduleMatches();
 
@@ -1646,6 +1750,27 @@ document.querySelectorAll("[data-match-filter]").forEach(button => {
     });
 });
 
+const tournamentsButton = document.getElementById("tournamentsButton");
+const tournamentsSection = document.getElementById("tournamentsSection");
+const tournamentsContent = document.getElementById("tournamentsContent");
+
+tournamentsButton?.addEventListener("click", async () => {
+    const isOpen = !tournamentsSection.hidden;
+    tournamentsSection.hidden = isOpen;
+    tournamentsButton.setAttribute("aria-expanded", String(!isOpen));
+    if (!isOpen) {
+        await loadTournaments();
+        tournamentsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+});
+
+tournamentsContent?.addEventListener("click", event => {
+    const matchRow = event.target.closest("[data-tournament-match-id]");
+    if (!matchRow) return;
+    const match = knownMatches.get(String(Number(matchRow.dataset.tournamentMatchId)));
+    if (match) openMatchDetails(match);
+});
+
 document.getElementById("buddyMessageClose").addEventListener("click", () => {
     buddyMessage.hidden = true;
     buddyMessage.dataset.dismissed = "true";
@@ -1905,7 +2030,10 @@ let externalMatchRefreshInFlight = false;
 function refreshAfterExternalMatchChange() {
     if (externalMatchRefreshInFlight || document.hidden) return;
     externalMatchRefreshInFlight = true;
-    refreshMatches(currentMatchType, true).finally(() => {
+    Promise.all([
+        refreshMatches(currentMatchType, true),
+        tournamentsSection && !tournamentsSection.hidden ? loadTournaments() : Promise.resolve()
+    ]).finally(() => {
         externalMatchRefreshInFlight = false;
     });
 }
