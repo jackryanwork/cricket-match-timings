@@ -1067,6 +1067,18 @@ function updateMatchCountdowns() {
 
         if (start) countdown.textContent = `Starts in ${formatCountdown(start)}`;
     });
+
+    document.querySelectorAll("[data-tournament-countdown-id]").forEach(status => {
+        const match = knownMatches.get(String(Number(status.dataset.tournamentCountdownId)));
+        if (!match) return;
+        status.innerHTML = tournamentMatchStatusMarkup(match);
+        const tone = tournamentMatchStatusTone(match);
+        status.classList.toggle("is-countdown", tone === "countdown");
+        status.classList.toggle("is-live", tone === "live");
+        status.classList.toggle("is-finished", tone === "finished");
+        const reminderButton = status.closest(".tournament-match-status-block")?.querySelector("[data-reminder-match-id]");
+        if (reminderButton) reminderButton.hidden = tone !== "countdown";
+    });
 }
 
 function updateTodayMatchStatuses() {
@@ -1184,15 +1196,36 @@ function formatTournamentDateRange(tournament) {
 function tournamentMatchStatus(match) {
     if (match.match_status === "finished") return "Finished";
     if (isMatchLive(match)) return "Live now";
-    return "Upcoming";
+    const start = getMatchStart(match);
+    return start ? `Start in ${formatCountdown(start)}` : "Start time unavailable";
+}
+
+function tournamentMatchStatusTone(match) {
+    if (match.match_status === "finished") return "finished";
+    return isMatchLive(match) ? "live" : "countdown";
+}
+
+function tournamentReminderMarkup(match) {
+    return match.match_status === "finished" || isMatchLive(match) ? "" : setReminderButton(match);
+}
+
+function tournamentMatchStatusMarkup(match) {
+    if (tournamentMatchStatusTone(match) !== "countdown") {
+        return escapeHtml(tournamentMatchStatus(match));
+    }
+
+    const start = getMatchStart(match);
+    if (!start) return escapeHtml("Start time unavailable");
+
+    return `<span class="tournament-countdown-label">Start in</span><span class="tournament-countdown-value">${escapeHtml(formatCountdown(start))}</span>`;
 }
 
 function tournamentMatchMarkup(match) {
     return `
-        <button class="tournament-match-row" type="button" data-tournament-match-id="${Number(match.id)}">
+        <article class="tournament-match-row" role="button" tabindex="0" data-tournament-match-id="${Number(match.id)}" aria-label="View ${escapeHtml(match.team1)} versus ${escapeHtml(match.team2)}">
             <span class="tournament-match-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</span>
-            <span class="tournament-match-meta"><span>${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</span><strong>${escapeHtml(tournamentMatchStatus(match))}</strong></span>
-        </button>
+            <span class="tournament-match-meta"><span>${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</span><span class="tournament-match-status-block">${tournamentReminderMarkup(match)}<strong class="tournament-match-status is-${tournamentMatchStatusTone(match)}" data-tournament-countdown-id="${Number(match.id)}">${tournamentMatchStatusMarkup(match)}</strong></span></span>
+        </article>
     `;
 }
 
@@ -1816,8 +1849,45 @@ tournamentsButton?.addEventListener("click", async () => {
 });
 
 tournamentsContent?.addEventListener("click", event => {
+    const cancelReminderButton = event.target.closest("[data-cancel-reminder-match-id]");
+    if (cancelReminderButton) {
+        event.stopPropagation();
+        removeReminder(cancelReminderButton);
+        return;
+    }
+
+    const reminderButton = event.target.closest("[data-reminder-match-id]");
+    if (reminderButton) {
+        event.stopPropagation();
+        const match = knownMatches.get(String(Number(reminderButton.dataset.reminderMatchId)));
+        if (match) openMatchDetails(match, true);
+        return;
+    }
+
     const matchRow = event.target.closest("[data-tournament-match-id]");
     if (!matchRow) return;
+    const match = knownMatches.get(String(Number(matchRow.dataset.tournamentMatchId)));
+    if (match) openMatchDetails(match);
+});
+
+tournamentsContent?.addEventListener("keydown", event => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+
+    const reminderButton = event.target.closest("[data-reminder-match-id], [data-cancel-reminder-match-id]");
+    if (reminderButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (reminderButton.dataset.cancelReminderMatchId) removeReminder(reminderButton);
+        else {
+            const match = knownMatches.get(String(Number(reminderButton.dataset.reminderMatchId)));
+            if (match) openMatchDetails(match, true);
+        }
+        return;
+    }
+
+    const matchRow = event.target.closest("[data-tournament-match-id]");
+    if (!matchRow) return;
+    event.preventDefault();
     const match = knownMatches.get(String(Number(matchRow.dataset.tournamentMatchId)));
     if (match) openMatchDetails(match);
 });

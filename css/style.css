@@ -1111,9 +1111,49 @@ html.dark-mode .welcome-heading-line-3 {
     font-size: 10px;
 }
 
+.tournament-match-status-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.tournament-match-status-block .set-reminder-button {
+    padding: 5px 8px;
+    font-size: 9px;
+}
+
+.tournament-match-status-block .set-reminder-button[hidden] {
+    display: none;
+}
+
 .tournament-match-meta strong {
     color: var(--accent);
     font-weight: 800;
+}
+
+.tournament-match-meta .tournament-match-status.is-countdown {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+}
+
+.tournament-countdown-label {
+    color: #071b3d;
+    font-weight: 800;
+}
+
+.tournament-countdown-value {
+    color: #0878e8;
+    font-weight: 800;
+}
+
+html.dark-mode .tournament-countdown-label {
+    color: #b8d4f2;
+}
+
+html.dark-mode .tournament-countdown-value {
+    color: #55b7ff;
 }
 
 .match-tools {
