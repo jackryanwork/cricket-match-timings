@@ -923,9 +923,9 @@ html.dark-mode .welcome-heading-line-3 {
 }
 
 .filter.upcoming.active {
-    background: #b58cff;
-    border-color: #b58cff;
-    color: #ffffff;
+    background: #8bcdf2;
+    border-color: #8bcdf2;
+    color: #064a73;
 }
 
 .filter.finished {
@@ -961,10 +961,18 @@ html.dark-mode .welcome-heading-line-3 {
 }
 
 .tournaments-filter-row .filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     border-color: rgba(181, 140, 255, 0.35);
     background: rgba(181, 140, 255, 0.1);
     color: #7650b8;
     font-size: 10px;
+}
+
+.tournaments-filter-row .filter .ui-icon {
+    width: 14px;
+    height: 14px;
 }
 
 .tournaments-filter-row .filter:hover,
@@ -1027,11 +1035,20 @@ html.dark-mode .welcome-heading-line-3 {
 }
 
 .tournament-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     min-width: 0;
     color: var(--text);
     font-size: 14px;
     font-weight: 800;
     overflow-wrap: anywhere;
+}
+
+.tournament-card-title .ui-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
 }
 
 .tournament-card-count {

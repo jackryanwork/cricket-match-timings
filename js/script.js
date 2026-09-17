@@ -1091,7 +1091,7 @@ function updateTodayMatchStatuses() {
         status.classList.toggle("today", !isLive);
         status.classList.toggle("live", isLive);
         status.innerHTML = isLive
-            ? '<span class="match-live-dot" aria-hidden="true"></span>LIVE'
+            ? '<span class="match-live-dot" aria-hidden="true"></span>Match On'
             : "TODAY";
         if (actions) actions.hidden = isLive;
     });
@@ -1195,7 +1195,7 @@ function formatTournamentDateRange(tournament) {
 
 function tournamentMatchStatus(match) {
     if (match.match_status === "finished") return "Finished";
-    if (isMatchLive(match)) return "Live now";
+    if (isMatchLive(match)) return "Match On";
     const start = getMatchStart(match);
     return start ? `Start in ${formatCountdown(start)}` : "Start time unavailable";
 }
@@ -1275,7 +1275,7 @@ function renderTournaments() {
         return `
             <details class="tournament-card">
                 <summary>
-                    <span class="tournament-card-title">🏆 ${escapeHtml(tournament.name)}</span>
+                    <span class="tournament-card-title"><svg class="ui-icon" aria-hidden="true"><use href="#icon-trophy"></use></svg>${escapeHtml(tournament.name)}</span>
                     <span class="tournament-card-count">${matches.length} ${matches.length === 1 ? "match" : "matches"}</span>
                 </summary>
                 <div class="tournament-card-body">
