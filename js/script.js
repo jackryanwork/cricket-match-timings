@@ -1993,11 +1993,18 @@ tournamentsContent?.addEventListener("keydown", event => {
     if (match) openMatchDetails(match);
 });
 
-document.getElementById("buddyMessageClose").addEventListener("click", () => {
+const buddyMessageClose = document.getElementById("buddyMessageClose");
+function dismissBuddyMessage(event) {
+    event.preventDefault();
+    event.stopPropagation();
     buddyMessage.hidden = true;
     buddyMessage.dataset.dismissed = "true";
-    cricketBuddy.focus({ preventScroll: true });
-});
+    if (typeof cricketBuddy.focus === "function") {
+        cricketBuddy.focus({ preventScroll: true });
+    }
+}
+buddyMessageClose.addEventListener("click", dismissBuddyMessage);
+buddyMessageClose.addEventListener("pointerup", dismissBuddyMessage);
 
 cricketBuddy.addEventListener("click", () => {
     cricketBuddy.classList.remove("user-wave");
