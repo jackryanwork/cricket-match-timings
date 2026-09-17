@@ -1840,12 +1840,11 @@ function setTournamentsViewOpen(isOpen) {
 }
 
 tournamentsButton?.addEventListener("click", async () => {
-    const isOpen = !tournamentsSection.hidden;
-    setTournamentsViewOpen(!isOpen);
-    if (!isOpen) {
-        await loadTournaments();
-        tournamentsSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (!tournamentsSection.hidden) return;
+
+    setTournamentsViewOpen(true);
+    await loadTournaments();
+    tournamentsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 tournamentsContent?.addEventListener("click", event => {
