@@ -626,6 +626,8 @@ let matchRefreshVersion = 0;
 let lastUpdatedAt = null;
 let displayedMatches = new Map();
 let knownMatches = new Map();
+let upcomingMatchPool = [];
+let selectedUpcomingRangeKey = "";
 
 function isCurrentMatchRequest(type, version) {
     return version === matchRefreshVersion && type === currentMatchType;
@@ -1441,6 +1443,149 @@ async function refreshMatches(type = currentMatchType, forceReload = false) {
     refreshButton.innerHTML = `${uiIcon("refresh")}Update Matches`;
 }
 
+function localDateKey(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
+}
+
+function dateFromLocalKey(key) {
+    const [year, month, day] = String(key).split("-").map(Number);
+    if (![year, month, day].every(Number.isFinite)) return null;
+    const date = new Date(year, month - 1, day);
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+function shortLocalDateLabel(date) {
+    return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" }).format(date);
+}
+
+function buildUpcomingDateRanges(matches) {
+    const dateKeys = [...new Set(matches
+        .map(match => localDateKey(getMatchStart(match)))
+        .filter(Boolean))].sort();
+
+    return dateKeys.map(dateKey => ({
+        key: `${dateKey}_${dateKey}`,
+        startKey: dateKey,
+        endKey: dateKey,
+        label: shortLocalDateLabel(dateFromLocalKey(dateKey))
+    }));
+}
+
+function renderUpcomingMatches(matches, ranges = buildUpcomingDateRanges(matches), version = matchRefreshVersion) {
+    if (version !== matchRefreshVersion || currentMatchType !== "upcoming") return false;
+
+    const content = document.getElementById("matchContent");
+    if (!content) return false;
+
+    const selectedRange = ranges.find(range => range.key === selectedUpcomingRangeKey) || ranges[0] || null;
+    selectedUpcomingRangeKey = selectedRange?.key || "";
+    const selectedMatches = selectedRange
+        ? sortFavouriteMatches(matches.filter(match => {
+            const dateKey = localDateKey(getMatchStart(match));
+            return dateKey >= selectedRange.startKey && dateKey <= selectedRange.endKey;
+        }))
+        : [];
+
+    setDisplayedMatches(selectedMatches);
+
+    let html = `
+        <div class="section-header">
+            <h2>Upcoming Matches</h2>
+            <span>Dates shown in your local time</span>
+        </div>
+    `;
+
+    if (ranges.length) {
+        html += `
+            <div class="upcoming-date-filter" aria-label="Upcoming match dates">
+                <span class="upcoming-date-filter-label">Select dates</span>
+                <div class="upcoming-date-scroller" role="group">
+                    ${ranges.map(range => `
+                        <button class="upcoming-date-button${range.key === selectedUpcomingRangeKey ? " active" : ""}" type="button" data-upcoming-range="${escapeHtml(range.key)}" aria-pressed="${range.key === selectedUpcomingRangeKey}">
+                            ${escapeHtml(range.label)}
+                        </button>
+                    `).join("")}
+                </div>
+            </div>
+        `;
+    }
+
+    if (selectedMatches.length === 0) {
+        html += `
+            <article class="match-card">
+                <div class="match-bottom">
+                    ${ranges.length ? "No matches scheduled for these dates." : "No upcoming matches available."}
+                </div>
+            </article>
+        `;
+    } else {
+        selectedMatches.forEach(match => {
+            html += `
+                <article class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
+
+                    <div class="match-top">
+                        <div class="match-type">
+                            ${escapeHtml(formatTournamentName(match))}
+                        </div>
+
+                        <div class="match-status upcoming">
+                            UPCOMING
+                        </div>
+                    </div>
+
+                    <div class="teams">
+
+                        <div class="team">
+                            <div class="team-logo" aria-hidden="true">${teamFlag(match.team1)}</div>
+                            <div class="team-name-card">
+                                ${escapeHtml(match.team1)}
+                            </div>
+                        </div>
+
+                        <div class="match-vs">
+                            <div class="vs">VS</div>
+                            <div class="start-in-label">start in</div>
+                            <div class="match-countdown" data-match-countdown-id="${Number(match.id)}">${escapeHtml(formatMatchCountdown(match))}</div>
+                        </div>
+
+                        <div class="team">
+                            <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
+                            <div class="team-name-card">
+                                ${escapeHtml(match.team2)}
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="match-bottom">
+
+                        <div class="match-schedule">
+                            <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
+                            <div class="match-time">
+                                ${escapeHtml(formatVisitorMatchTime(match))}
+                            </div>
+                        </div>
+
+                        <div class="venue">
+                            <span class="venue-label">${uiIcon("pin")}<span>${escapeHtml(match.venue || "Stadium")}</span></span>
+                        </div>
+
+                    </div>
+
+                    ${matchActions(match)}
+
+                </article>
+            `;
+        });
+    }
+
+    content.innerHTML = html;
+    updateMatchCountdowns();
+    return true;
+}
+
 async function showMatches(type, version = matchRefreshVersion) {
 
     const filters = document.querySelectorAll(".filter");
@@ -1692,111 +1837,21 @@ return true;
 
     if (type === "upcoming") {
         document.querySelector('[data-match-filter="upcoming"]')?.classList.add("active");
-
-const upcomingStart = getLocalDayBounds(2).start;
-
+        const upcomingStart = getLocalDayBounds(2).start;
         const { data: matches, error } = await loadScheduleMatches();
 
-if (error) {
-    console.error("Error loading matches:", error);
-    return false;
-}
+        if (error) {
+            console.error("Error loading matches:", error);
+            return false;
+        }
 
-if (!isCurrentMatchRequest(type, version)) return false;
+        if (!isCurrentMatchRequest(type, version)) return false;
 
-
-
-const upcomingMatches = sortFavouriteMatches(matches.filter(function(match) {
-    const start = getMatchStart(match);
-    return match.match_status !== "finished" && start && start.getTime() >= upcomingStart.getTime();
-}));
-
-setDisplayedMatches(upcomingMatches);
-
-let html = `
-    <div class="section-header">
-        <h2>Upcoming Matches</h2>
-        <span>Dates shown in your local time</span>
-    </div>
-`;
-
-if (upcomingMatches.length === 0) {
-
-    html += `
-        <article class="match-card">
-            <div class="match-bottom">
-                No upcoming matches available.
-            </div>
-        </article>
-    `;
-
-} else {
-
-    upcomingMatches.forEach(function(match) {
-
-        html += `
-            <article class="match-card${isFavouriteMatch(match) ? " favourite-match" : ""}" data-match-id="${Number(match.id)}" role="button" tabindex="0" aria-label="View match details">
-
-                <div class="match-top">
-                    <div class="match-type">
-                        ${escapeHtml(formatTournamentName(match))}
-                    </div>
-
-                    <div class="match-status upcoming">
-                        UPCOMING
-                    </div>
-                </div>
-
-                <div class="teams">
-
-                    <div class="team">
-                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team1)}</div>
-                        <div class="team-name-card">
-                            ${escapeHtml(match.team1)}
-                        </div>
-                    </div>
-
-                    <div class="match-vs">
-                        <div class="vs">VS</div>
-                        <div class="start-in-label">start in</div>
-                        <div class="match-countdown" data-match-countdown-id="${Number(match.id)}">${escapeHtml(formatMatchCountdown(match))}</div>
-                    </div>
-
-                    <div class="team">
-                        <div class="team-logo" aria-hidden="true">${teamFlag(match.team2)}</div>
-                        <div class="team-name-card">
-                            ${escapeHtml(match.team2)}
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="match-bottom">
-
-                    <div class="match-schedule">
-                        <div class="match-date">${escapeHtml(formatVisitorMatchDate(match))}</div>
-                        <div class="match-time">
-                            ${escapeHtml(formatVisitorMatchTime(match))}
-                        </div>
-                    </div>
-
-                    <div class="venue">
-                        <span class="venue-label">${uiIcon("pin")}<span>${escapeHtml(match.venue || "Stadium")}</span></span>
-                    </div>
-
-                </div>
-
-                ${matchActions(match)}
-
-            </article>
-        `;
-
-    });
-
-}
-
-document.getElementById("matchContent").innerHTML = html;
-return true;
+        upcomingMatchPool = matches.filter(match => {
+            const start = getMatchStart(match);
+            return match.match_status !== "finished" && start && start.getTime() >= upcomingStart.getTime();
+        });
+        return renderUpcomingMatches(upcomingMatchPool, buildUpcomingDateRanges(upcomingMatchPool), version);
     }
 }
 
@@ -2072,6 +2127,15 @@ function openDetailsFromCard(card, showReminderPicker = false) {
 }
 
 matchContent.addEventListener("click", event => {
+    const upcomingDateButton = event.target.closest("[data-upcoming-range]");
+    if (upcomingDateButton) {
+        event.stopPropagation();
+        if (currentMatchType !== "upcoming") return;
+        selectedUpcomingRangeKey = upcomingDateButton.dataset.upcomingRange || "";
+        renderUpcomingMatches(upcomingMatchPool);
+        return;
+    }
+
     const favouriteButton = event.target.closest("[data-favourite-match-id]");
     if (favouriteButton) {
         event.stopPropagation();

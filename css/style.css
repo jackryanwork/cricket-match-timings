@@ -1000,6 +1000,56 @@ html.dark-mode .welcome-heading-line-3 {
     display: none;
 }
 
+.upcoming-date-filter {
+    display: grid;
+    gap: 7px;
+    margin: -2px 0 14px;
+}
+
+.upcoming-date-filter-label {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.upcoming-date-scroller {
+    display: flex;
+    gap: 7px;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 1px 1px 5px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.upcoming-date-button {
+    flex: 0 0 auto;
+    border: 1px solid rgba(8, 120, 232, 0.24);
+    border-radius: 999px;
+    padding: 7px 11px;
+    background: var(--card);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.upcoming-date-button:hover,
+.upcoming-date-button:focus-visible {
+    border-color: #0878e8;
+    background: rgba(8, 120, 232, 0.08);
+}
+
+.upcoming-date-button.active {
+    border-color: #0878e8;
+    background: #0878e8;
+    color: #ffffff;
+}
+
 .tournament-card {
     overflow: hidden;
     margin-top: 8px;
