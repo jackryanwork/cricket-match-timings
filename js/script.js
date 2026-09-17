@@ -1196,6 +1196,37 @@ function tournamentMatchMarkup(match) {
     `;
 }
 
+function tournamentMatchFormat(match) {
+    const competition = String(match?.competition || "").trim();
+    const normalized = competition.toLowerCase();
+    if (/\b(?:t20i?|twenty20)\b/.test(normalized)) return "T20";
+    if (/\bodi\b/.test(normalized)) return "ODI";
+    if (/\btest\b/.test(normalized)) return "Test";
+    return competition || "Other";
+}
+
+function tournamentMatchGroups(matches) {
+    const groups = new Map();
+    matches.forEach(match => {
+        const format = tournamentMatchFormat(match);
+        if (!groups.has(format)) groups.set(format, []);
+        groups.get(format).push(match);
+    });
+    return [...groups.entries()];
+}
+
+function tournamentMatchGroupMarkup(format, matches) {
+    const countLabel = `${matches.length} ${escapeHtml(format)} ${matches.length === 1 ? "Match" : "Matches"}`;
+    return `
+        <div class="tournament-format-group">
+            <h3 class="tournament-format-heading">${countLabel}</h3>
+            <div class="tournament-match-list">
+                ${matches.map(tournamentMatchMarkup).join("")}
+            </div>
+        </div>
+    `;
+}
+
 function renderTournaments() {
     const content = document.getElementById("tournamentsContent");
     if (!content) return;
@@ -1207,6 +1238,7 @@ function renderTournaments() {
 
     content.innerHTML = tournaments.map(tournament => {
         const matches = tournamentMatches.get(Number(tournament.id)) || [];
+        const matchGroups = tournamentMatchGroups(matches);
         return `
             <details class="tournament-card">
                 <summary>
@@ -1216,9 +1248,9 @@ function renderTournaments() {
                 <div class="tournament-card-body">
                     <div class="tournament-card-dates">${escapeHtml(formatTournamentDateRange(tournament))}</div>
                     ${tournament.description ? `<p class="tournament-card-description">${escapeHtml(tournament.description)}</p>` : ""}
-                    <div class="tournament-match-list">
-                        ${matches.length ? matches.map(tournamentMatchMarkup).join("") : '<p class="status-state">No matches have been added to this tournament yet.</p>'}
-                    </div>
+                    ${matchGroups.length
+                        ? matchGroups.map(([format, formatMatches]) => tournamentMatchGroupMarkup(format, formatMatches)).join("")
+                        : '<p class="status-state">No matches have been added to this tournament yet.</p>'}
                 </div>
             </details>
         `;
