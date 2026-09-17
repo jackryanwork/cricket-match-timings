@@ -2004,7 +2004,6 @@ function dismissBuddyMessage(event) {
     }
 }
 buddyMessageClose.addEventListener("click", dismissBuddyMessage);
-buddyMessageClose.addEventListener("pointerup", dismissBuddyMessage);
 
 cricketBuddy.addEventListener("click", () => {
     cricketBuddy.classList.remove("user-wave");
