@@ -486,6 +486,37 @@ function invalidateScheduleMatchesCache() {
     scheduleMatchesCache = null;
 }
 
+async function attachTournamentNames(matches) {
+    if (!Array.isArray(matches) || matches.length === 0) return matches || [];
+
+    const tournamentIds = [...new Set(
+        matches
+            .map(match => Number(match.tournament_id))
+            .filter(id => Number.isSafeInteger(id) && id > 0)
+    )];
+
+    if (tournamentIds.length === 0) return matches;
+
+    const { data, error } = await supabaseClient
+        .from("tournaments")
+        .select("id, name")
+        .in("id", tournamentIds);
+
+    if (error || !Array.isArray(data)) {
+        if (error) console.warn("Could not load tournament names:", error);
+        return matches;
+    }
+
+    const namesById = new Map(
+        data.map(tournament => [Number(tournament.id), String(tournament.name || "").trim()])
+    );
+
+    return matches.map(match => ({
+        ...match,
+        tournament_name: namesById.get(Number(match.tournament_id)) || ""
+    }));
+}
+
 async function loadScheduleMatches(forceReload = false) {
     const cacheDate = getLocalDayBounds().label;
 
@@ -518,13 +549,21 @@ async function loadScheduleMatches(forceReload = false) {
                 .order("match_date", { ascending: true })
                 .order("match_time", { ascending: true });
 
-            if (legacyQuery.error) return canonicalQuery;
+            if (legacyQuery.error) {
+                return {
+                    ...canonicalQuery,
+                    data: await attachTournamentNames(canonicalQuery.data || [])
+                };
+            }
 
             const matchesById = new Map(
                 [...(legacyQuery.data || []), ...(canonicalQuery.data || [])]
                     .map(match => [Number(match.id), match])
             );
-            return { ...canonicalQuery, data: [...matchesById.values()] };
+            return {
+                ...canonicalQuery,
+                data: await attachTournamentNames([...matchesById.values()])
+            };
         }
 
         const missingCanonicalColumn = canonicalQuery.error.code === "42703"
@@ -532,12 +571,17 @@ async function loadScheduleMatches(forceReload = false) {
             || isMissingResultColumns(canonicalQuery.error);
         if (!missingCanonicalColumn) return canonicalQuery;
 
-        return supabaseClient
+        const legacyQuery = await supabaseClient
             .from("matches")
             .select(LEGACY_MATCH_SELECT)
             .gte("match_date", finishedWindowDate)
             .order("match_date", { ascending: true })
             .order("match_time", { ascending: true });
+
+        return {
+            ...legacyQuery,
+            data: await attachTournamentNames(legacyQuery.data || [])
+        };
     })();
 
     try {
@@ -655,6 +699,9 @@ async function openFavouriteMatches() {
 }
 
 function formatTournamentName(match) {
+    const tournamentName = String(match?.tournament_name || "").trim();
+    if (tournamentName) return tournamentName;
+
     const competition = String(match.competition || "Cricket match").trim();
     const escapePattern = value => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pairPatterns = [
@@ -1469,7 +1516,7 @@ if (todayMatches.length === 0) {
 
                 <div class="match-top">
                     <div class="match-type">
-                        ${escapeHtml(match.competition)}
+                        ${escapeHtml(formatTournamentName(match))}
                     </div>
 
                     <div class="match-status today" data-today-match-status data-match-id="${Number(match.id)}">
@@ -1582,7 +1629,7 @@ if (tomorrowMatches.length === 0) {
 
                 <div class="match-top">
                     <div class="match-type">
-                        ${escapeHtml(match.competition)}
+                        ${escapeHtml(formatTournamentName(match))}
                     </div>
 
                     <div class="match-status upcoming">
@@ -1692,7 +1739,7 @@ if (upcomingMatches.length === 0) {
 
                 <div class="match-top">
                     <div class="match-type">
-                        ${escapeHtml(match.competition)}
+                        ${escapeHtml(formatTournamentName(match))}
                     </div>
 
                     <div class="match-status upcoming">
