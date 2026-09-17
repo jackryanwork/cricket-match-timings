@@ -1228,11 +1228,9 @@ function renderTournaments() {
 async function loadTournaments() {
     const section = document.getElementById("tournamentsSection");
     const content = document.getElementById("tournamentsContent");
-    const button = document.getElementById("tournamentsButton");
     if (!section || !content) return;
 
-    section.hidden = false;
-    button?.setAttribute("aria-expanded", "true");
+    setTournamentsViewOpen(true);
     content.innerHTML = '<p class="status-state">Loading tournaments…</p>';
 
     const { data, error } = await supabaseClient
@@ -1746,6 +1744,7 @@ themeToggleButton.addEventListener("click", () => {
 
 document.querySelectorAll("[data-match-filter]").forEach(button => {
     button.addEventListener("click", () => {
+        setTournamentsViewOpen(false);
         refreshMatches(button.dataset.matchFilter);
     });
 });
@@ -1754,10 +1753,30 @@ const tournamentsButton = document.getElementById("tournamentsButton");
 const tournamentsSection = document.getElementById("tournamentsSection");
 const tournamentsContent = document.getElementById("tournamentsContent");
 
+function setTournamentsViewOpen(isOpen) {
+    const section = document.getElementById("tournamentsSection");
+    const button = document.getElementById("tournamentsButton");
+    if (!section || !button) return;
+
+    section.hidden = !isOpen;
+    button.setAttribute("aria-expanded", String(isOpen));
+
+    const matchContent = document.getElementById("matchContent");
+    const matchTools = document.getElementById("matchTools");
+    if (matchContent) matchContent.hidden = isOpen;
+    if (matchTools) matchTools.hidden = isOpen;
+
+    document.querySelectorAll(".filter[data-match-filter]").forEach(filterButton => {
+        filterButton.classList.toggle(
+            "active",
+            !isOpen && filterButton.dataset.matchFilter === currentMatchType
+        );
+    });
+}
+
 tournamentsButton?.addEventListener("click", async () => {
     const isOpen = !tournamentsSection.hidden;
-    tournamentsSection.hidden = isOpen;
-    tournamentsButton.setAttribute("aria-expanded", String(!isOpen));
+    setTournamentsViewOpen(!isOpen);
     if (!isOpen) {
         await loadTournaments();
         tournamentsSection.scrollIntoView({ behavior: "smooth", block: "start" });

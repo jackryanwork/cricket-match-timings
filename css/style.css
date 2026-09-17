@@ -940,23 +940,27 @@ html.dark-mode .welcome-heading-line-3 {
     color: #ffffff;
 }
 
-.finished-filter-row {
-    margin: -10px 0 20px;
+.secondary-filter-row {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -10px 0 16px;
 }
 
-.finished-filter-row .filter {
+.finished-filter-row,
+.tournaments-filter-row {
+    margin: 0;
+}
+
+.secondary-filter-row .filter {
     display: inline-block;
     padding: 6px 10px;
     font-size: 10px;
-}
-
-.tournaments-filter-row {
-    margin: -12px 0 16px;
+    flex: 0 0 auto;
 }
 
 .tournaments-filter-row .filter {
-    display: inline-block;
-    padding: 6px 10px;
     border-color: rgba(181, 140, 255, 0.35);
     background: rgba(181, 140, 255, 0.1);
     color: #7650b8;
@@ -980,6 +984,11 @@ html.dark-mode .welcome-heading-line-3 {
 }
 
 .tournaments-section[hidden] {
+    display: none;
+}
+
+.match-tools[hidden],
+#matchContent[hidden] {
     display: none;
 }
 
@@ -2638,7 +2647,7 @@ html.dark-mode .welcome-heading-line-3 {
         margin-bottom: 14px;
     }
 
-    .finished-filter-row {
+    .secondary-filter-row {
         margin-top: -6px;
         margin-bottom: 8px;
     }
