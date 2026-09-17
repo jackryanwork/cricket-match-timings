@@ -751,7 +751,9 @@ html.dark-mode .welcome-heading-line-3 {
 
 .featured-countdown {
     position: relative;
-    margin: 0 10px 9px;
+    width: fit-content;
+    max-width: calc(100% - 20px);
+    margin: 0 auto 9px;
     padding: 7px 9px;
     border: 1px solid rgba(8, 120, 232, 0.42);
     border-radius: 13px;
@@ -815,7 +817,7 @@ html.dark-mode .welcome-heading-line-3 {
 
 .big-match-toggle {
     display: block;
-    margin: 2px 16px 10px;
+    margin: 18px 16px 10px;
     color: var(--accent);
     font-size: 11px;
     font-weight: 800;
@@ -829,15 +831,20 @@ html.dark-mode .welcome-heading-line-3 {
 }
 
 .big-match-card .match-actions {
-    justify-content: stretch;
+    justify-content: space-between;
+    gap: 6px;
     margin-top: 2px;
+    margin-inline: 5px;
     padding-top: 3px;
 }
 
 .big-match-card .match-actions > .favourite-button,
 .big-match-card .match-actions > .set-reminder-button {
-    flex: 1 1 0;
+    flex: 0 1 auto;
     min-width: 0;
+    padding: 4px 7px;
+    font-size: 9px;
+    line-height: 1.2;
 }
 
 .big-match-card .featured-teams {
@@ -849,7 +856,9 @@ html.dark-mode .welcome-heading-line-3 {
 }
 
 .big-match-card .featured-countdown {
-    margin: 0 4px 5px;
+    width: fit-content;
+    max-width: calc(100% - 16px);
+    margin: 0 auto 5px;
     padding: 5px 7px;
 }
 
