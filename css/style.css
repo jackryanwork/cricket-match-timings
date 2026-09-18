@@ -746,6 +746,16 @@ html.dark-mode .welcome-heading-line-3 {
     line-height: 1.3;
 }
 
+.featured-meta .match-tournament-name {
+    display: block;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+}
+
+.featured-meta .match-format-label {
+    font-size: 10px;
+}
+
 .featured-meta-date {
     text-align: right;
 }
@@ -1429,6 +1439,9 @@ html.dark-mode .tournament-countdown-value {
 }
 
 .finished-result-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
     margin-top: 6px;
     color: var(--muted);
     font-size: 11px;
@@ -1467,14 +1480,33 @@ html.dark-mode .tournament-countdown-value {
 }
 
 .match-type {
+    display: flex;
     min-width: 0;
     flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
     overflow-wrap: anywhere;
     color: var(--accent);
     font-size: 10px;
     font-weight: 800;
     line-height: 1.3;
     text-transform: uppercase;
+}
+
+.match-tournament-name {
+    display: block;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+}
+
+.match-format-label {
+    display: block;
+    color: var(--success);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-transform: none;
 }
 
 .match-status {

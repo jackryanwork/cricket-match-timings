@@ -721,6 +721,29 @@ function formatTournamentName(match) {
     return competition;
 }
 
+function formatMatchFormat(match) {
+    const competition = String(match?.competition || "").trim().toLowerCase();
+    const knownFormats = {
+        "t20 international": "T20 International",
+        "odi": "ODI",
+        "test": "Test",
+        "t20 league": "T20 League"
+    };
+    return knownFormats[competition] || "";
+}
+
+function matchTournamentDetailsMarkup(match) {
+    const tournamentName = String(match?.tournament_name || "").trim();
+    const format = formatMatchFormat(match);
+    if (!tournamentName) {
+        return format
+            ? `<span class="match-format-label standalone">${escapeHtml(format)}</span>`
+            : `<span class="match-tournament-name">${escapeHtml(formatTournamentName(match))}</span>`;
+    }
+
+    return `<span class="match-tournament-name">${escapeHtml(tournamentName)}</span>${format ? `<span class="match-format-label">${escapeHtml(format)}</span>` : ""}`;
+}
+
 function openMatchDetails(match, showReminderPicker = false) {
     const detailContent = document.getElementById("matchDetailContent");
     const matchModal = document.getElementById("matchModal");
@@ -1045,7 +1068,7 @@ function renderBigMatches() {
                 </div>
                 <div class="featured-meta">
                     <span class="featured-meta-item">
-                        <span class="featured-meta-value">${escapeHtml(formatTournamentName(match))}</span>
+                        ${matchTournamentDetailsMarkup(match)}
                     </span>
                     <span class="featured-meta-item featured-meta-date">
                         <span class="featured-meta-value">${escapeHtml(formatVisitorMatchDate(match))}<br>${escapeHtml(formatVisitorMatchTime(match))}</span>
@@ -1187,7 +1210,10 @@ function finishedResultCardsMarkup(finishedMatches) {
             <div class="finished-result-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
             <div class="finished-result-summary">${escapeHtml(formatMatchResult(match))}</div>
             ${match.result_summary ? `<div class="finished-result-summary">${escapeHtml(match.result_summary)}</div>` : ""}
-            <div class="finished-result-meta">${escapeHtml(formatTournamentName(match))} · ${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</div>
+            <div class="finished-result-meta">
+                ${matchTournamentDetailsMarkup(match)}
+                <span>${escapeHtml(formatVisitorMatchDate(match))} · ${escapeHtml(formatVisitorMatchTime(match))}</span>
+            </div>
         </article>
     `).join("");
 }
@@ -1527,7 +1553,7 @@ function renderUpcomingMatches(matches, ranges = buildUpcomingDateRanges(matches
 
                     <div class="match-top">
                         <div class="match-type">
-                            ${escapeHtml(formatTournamentName(match))}
+                            ${matchTournamentDetailsMarkup(match)}
                         </div>
 
                         <div class="match-status upcoming">
@@ -1661,7 +1687,7 @@ if (todayMatches.length === 0) {
 
                 <div class="match-top">
                     <div class="match-type">
-                        ${escapeHtml(formatTournamentName(match))}
+                        ${matchTournamentDetailsMarkup(match)}
                     </div>
 
                     <div class="match-status today" data-today-match-status data-match-id="${Number(match.id)}">
@@ -1774,7 +1800,7 @@ if (tomorrowMatches.length === 0) {
 
                 <div class="match-top">
                     <div class="match-type">
-                        ${escapeHtml(formatTournamentName(match))}
+                        ${matchTournamentDetailsMarkup(match)}
                     </div>
 
                     <div class="match-status upcoming">
