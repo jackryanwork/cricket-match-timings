@@ -1531,6 +1531,20 @@ function buildUpcomingDateRanges(matches) {
     }));
 }
 
+function keepSelectedUpcomingDateVisible() {
+    const scroller = document.querySelector(".upcoming-date-scroller");
+    const activeButton = scroller?.querySelector(".upcoming-date-button.active");
+    if (!scroller || !activeButton) return;
+
+    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    const scrollerRect = scroller.getBoundingClientRect();
+    const activeButtonRect = activeButton.getBoundingClientRect();
+    const activeButtonStart = activeButtonRect.left - scrollerRect.left + scroller.scrollLeft;
+    const centeredPosition = activeButtonStart - (scroller.clientWidth - activeButtonRect.width) / 2;
+    const targetScrollLeft = Math.max(0, Math.min(maxScrollLeft, centeredPosition));
+    scroller.scrollTo({ left: targetScrollLeft, behavior: "auto" });
+}
+
 function renderUpcomingMatches(matches, ranges = buildUpcomingDateRanges(matches), version = matchRefreshVersion) {
     if (version !== matchRefreshVersion || currentMatchType !== "upcoming") return false;
 
@@ -1640,6 +1654,7 @@ function renderUpcomingMatches(matches, ranges = buildUpcomingDateRanges(matches
     }
 
     content.innerHTML = html;
+    keepSelectedUpcomingDateVisible();
     updateMatchCountdowns();
     return true;
 }
