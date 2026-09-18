@@ -8,8 +8,9 @@ const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
 const THEME_STORAGE_KEY = "cricnivoTheme";
 const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
-const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, tournament_id, match_status, result_type, result_summary, finished_at";
-const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, competition, venue, is_big_match";
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, competition_name, venue, is_big_match, tournament_id, match_status, result_type, result_summary, finished_at";
+const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, competition_name, venue, is_big_match, tournament_id";
+const OLDEST_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
 const TOURNAMENT_SELECT = "id, name, description, start_date, end_date, is_active";
 const REMINDER_OPTIONS = [5, 30, 60, 120];
 const DEFAULT_TEAMS = [
@@ -473,7 +474,7 @@ function getLocalDayBounds(offsetDays = 0) {
 
 function isMissingResultColumns(error) {
     const message = String(error?.message || "");
-    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at|tournament_id/.test(message);
+    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at|tournament_id|competition_name/.test(message);
 }
 
 let scheduleMatchesCacheDate = null;
@@ -517,6 +518,26 @@ async function attachTournamentNames(matches) {
     }));
 }
 
+async function loadLegacyScheduleMatches(finishedWindowDate) {
+    let query = await supabaseClient
+        .from("matches")
+        .select(LEGACY_MATCH_SELECT)
+        .gte("match_date", finishedWindowDate)
+        .order("match_date", { ascending: true })
+        .order("match_time", { ascending: true });
+
+    if (query.error) {
+        query = await supabaseClient
+            .from("matches")
+            .select(OLDEST_MATCH_SELECT)
+            .gte("match_date", finishedWindowDate)
+            .order("match_date", { ascending: true })
+            .order("match_time", { ascending: true });
+    }
+
+    return query;
+}
+
 async function loadScheduleMatches(forceReload = false) {
     const cacheDate = getLocalDayBounds().label;
 
@@ -542,12 +563,7 @@ async function loadScheduleMatches(forceReload = false) {
 
         if (!canonicalQuery.error) {
             // Include older admin-created rows that predate match_start_at.
-            const legacyQuery = await supabaseClient
-                .from("matches")
-                .select(LEGACY_MATCH_SELECT)
-                .gte("match_date", finishedWindowDate)
-                .order("match_date", { ascending: true })
-                .order("match_time", { ascending: true });
+            const legacyQuery = await loadLegacyScheduleMatches(finishedWindowDate);
 
             if (legacyQuery.error) {
                 return {
@@ -571,12 +587,7 @@ async function loadScheduleMatches(forceReload = false) {
             || isMissingResultColumns(canonicalQuery.error);
         if (!missingCanonicalColumn) return canonicalQuery;
 
-        const legacyQuery = await supabaseClient
-            .from("matches")
-            .select(LEGACY_MATCH_SELECT)
-            .gte("match_date", finishedWindowDate)
-            .order("match_date", { ascending: true })
-            .order("match_time", { ascending: true });
+        const legacyQuery = await loadLegacyScheduleMatches(finishedWindowDate);
 
         return {
             ...legacyQuery,
@@ -700,11 +711,8 @@ async function openFavouriteMatches() {
     renderFavouriteMatches();
 }
 
-function formatTournamentName(match) {
-    const tournamentName = String(match?.tournament_name || "").trim();
-    if (tournamentName) return tournamentName;
-
-    const competition = String(match.competition || "Cricket match").trim();
+function legacyCompetitionName(match) {
+    const competition = String(match?.competition || "Cricket match").trim();
     const escapePattern = value => String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pairPatterns = [
         `${escapePattern(match.team1)}\\s+(?:vs\\.?|v)\\s+${escapePattern(match.team2)}`,
@@ -719,6 +727,21 @@ function formatTournamentName(match) {
     }
 
     return competition;
+}
+
+function formatTournamentName(match) {
+    const competitionName = String(match?.competition_name || "").trim();
+    const tournamentName = String(match?.tournament_name || "").trim();
+    return competitionName || tournamentName || legacyCompetitionName(match);
+}
+
+function matchCompetitionDisplayText(match) {
+    const names = [
+        String(match?.competition_name || "").trim(),
+        String(match?.tournament_name || "").trim()
+    ].filter(Boolean);
+    const uniqueNames = [...new Set(names)];
+    return uniqueNames.length ? uniqueNames.join(" · ") : legacyCompetitionName(match);
 }
 
 function formatMatchFormat(match) {
@@ -736,15 +759,25 @@ function normalizeMatchFormat(value) {
 }
 
 function matchTournamentDetailsMarkup(match) {
-    const tournamentName = String(match?.tournament_name || "").trim();
+    const displayName = matchCompetitionDisplayText(match);
     const format = formatMatchFormat(match);
-    if (!tournamentName) {
+    const hasExplicitName = Boolean(String(match?.competition_name || "").trim() || String(match?.tournament_name || "").trim());
+    const displayIsOnlyFormat = !hasExplicitName && format && normalizeMatchFormat(displayName) === format;
+    if (!displayName || displayIsOnlyFormat) {
         return format
             ? `<span class="match-format-label standalone">${escapeHtml(format)}</span>`
-            : `<span class="match-tournament-name">${escapeHtml(formatTournamentName(match))}</span>`;
+            : `<span class="match-tournament-name">${escapeHtml(displayName || "Cricket match")}</span>`;
     }
 
-    return `<span class="match-tournament-name">${escapeHtml(tournamentName)}</span>${format ? `<span class="match-format-label">${escapeHtml(format)}</span>` : ""}`;
+    return `<span class="match-tournament-name">${escapeHtml(displayName)}</span>${format ? `<span class="match-format-label">${escapeHtml(format)}</span>` : ""}`;
+}
+
+function formatMatchDisplayText(match) {
+    const displayName = matchCompetitionDisplayText(match);
+    const format = formatMatchFormat(match);
+    if (!displayName) return format || "Cricket match";
+    if (format && normalizeMatchFormat(displayName) !== format) return `${displayName} · ${format}`;
+    return displayName;
 }
 
 function openMatchDetails(match, showReminderPicker = false) {
@@ -758,7 +791,7 @@ function openMatchDetails(match, showReminderPicker = false) {
         </label>
     `).join("");
     detailContent.innerHTML = `
-        <div class="detail-tournament">${escapeHtml(match.competition || "Cricket match")}</div>
+        <div class="detail-tournament">${escapeHtml(formatMatchDisplayText(match))}</div>
         <div class="detail-teams">${teamFlag(match.team1)} ${escapeHtml(match.team1)} <span class="vs">VS</span> ${teamFlag(match.team2)} ${escapeHtml(match.team2)}</div>
         <div class="detail-row"><span>Date</span><strong>${escapeHtml(formatVisitorMatchDate(match))}</strong></div>
         <div class="detail-row"><span>Time</span><strong>${escapeHtml(formatVisitorMatchTime(match))}</strong></div>
@@ -876,7 +909,7 @@ function renderReminderList(message = "") {
         <article class="reminder-item">
             <div class="reminder-item-main">
                 <strong>${escapeHtml(reminderMatchLabel(reminder))}</strong>
-                <span>${escapeHtml(reminder.competition || "Cricket match")}</span>
+                <span>${escapeHtml(formatMatchDisplayText(reminder))}</span>
             </div>
             <button class="remove-reminder" type="button" data-remove-reminder-match-id="${Number(reminder.matchId)}">Remove</button>
         </article>

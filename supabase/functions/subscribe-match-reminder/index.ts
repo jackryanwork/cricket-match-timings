@@ -143,7 +143,7 @@ export default {
       const matchIds = (reminders || []).map((reminder) => Number(reminder.match_id));
       if (!matchIds.length) return json({ success: true, reminders: [] });
       const { data: matches, error: matchesError } = await ctx.supabaseAdmin.from("matches")
-        .select("id, team1, team2, competition")
+        .select("id, team1, team2, competition, competition_name")
         .in("id", matchIds);
       if (matchesError) return json({ error: "Could not load reminder matches." }, 500);
       const matchById = new Map((matches || []).map((match) => [Number(match.id), match]));

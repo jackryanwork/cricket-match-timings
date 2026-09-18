@@ -681,8 +681,8 @@
             <option value="T20I">T20I</option>
         </select>
 
-        <label>Competition name (optional; use Tournament section for tournament matches)</label>
-        <input type="text" id="customCompetition" list="iccTournaments" placeholder="For non-tournament competitions" autocomplete="off">
+        <label>Competition name (optional; shown with the format)</label>
+        <input type="text" id="customCompetition" list="iccTournaments" placeholder="West Indies Tour of India 2026" autocomplete="off">
 
         <datalist id="iccTournaments">
             <option value="ICC Champions Trophy"></option>
@@ -705,6 +705,11 @@
             <option value="ICC Women's T20I Challenge Trophy"></option>
             <option value="ICC World Test Championship"></option>
         </datalist>
+
+        <label>Tournament (optional)</label>
+        <select id="matchTournamentSelect" onchange="selectMatchTournament(this.value)">
+            <option value="">No tournament selected</option>
+        </select>
 
         <label>Venue</label>
         <input type="text" id="venue" placeholder="Mumbai">
@@ -1033,8 +1038,9 @@ const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const BROADCAST_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/broadcast-telegram-message`;
 const MATCH_DATA_SYNC_KEY = "cricnivo:matches-updated";
-const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match, tournament_id, match_status, result_type, result_summary, finished_at";
-const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
+const MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, competition_name, venue, is_big_match, tournament_id, match_status, result_type, result_summary, finished_at";
+const LEGACY_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, competition_name, venue, is_big_match, tournament_id";
+const OLDEST_MATCH_SELECT = "id, cricketdata_match_id, source, team1, team2, match_date, match_time, match_start_at, match_timezone, competition, venue, is_big_match";
 const TOURNAMENT_SELECT = "id, name, description, start_date, end_date, is_active";
 
 const supabaseClient = window.supabase.createClient(
@@ -1070,6 +1076,15 @@ function normalizeMatchFormat(value) {
     return "";
 }
 
+function formatAdminCompetition(match) {
+    const competitionName = String(match?.competition_name || "").trim();
+    const format = normalizeMatchFormat(match?.competition);
+    const legacyCompetition = String(match?.competition || "").trim();
+
+    if (competitionName) return [competitionName, format].filter(Boolean).join(" · ") || "No competition";
+    return legacyCompetition || format || "No competition";
+}
+
 function populateTournamentNameOptions(tournaments) {
     const datalist = document.getElementById("adminTournamentNames");
     if (!datalist) return;
@@ -1082,6 +1097,21 @@ function populateTournamentNameOptions(tournaments) {
             option.value = name;
             datalist.appendChild(option);
         });
+}
+
+function populateMatchTournamentOptions() {
+    const select = document.getElementById("matchTournamentSelect");
+    if (!select) return;
+
+    const selectedId = document.getElementById("matchTournamentId").value;
+    select.innerHTML = '<option value="">No tournament selected</option>';
+    adminTournaments.forEach(tournament => {
+        const option = document.createElement("option");
+        option.value = String(Number(tournament.id));
+        option.textContent = tournament.name;
+        select.appendChild(option);
+    });
+    select.value = selectedId;
 }
 
 function formatTournamentAdminDates(tournament) {
@@ -1110,6 +1140,7 @@ async function loadAdminTournaments() {
 
     adminTournaments = data || [];
     populateTournamentNameOptions(adminTournaments);
+    populateMatchTournamentOptions();
     if (!adminTournaments.length) {
         container.innerHTML = '<div class="empty">No tournaments created yet.</div>';
         return;
@@ -1219,14 +1250,22 @@ async function toggleTournamentActive(id, isActive) {
 
 function setMatchTournament(tournament) {
     document.getElementById("matchTournamentId").value = String(Number(tournament.id));
+    document.getElementById("matchTournamentSelect").value = String(Number(tournament.id));
     document.getElementById("matchTournamentSelectionText").textContent = `Tournament: ${tournament.name}`;
     document.getElementById("matchTournamentSelection").classList.add("visible");
 }
 
 function clearMatchTournament() {
     document.getElementById("matchTournamentId").value = "";
+    document.getElementById("matchTournamentSelect").value = "";
     document.getElementById("matchTournamentSelectionText").textContent = "";
     document.getElementById("matchTournamentSelection").classList.remove("visible");
+}
+
+function selectMatchTournament(id) {
+    const tournament = adminTournaments.find(item => Number(item.id) === Number(id));
+    if (tournament) setMatchTournament(tournament);
+    else clearMatchTournament();
 }
 
 function addMatchToTournament(id) {
@@ -1247,7 +1286,7 @@ function notifyMatchDataChanged() {
 
 function isMissingResultColumns(error) {
     const message = String(error?.message || "");
-    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at|tournament_id/.test(message);
+    return error?.code === "42703" && /match_status|result_type|result_summary|finished_at|tournament_id|competition_name/.test(message);
 }
 
 async function sendBroadcast() {
@@ -1467,8 +1506,8 @@ async function saveMatch() {
     const timeInput = document.getElementById("matchTime").value.trim();
     const period = document.getElementById("matchPeriod").value;
     const selectedCompetition = document.getElementById("competition").value;
-    const customCompetition = document.getElementById("customCompetition").value.trim();
-    const competition = selectedCompetition || customCompetition;
+    const competitionName = document.getElementById("customCompetition").value.trim();
+    const competition = selectedCompetition || null;
     const venue = document.getElementById("venue").value.trim();
     const tournamentId = Number(document.getElementById("matchTournamentId").value);
     const isBigMatch = document.getElementById("isBigMatch").checked;
@@ -1501,6 +1540,7 @@ async function saveMatch() {
         match_start_at: getIndiaMatchStartAt(date, time),
         match_timezone: "Asia/Kolkata",
         competition: competition,
+        competition_name: competitionName || null,
         venue: venue,
         is_big_match: isBigMatch,
         tournament_id: Number.isSafeInteger(tournamentId) && tournamentId > 0 ? tournamentId : null,
@@ -1611,7 +1651,7 @@ function editMatch(id) {
     const competitionSelect = document.getElementById("competition");
     const normalizedCompetition = normalizeMatchFormat(match.competition);
     competitionSelect.value = MATCH_FORMATS.includes(normalizedCompetition) ? normalizedCompetition : "";
-    document.getElementById("customCompetition").value = competitionSelect.value ? "" : (match.competition || "");
+    document.getElementById("customCompetition").value = match.competition_name || (competitionSelect.value ? "" : (match.competition || ""));
     document.getElementById("venue").value = match.venue || "";
     const tournament = adminTournaments.find(item => Number(item.id) === Number(match.tournament_id));
     if (tournament) setMatchTournament(tournament);
@@ -1790,7 +1830,7 @@ function renderSavedMatches() {
                 <br>
                 ⏰ ${escapeHtml(match.match_time)}
                 <br>
-                🏏 ${escapeHtml(match.competition || "No competition")}
+                🏏 ${escapeHtml(formatAdminCompetition(match))}
                 <br>
                 🏟️ ${escapeHtml(match.venue || "No venue")}
                 ${match.tournament_id ? `<br>🏆 ${escapeHtml(adminTournaments.find(item => Number(item.id) === Number(match.tournament_id))?.name || "Tournament")}` : ''}
@@ -1832,6 +1872,15 @@ async function loadSavedMatches() {
         ({ data: matches, error } = await supabaseClient
             .from("matches")
             .select(LEGACY_MATCH_SELECT)
+            .order("match_date", { ascending: true })
+            .order("match_time", { ascending: true })
+            .range(0, 9999));
+    }
+
+    if (error && isMissingResultColumns(error)) {
+        ({ data: matches, error } = await supabaseClient
+            .from("matches")
+            .select(OLDEST_MATCH_SELECT)
             .order("match_date", { ascending: true })
             .order("match_time", { ascending: true })
             .range(0, 9999));

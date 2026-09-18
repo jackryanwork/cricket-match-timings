@@ -64,7 +64,7 @@ export default {
     const matchIds = [...new Set(reminders.map((row) => Number(row.match_id)))];
     const [{ data: users, error: usersError }, { data: matches, error: matchesError }] = await Promise.all([
       ctx.supabaseAdmin.from("telegram_reminder_users").select("telegram_user_id, chat_id, timezone").in("telegram_user_id", userIds),
-      ctx.supabaseAdmin.from("matches").select("id, team1, team2, competition, match_date, match_time, match_start_at, match_timezone, venue, match_status").in("id", matchIds),
+      ctx.supabaseAdmin.from("matches").select("id, team1, team2, competition, competition_name, match_date, match_time, match_start_at, match_timezone, venue, match_status").in("id", matchIds),
     ]);
     if (usersError || matchesError) return Response.json({ error: "Could not prepare reminders." }, { status: 500 });
 
@@ -95,7 +95,8 @@ export default {
       if (!claimed) continue;
 
       const displayTime = new Intl.DateTimeFormat("en-IN", { timeZone: user.timezone || match.match_timezone || "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(start);
-      const result = await sendTelegram(botToken, Number(user.chat_id), `🔔 Match starts in ${reminder.reminder_minutes} minutes!\n\n🏏 ${match.team1} vs ${match.team2}\n${match.competition || "Cricket match"}\n📅 ${displayTime}\n${match.venue ? `📍 ${match.venue}` : ""}`, MINI_APP_URL);
+      const competitionLabel = [match.competition_name, match.competition].filter(Boolean).join(" · ") || "Cricket match";
+      const result = await sendTelegram(botToken, Number(user.chat_id), `🔔 Match starts in ${reminder.reminder_minutes} minutes!\n\n🏏 ${match.team1} vs ${match.team2}\n${competitionLabel}\n📅 ${displayTime}\n${match.venue ? `📍 ${match.venue}` : ""}`, MINI_APP_URL);
       if (result.ok || result.terminal) completedIds.push(Number(reminder.id));
       if (result.ok) sent += 1;
       else {
