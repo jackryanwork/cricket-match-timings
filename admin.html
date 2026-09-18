@@ -463,7 +463,8 @@
         <p class="broadcast-note">Create a tournament, then use “Add match” to add selected fixtures. Tournament matches continue to appear automatically in the normal Today, Tomorrow, Upcoming, Finished, and Big Match sections.</p>
 
         <label for="tournamentName">Tournament name</label>
-        <input type="text" id="tournamentName" maxlength="160" placeholder="Asia Cup 2026">
+        <input type="text" id="tournamentName" list="adminTournamentNames" maxlength="160" placeholder="Asia Cup 2026" autocomplete="off">
+        <datalist id="adminTournamentNames"></datalist>
 
         <label for="tournamentStartDate">Start date (optional)</label>
         <input type="date" id="tournamentStartDate">
@@ -670,19 +671,18 @@
             <option value="PM">PM</option>
         </select>
 
-        <label>Match format (optional; used to group tournament matches)</label>
+        <label>Match format (optional)</label>
 
         <select id="competition">
             <option value="">No format selected</option>
-            <option value="T20 International">T20 International</option>
-            <option value="ODI">ODI</option>
             <option value="Test">Test</option>
-            <option value="T20 League">T20 League</option>
-            <option value="Other">Other</option>
+            <option value="ODI">ODI</option>
+            <option value="T20">T20</option>
+            <option value="T20I">T20I</option>
         </select>
 
-        <label>Tournament / competition name (optional)</label>
-        <input type="text" id="customCompetition" list="iccTournaments" placeholder="Start typing an ICC tournament or enter a custom name" autocomplete="off">
+        <label>Competition name (optional; use Tournament section for tournament matches)</label>
+        <input type="text" id="customCompetition" list="iccTournaments" placeholder="For non-tournament competitions" autocomplete="off">
 
         <datalist id="iccTournaments">
             <option value="ICC Champions Trophy"></option>
@@ -1058,6 +1058,32 @@ let selectedMatchFilter = "today";
 let editingTournamentId = null;
 let adminTournaments = [];
 
+const MATCH_FORMATS = ["Test", "ODI", "T20", "T20I"];
+
+function normalizeMatchFormat(value) {
+    const competition = String(value || "").trim().toLowerCase();
+    if (!competition) return "";
+    if (/\bt20i\b|t20\s*international|twenty20\s*international/.test(competition)) return "T20I";
+    if (/\bodi\b/.test(competition)) return "ODI";
+    if (/\btest\b/.test(competition)) return "Test";
+    if (/\bt20\b|t20\s*league|twenty20/.test(competition)) return "T20";
+    return "";
+}
+
+function populateTournamentNameOptions(tournaments) {
+    const datalist = document.getElementById("adminTournamentNames");
+    if (!datalist) return;
+
+    datalist.innerHTML = "";
+    [...new Set((tournaments || []).map(tournament => String(tournament.name || "").trim()).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right))
+        .forEach(name => {
+            const option = document.createElement("option");
+            option.value = name;
+            datalist.appendChild(option);
+        });
+}
+
 function formatTournamentAdminDates(tournament) {
     const start = tournament.start_date || "";
     const end = tournament.end_date || "";
@@ -1083,6 +1109,7 @@ async function loadAdminTournaments() {
     }
 
     adminTournaments = data || [];
+    populateTournamentNameOptions(adminTournaments);
     if (!adminTournaments.length) {
         container.innerHTML = '<div class="empty">No tournaments created yet.</div>';
         return;
@@ -1441,7 +1468,7 @@ async function saveMatch() {
     const period = document.getElementById("matchPeriod").value;
     const selectedCompetition = document.getElementById("competition").value;
     const customCompetition = document.getElementById("customCompetition").value.trim();
-    const competition = customCompetition || selectedCompetition;
+    const competition = selectedCompetition || customCompetition;
     const venue = document.getElementById("venue").value.trim();
     const tournamentId = Number(document.getElementById("matchTournamentId").value);
     const isBigMatch = document.getElementById("isBigMatch").checked;
@@ -1582,10 +1609,9 @@ function editMatch(id) {
     document.getElementById("matchPeriod").value = convertedTime.period;
 
     const competitionSelect = document.getElementById("competition");
-    const competitionExists = [...competitionSelect.options]
-        .some(option => option.value === (match.competition || ""));
-    competitionSelect.value = competitionExists ? match.competition : "Other";
-    document.getElementById("customCompetition").value = competitionExists ? "" : (match.competition || "");
+    const normalizedCompetition = normalizeMatchFormat(match.competition);
+    competitionSelect.value = MATCH_FORMATS.includes(normalizedCompetition) ? normalizedCompetition : "";
+    document.getElementById("customCompetition").value = competitionSelect.value ? "" : (match.competition || "");
     document.getElementById("venue").value = match.venue || "";
     const tournament = adminTournaments.find(item => Number(item.id) === Number(match.tournament_id));
     if (tournament) setMatchTournament(tournament);
@@ -1669,33 +1695,6 @@ function formatIndiaDate(date = new Date()) {
     const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
 
     return `${values.year}-${values.month}-${values.day}`;
-}
-
-function populateCompetitionOptions(matches) {
-    const select = document.getElementById("competition");
-    const defaultCompetitions = new Set([
-        "T20 International",
-        "ODI",
-        "Test",
-        "T20 League",
-        "Other"
-    ]);
-
-    select.querySelectorAll("option[data-saved-competition]").forEach(option => option.remove());
-
-    const savedCompetitions = [...new Set(
-        matches
-            .map(match => (match.competition || "").trim())
-            .filter(competition => competition && !defaultCompetitions.has(competition))
-    )].sort();
-
-    savedCompetitions.forEach(competition => {
-        const option = document.createElement("option");
-        option.value = competition;
-        option.textContent = competition;
-        option.dataset.savedCompetition = "true";
-        select.appendChild(option);
-    });
 }
 
 function setMatchFilter(filter) {
@@ -1849,9 +1848,9 @@ async function loadSavedMatches() {
 
     }
 
-    populateCompetitionOptions(matches || []);
     savedMatches = matches || [];
     savedMatchesById = new Map(savedMatches.map(match => [Number(match.id), match]));
+    await loadAdminTournaments();
 
     if (savedMatches.length === 0) {
 
@@ -1864,7 +1863,6 @@ async function loadSavedMatches() {
     }
 
     renderSavedMatches();
-    await loadAdminTournaments();
 
 }
 

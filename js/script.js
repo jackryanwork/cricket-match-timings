@@ -722,14 +722,17 @@ function formatTournamentName(match) {
 }
 
 function formatMatchFormat(match) {
-    const competition = String(match?.competition || "").trim().toLowerCase();
-    const knownFormats = {
-        "t20 international": "T20 International",
-        "odi": "ODI",
-        "test": "Test",
-        "t20 league": "T20 League"
-    };
-    return knownFormats[competition] || "";
+    return normalizeMatchFormat(match?.competition);
+}
+
+function normalizeMatchFormat(value) {
+    const competition = String(value || "").trim().toLowerCase();
+    if (!competition) return "";
+    if (/\bt20i\b|t20\s*international|twenty20\s*international/.test(competition)) return "T20I";
+    if (/\bodi\b/.test(competition)) return "ODI";
+    if (/\btest\b/.test(competition)) return "Test";
+    if (/\bt20\b|t20\s*league|twenty20/.test(competition)) return "T20";
+    return "";
 }
 
 function matchTournamentDetailsMarkup(match) {
@@ -1306,11 +1309,7 @@ function tournamentMatchMarkup(match) {
 
 function tournamentMatchFormat(match) {
     const competition = String(match?.competition || "").trim();
-    const normalized = competition.toLowerCase();
-    if (/\b(?:t20i?|twenty20)\b/.test(normalized)) return "T20";
-    if (/\bodi\b/.test(normalized)) return "ODI";
-    if (/\btest\b/.test(normalized)) return "Test";
-    return competition || "Other";
+    return normalizeMatchFormat(competition) || "Other";
 }
 
 function tournamentMatchGroups(matches) {
