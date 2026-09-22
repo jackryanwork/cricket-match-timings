@@ -122,31 +122,31 @@ export default {
     }
 
     const lastSeenAt = presence?.last_seen_at ? Date.parse(presence.last_seen_at) : 0;
-    const shouldUpdatePresence = !lastSeenAt || now.getTime() - lastSeenAt >= MIN_ACTIVITY_INTERVAL_MS;
+    if (lastSeenAt && now.getTime() - lastSeenAt < MIN_ACTIVITY_INTERVAL_MS) {
+      return json({ error: "Activity update is too frequent." }, 429, corsHeaders);
+    }
     const visitDate = getIndiaDate(now);
 
     const { error: dailyVisitError } = await ctx.supabaseAdmin
       .from("telegram_mini_app_daily_visits")
       .upsert(
-        { telegram_user_id: telegramUserId, visit_date: visitDate, last_seen_at: nowIso },
-        { onConflict: "telegram_user_id,visit_date" },
+        { telegram_user_id: telegramUserId, visit_date: visitDate },
+        { onConflict: "telegram_user_id,visit_date", ignoreDuplicates: true },
       );
     if (dailyVisitError) {
       console.error("Unable to save Mini App daily activity", dailyVisitError.code);
       return json({ error: "Could not record Mini App activity." }, 500, corsHeaders);
     }
 
-    if (shouldUpdatePresence) {
-      const { error: presenceError } = await ctx.supabaseAdmin
-        .from("telegram_mini_app_presence")
-        .upsert(
-          { telegram_user_id: telegramUserId, last_seen_at: nowIso },
-          { onConflict: "telegram_user_id" },
-        );
-      if (presenceError) {
-        console.error("Unable to save Mini App presence", presenceError.code);
-        return json({ error: "Could not record Mini App activity." }, 500, corsHeaders);
-      }
+    const { error: presenceError } = await ctx.supabaseAdmin
+      .from("telegram_mini_app_presence")
+      .upsert(
+        { telegram_user_id: telegramUserId, last_seen_at: nowIso },
+        { onConflict: "telegram_user_id" },
+      );
+    if (presenceError) {
+      console.error("Unable to save Mini App presence", presenceError.code);
+      return json({ error: "Could not record Mini App activity." }, 500, corsHeaders);
     }
 
     return json({ success: true }, 200, corsHeaders);
