@@ -2,6 +2,7 @@ const SUPABASE_URL = "https://yhohdbdatbmxzbokjsau.supabase.co";
 const SUPABASE_KEY = "sb_publishable_hCY94hitDCrhCYDdbfpw0g_TuDyIA_T";
 const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-reminder`;
 const MINI_APP_TRACKING_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/track-mini-app-open`;
+const MINI_APP_ACTIVITY_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/track-mini-app-activity`;
 const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
 const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
 const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
@@ -281,6 +282,49 @@ async function trackFirstMiniAppOpen() {
 }
 
 trackFirstMiniAppOpen();
+
+let miniAppActivityTimer = null;
+let miniAppActivityRequestInFlight = false;
+
+async function trackMiniAppActivity() {
+    const initData = getTelegramInitData();
+    if (!initData || miniAppActivityRequestInFlight) return;
+
+    miniAppActivityRequestInFlight = true;
+    try {
+        await fetch(MINI_APP_ACTIVITY_FUNCTION_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+            body: JSON.stringify({ initData }),
+            cache: "no-store"
+        });
+    } catch (error) {
+        console.warn("Unable to record Mini App activity.", error);
+    } finally {
+        miniAppActivityRequestInFlight = false;
+    }
+}
+
+function stopMiniAppActivityTracking() {
+    if (miniAppActivityTimer !== null) {
+        window.clearInterval(miniAppActivityTimer);
+        miniAppActivityTimer = null;
+    }
+}
+
+function startMiniAppActivityTracking() {
+    if (!getTelegramInitData() || document.visibilityState !== "visible") return;
+    stopMiniAppActivityTracking();
+    trackMiniAppActivity();
+    miniAppActivityTimer = window.setInterval(trackMiniAppActivity, 60 * 1000);
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") startMiniAppActivityTracking();
+    else stopMiniAppActivityTracking();
+});
+
+if (getTelegramInitData()) startMiniAppActivityTracking();
 
     function formatLocalDate(date) {
     const year = date.getFullYear();

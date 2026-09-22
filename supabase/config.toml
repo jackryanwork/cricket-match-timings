@@ -13,6 +13,12 @@ verify_jwt = false
 [functions.track-mini-app-open]
 verify_jwt = false
 
+[functions.track-mini-app-activity]
+verify_jwt = false
+
+[functions.get-mini-app-analytics]
+verify_jwt = false
+
 [functions.subscribe-match-reminder]
 verify_jwt = false
 
