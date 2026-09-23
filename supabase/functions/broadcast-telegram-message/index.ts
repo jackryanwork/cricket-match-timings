@@ -78,7 +78,7 @@ async function sendChannelMiniAppPost(botToken: string, message: string, mediaFi
   const result = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok) {
     console.error("Unable to publish Mini App channel post", result.description || response.status);
-    return { ok: false, error: typeof result.description === "string" ? result.description : "Telegram rejected the channel post." };
+    return { ok: false, error: "Could not publish the channel post." };
   }
   return { ok: true, error: "" };
 }
@@ -203,7 +203,7 @@ export default {
       const result = await sendChannelMiniAppPost(botToken, message, mediaFile);
       return result.ok
         ? json({ success: true, channel: CHANNEL_ID })
-        : json({ error: result.error }, 502);
+        : json({ error: "Could not publish the channel post." }, 502);
     }
 
     const { data, error: recipientError } = await ctx.supabaseAdmin

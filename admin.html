@@ -941,7 +941,7 @@ async function login() {
     });
 
     if (error) {
-        status.textContent = "Login failed: " + error.message;
+        status.textContent = "Login failed. Please check your email and password.";
         status.classList.add("error");
         button.disabled = false;
         button.textContent = "Continue";
@@ -972,7 +972,7 @@ async function continueAdminLogin(user) {
 
     const assurance = await supabaseClient.auth.mfa.getAuthenticatorAssuranceLevel();
     if (assurance.error) {
-        loginStatus.textContent = "Could not check two-factor authentication: " + assurance.error.message;
+        loginStatus.textContent = "Could not check two-factor authentication. Please try again.";
         loginStatus.classList.add("error");
         showScreen("login");
         return;
@@ -985,7 +985,7 @@ async function continueAdminLogin(user) {
 
     const factors = await supabaseClient.auth.mfa.listFactors();
     if (factors.error) {
-        loginStatus.textContent = "Could not load two-factor authentication: " + factors.error.message;
+        loginStatus.textContent = "Could not load two-factor authentication. Please try again.";
         loginStatus.classList.add("error");
         showScreen("login");
         return;
@@ -1019,7 +1019,7 @@ async function startMfaEnrollment(allFactors) {
     });
 
     if (enrollment.error) {
-        status.textContent = "Could not start authenticator setup: " + enrollment.error.message;
+        status.textContent = "Could not start authenticator setup. Please try again.";
         status.classList.add("error");
         return;
     }
@@ -1066,7 +1066,7 @@ async function verifyMfa() {
     });
 
     if (verification.error) {
-        status.textContent = "Verification failed: " + verification.error.message;
+        status.textContent = "Verification failed. Please check the code and try again.";
         status.classList.add("error");
         button.disabled = false;
         button.textContent = "Verify code";
@@ -1134,7 +1134,7 @@ async function loadMiniAppAnalytics() {
             cache: "no-store"
         });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || "Could not load Mini App analytics.");
+        if (!response.ok) throw new Error("Could not load Mini App analytics.");
 
         const metrics = result.metrics || {};
         document.getElementById("analyticsActiveNow").textContent = formatAnalyticsNumber(metrics.activeNow);
@@ -1142,8 +1142,8 @@ async function loadMiniAppAnalytics() {
         document.getElementById("analyticsLast7Days").textContent = formatAnalyticsNumber(metrics.last7Days);
         document.getElementById("analyticsLifetime").textContent = formatAnalyticsNumber(metrics.lifetime);
         status.textContent = `Updated for ${metrics.reportingDate || "today"} (Asia/Kolkata).`;
-    } catch (error) {
-        status.textContent = error.message || "Could not load Mini App analytics.";
+    } catch {
+        status.textContent = "Could not load Mini App analytics. Please try again.";
         status.classList.add("error");
     }
 }
@@ -1343,8 +1343,8 @@ async function saveTournament() {
         status.classList.add("success");
         cancelTournamentEdit();
         await loadAdminTournaments();
-    } catch (error) {
-        status.textContent = error.message || "Could not save tournament.";
+    } catch {
+        status.textContent = "Could not save the tournament. Please try again.";
         status.classList.add("error");
     } finally {
         button.disabled = false;
@@ -1358,7 +1358,7 @@ async function toggleTournamentActive(id, isActive) {
         .update({ is_active: !isActive, updated_at: new Date().toISOString() })
         .eq("id", Number(id));
     if (error) {
-        alert("Error changing tournament visibility: " + error.message);
+        alert("Could not change tournament visibility. Please try again.");
         return;
     }
     await loadAdminTournaments();
@@ -1460,7 +1460,7 @@ async function sendBroadcast() {
         });
         const result = await response.json().catch(() => ({}));
 
-        if (!response.ok) throw new Error(result.error || "Broadcast failed.");
+        if (!response.ok) throw new Error("Broadcast failed.");
 
         status.textContent = `Complete: ${result.sent} sent, ${result.failed} failed, ${result.blocked} blocked.`;
         status.classList.add("success");
@@ -1468,8 +1468,8 @@ async function sendBroadcast() {
             document.getElementById("broadcastMessage").value = "";
             mediaInput.value = "";
         }
-    } catch (error) {
-        status.textContent = error.message || "Broadcast failed.";
+    } catch {
+        status.textContent = "Broadcast failed. Please try again.";
         status.classList.add("error");
     } finally {
         button.disabled = false;
@@ -1492,7 +1492,7 @@ async function loadGiveaway() {
         .maybeSingle();
 
     if (error) {
-        status.textContent = "Could not load giveaway settings: " + error.message;
+        status.textContent = "Could not load giveaway settings. Please try again.";
         status.classList.add("error");
         return;
     }
@@ -1537,8 +1537,8 @@ async function saveGiveaway() {
             ? "Giveaway saved and activated."
             : "Giveaway saved and deactivated.";
         status.classList.add("success");
-    } catch (error) {
-        status.textContent = error.message || "Could not save giveaway settings.";
+    } catch {
+        status.textContent = "Could not save giveaway settings. Please try again.";
         status.classList.add("error");
     } finally {
         button.disabled = false;
@@ -1595,12 +1595,12 @@ async function sendChannelMiniAppPost() {
             body: formData
         });
         const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || "Channel post failed.");
+        if (!response.ok) throw new Error("Channel post failed.");
         status.textContent = "Published. Open the channel, then pin this new post.";
         status.className = "broadcast-status success";
         mediaInput.value = "";
-    } catch (error) {
-        status.textContent = error.message || "Channel post failed.";
+    } catch {
+        status.textContent = "Channel post failed. Please try again.";
         status.className = "broadcast-status error";
     } finally {
         button.disabled = false;
@@ -1679,7 +1679,9 @@ async function saveMatch() {
         const { error } = await query;
 
         if (error) {
-            alert(`Error ${isEditing ? "updating" : "saving"} match: ${error.message}`);
+            alert(isEditing
+                ? "Could not update this match. Please try again."
+                : "Could not save this match. Please try again.");
             return;
         }
 
@@ -1798,7 +1800,7 @@ async function markMatchFinished(id) {
         .eq("id", Number(id));
 
     if (error) {
-        alert("Error marking match finished: " + error.message);
+        alert("Could not mark the match as finished. Please try again.");
         return;
     }
 
@@ -1820,7 +1822,7 @@ async function toggleBigMatch(id, isCurrentlyBig) {
         .eq("id", id);
 
     if (error) {
-        alert("Error changing Big Match status: " + error.message);
+        alert("Could not change Big Match status. Please try again.");
         return;
     }
 
@@ -2005,9 +2007,7 @@ async function loadSavedMatches() {
     if (error) {
 
         container.innerHTML =
-            '<div class="empty">Error loading matches: ' +
-            escapeHtml(error.message) +
-            '</div>';
+            '<div class="empty">Could not load matches. Please try again.</div>';
 
         return;
 
@@ -2047,7 +2047,7 @@ async function deleteMatch(id) {
         .eq("id", id);
 
     if (error) {
-        alert("Error deleting match: " + error.message);
+        alert("Could not delete the match. Please try again.");
         return;
     }
 

@@ -141,9 +141,10 @@ export default {
 
     try {
       if (!cricketDataKey) {
+        console.error("CricketData sync is not configured.");
         return Response.json(
           {
-            error: "CRICKETDATA_API_KEY is not configured.",
+            error: "Match synchronization is temporarily unavailable.",
           },
           { status: 502 },
         );
@@ -166,8 +167,9 @@ export default {
       .from("matches")
       .upsert(rows, { onConflict: "cricketdata_match_id" });
     if (error) {
+      console.error("Unable to save synchronized matches", error.code, error.message);
       return Response.json(
-        { error: `Supabase save failed: ${error.message}` },
+        { error: "Could not save synchronized matches." },
         { status: 500 },
       );
     }

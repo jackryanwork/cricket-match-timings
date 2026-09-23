@@ -942,6 +942,21 @@ async function sendReminderRequest(payload) {
     });
 }
 
+function getSafeReminderErrorMessage(action, status) {
+    if (status === 401) return "Open this Mini App from the CricNivo Telegram bot.";
+    if (status === 403) return action === "set"
+        ? "Start the CricNivo bot before setting a reminder."
+        : "You cannot access these reminders right now.";
+    if (status === 404) return "This match is no longer available.";
+    if (status === 422) return "This reminder cannot be set for this match.";
+    if (status === 429) return "Too many requests. Please try again shortly.";
+    return action === "list"
+        ? "Could not load reminders. Please try again."
+        : action === "cancel"
+            ? "Could not remove the reminder. Please try again."
+            : "Could not save the reminder. Please try again.";
+}
+
 async function requestReminderAction(action, matchId, reminderMinutes) {
     const initData = getTelegramInitData();
     let sessionToken = await ensureMiniAppSessionToken();
@@ -968,7 +983,7 @@ async function requestReminderAction(action, matchId, reminderMinutes) {
         }
     }
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || "Could not save reminder.");
+    if (!response.ok) throw new Error(getSafeReminderErrorMessage(action, response.status));
     return result;
 }
 
@@ -997,10 +1012,10 @@ async function subscribeToReminder(button) {
             cardButton.classList.add("is-set");
         });
         if (status) status.textContent = "You will receive it in Telegram.";
-    } catch (error) {
+    } catch {
         button.disabled = false;
         button.textContent = "Save reminder";
-        if (status) status.textContent = error.message || "Could not save reminder.";
+        if (status) status.textContent = "Could not save the reminder. Please try again.";
     }
 }
 
@@ -1070,8 +1085,8 @@ async function loadReminders() {
         updateReminderMenuCount();
         updateReminderButtons();
         renderReminderList();
-    } catch (error) {
-        renderReminderList(error.message || "Could not load reminders.");
+    } catch {
+        renderReminderList("Could not load reminders. Please try again.");
     }
 }
 
@@ -1093,10 +1108,10 @@ async function removeReminder(button) {
             cardButton.removeAttribute("data-cancel-reminder-match-id");
             cardButton.setAttribute("aria-label", "Set reminder");
         });
-    } catch (error) {
+    } catch {
         button.disabled = false;
         button.textContent = "Remove";
-        renderReminderList(error.message || "Could not remove reminder.");
+        renderReminderList("Could not remove the reminder. Please try again.");
     }
 }
 
