@@ -3,6 +3,58 @@ import { withSupabase } from "jsr:@supabase/server@^1";
 
 const encoder = new TextEncoder();
 const MAX_INIT_DATA_AGE_SECONDS = 24 * 60 * 60;
+const MAX_BODY_BYTES = 8 * 1024;
+const SESSION_TOKEN_TTL_SECONDS = 30 * 60;
+const SESSION_TOKEN_KEY_LABEL = "CricNivoMiniAppSession";
+
+type JsonBodyResult<T> = { value: T } | { error: "too_large" | "invalid" };
+
+async function readJsonBody<T>(request: Request, maxBytes: number): Promise<JsonBodyResult<T>> {
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader !== null) {
+    const contentLength = Number(contentLengthHeader);
+    if (!Number.isFinite(contentLength) || contentLength < 0) return { error: "invalid" };
+    if (contentLength > maxBytes) return { error: "too_large" };
+  }
+
+  const reader = request.body?.getReader();
+  if (!reader) return { error: "invalid" };
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) return { error: "invalid" };
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        try {
+          await reader.cancel();
+        } catch {
+          // The request is already being rejected; cancellation failure is non-fatal.
+        }
+        return { error: "too_large" };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return { error: "invalid" };
+  }
+
+  const bodyBytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bodyBytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    return { value: JSON.parse(new TextDecoder().decode(bodyBytes)) as T };
+  } catch {
+    return { error: "invalid" };
+  }
+}
 
 type TelegramUser = { id?: number; first_name?: string; username?: string };
 
@@ -24,6 +76,14 @@ function safeEqual(left: string, right: string) {
     result |= left.charCodeAt(index) ^ right.charCodeAt(index);
   }
   return result === 0;
+}
+
+async function createSessionToken(userId: number, botToken: string) {
+  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TOKEN_TTL_SECONDS;
+  const payload = `${userId}.${expiresAt}`;
+  const signingKey = await hmacSha256(encoder.encode(SESSION_TOKEN_KEY_LABEL), botToken);
+  const signature = toHex(await hmacSha256(signingKey, payload));
+  return `${payload}.${signature}`;
 }
 
 async function verifyTelegramInitData(initData: string, botToken: string) {
@@ -83,16 +143,18 @@ export default {
       return Response.json({ error: "Notification service is not configured." }, { status: 500 });
     }
 
-    let initData = "";
-    try {
-      const body = await request.json();
-      initData = typeof body?.initData === "string" ? body.initData : "";
-    } catch {
+    const parsedBody = await readJsonBody<{ initData?: unknown }>(request, MAX_BODY_BYTES);
+    if (parsedBody.error === "too_large") {
+      return Response.json({ error: "Request is too large." }, { status: 413 });
+    }
+    if (parsedBody.error === "invalid") {
       return Response.json({ error: "Invalid request body." }, { status: 400 });
     }
+    const initData = typeof parsedBody.value.initData === "string" ? parsedBody.value.initData : "";
 
     const user = await verifyTelegramInitData(initData, botToken);
     if (!user?.id) return Response.json({ error: "Invalid Telegram user." }, { status: 401 });
+    const sessionToken = await createSessionToken(Number(user.id), botToken);
 
     const { error } = await ctx.supabaseAdmin.from("telegram_mini_app_users").insert({
       telegram_user_id: Number(user.id),
@@ -100,7 +162,7 @@ export default {
       username: user.username?.trim() || null,
     });
     if (error?.code === "23505") {
-      return Response.json({ success: true, firstOpen: false });
+      return Response.json({ success: true, firstOpen: false, sessionToken });
     }
     if (error) {
       console.error("Unable to save Mini App user", error.code, error.message);
@@ -116,6 +178,6 @@ export default {
       return Response.json({ error: "Could not notify administrator." }, { status: 502 });
     }
 
-    return Response.json({ success: true, firstOpen: true });
+    return Response.json({ success: true, firstOpen: true, sessionToken });
   }),
 };

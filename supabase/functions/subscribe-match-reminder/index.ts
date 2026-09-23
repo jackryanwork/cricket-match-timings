@@ -6,6 +6,9 @@ const ALLOWED_MINUTES = new Set([5, 30, 60, 120]);
 const MAX_INIT_DATA_AGE_SECONDS = 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
+const MAX_BODY_BYTES = 32 * 1024;
+const SESSION_TOKEN_TTL_SECONDS = 30 * 60;
+const SESSION_TOKEN_KEY_LABEL = "CricNivoMiniAppSession";
 const requestBuckets = new Map<number, { startedAt: number; count: number }>();
 const corsHeaders = {
   "Access-Control-Allow-Origin": "https://www.cricnivo.com",
@@ -15,6 +18,55 @@ const corsHeaders = {
 
 function json(body: Record<string, unknown>, status = 200) {
   return Response.json(body, { status, headers: corsHeaders });
+}
+
+type JsonBodyResult<T> = { value: T } | { error: "too_large" | "invalid" };
+
+async function readJsonBody<T>(request: Request, maxBytes: number): Promise<JsonBodyResult<T>> {
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader !== null) {
+    const contentLength = Number(contentLengthHeader);
+    if (!Number.isFinite(contentLength) || contentLength < 0) return { error: "invalid" };
+    if (contentLength > maxBytes) return { error: "too_large" };
+  }
+
+  const reader = request.body?.getReader();
+  if (!reader) return { error: "invalid" };
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) return { error: "invalid" };
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        try {
+          await reader.cancel();
+        } catch {
+          // The request is already being rejected; cancellation failure is non-fatal.
+        }
+        return { error: "too_large" };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return { error: "invalid" };
+  }
+
+  const bodyBytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bodyBytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    return { value: JSON.parse(new TextDecoder().decode(bodyBytes)) as T };
+  } catch {
+    return { error: "invalid" };
+  }
 }
 
 function safeEqual(left: string, right: string) {
@@ -60,6 +112,26 @@ async function verifyInitData(initData: string, botToken: string) {
   } catch {
     return null;
   }
+}
+
+async function verifySessionToken(token: string, botToken: string) {
+  if (!token || token.length > 256) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  const userId = Number(parts[0]);
+  const expiresAt = Number(parts[1]);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (!Number.isSafeInteger(userId) || userId <= 0) return null;
+  if (!Number.isSafeInteger(expiresAt) || expiresAt < nowSeconds || expiresAt > nowSeconds + SESSION_TOKEN_TTL_SECONDS + 60) {
+    return null;
+  }
+
+  const payload = `${userId}.${expiresAt}`;
+  const signingKey = await hmac(encoder.encode(SESSION_TOKEN_KEY_LABEL), botToken);
+  const expectedSignature = [...await hmac(signingKey, payload)]
+    .map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return safeEqual(expectedSignature, parts[2]) ? userId : null;
 }
 
 function isRateLimited(userId: number) {
@@ -116,19 +188,31 @@ export default {
   fetch: withSupabase({ auth: "none" }, async (request, ctx) => {
     if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
     if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
-    if (Number(request.headers.get("content-length") || 0) > 32_768) return json({ error: "Request is too large." }, 413);
+
 
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     if (!botToken) return json({ error: "Reminder service is not configured." }, 500);
 
-    let body: { initData?: unknown; action?: unknown; matchId?: unknown; reminderMinutes?: unknown; timezone?: unknown };
-    try {
-      body = await request.json();
-    } catch {
+    const parsedBody = await readJsonBody<{
+      initData?: unknown;
+      sessionToken?: unknown;
+      action?: unknown;
+      matchId?: unknown;
+      reminderMinutes?: unknown;
+      timezone?: unknown;
+    }>(request, MAX_BODY_BYTES);
+    if (parsedBody.error === "too_large") {
+      return json({ error: "Request is too large." }, 413);
+    }
+    if (parsedBody.error === "invalid") {
       return json({ error: "Invalid request body." }, 400);
     }
+    const body = parsedBody.value;
 
-    const userId = typeof body.initData === "string" ? await verifyInitData(body.initData, botToken) : null;
+    const sessionToken = typeof body.sessionToken === "string" ? body.sessionToken : "";
+    const initData = typeof body.initData === "string" ? body.initData : "";
+    const userId = (sessionToken ? await verifySessionToken(sessionToken, botToken) : null)
+      || (initData ? await verifyInitData(initData, botToken) : null);
     if (!userId) return json({ error: "Telegram verification is required." }, 401);
     if (isRateLimited(userId)) return json({ error: "Too many reminder requests. Please try again shortly." }, 429);
 

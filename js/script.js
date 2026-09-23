@@ -4,6 +4,7 @@ const REMINDER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/subscribe-match-remi
 const MINI_APP_TRACKING_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/track-mini-app-open`;
 const MINI_APP_ACTIVITY_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/track-mini-app-activity`;
 const TELEGRAM_INIT_DATA_STORAGE_KEY = "cricketTelegramInitData";
+const MINI_APP_SESSION_TOKEN_STORAGE_KEY = "cricketMiniAppSessionToken";
 const MY_TEAMS_STORAGE_KEY = "cricketMyTeams";
 const FAVOURITE_MATCHES_STORAGE_KEY = "cricketFavouriteMatches";
 const MINI_APP_PUBLIC_URL = "https://www.cricnivo.com/";
@@ -267,18 +268,67 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_KEY
 );
 
-async function trackFirstMiniAppOpen() {
+function getMiniAppSessionToken() {
+    try {
+        return sessionStorage.getItem(MINI_APP_SESSION_TOKEN_STORAGE_KEY) || "";
+    } catch {
+        return "";
+    }
+}
+
+function saveMiniAppSessionToken(token) {
+    try {
+        sessionStorage.setItem(MINI_APP_SESSION_TOKEN_STORAGE_KEY, token);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function clearMiniAppSessionToken() {
+    try {
+        sessionStorage.removeItem(MINI_APP_SESSION_TOKEN_STORAGE_KEY);
+    } catch {
+        // Session storage may be unavailable in restricted browser contexts.
+    }
+}
+
+let miniAppSessionRefreshPromise = null;
+
+async function refreshMiniAppSession() {
+    if (miniAppSessionRefreshPromise) return miniAppSessionRefreshPromise;
     const initData = getTelegramInitData();
     if (!initData) return;
-    try {
-        await fetch(MINI_APP_TRACKING_FUNCTION_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
-            body: JSON.stringify({ initData })
-        });
-    } catch (error) {
-        console.warn("Unable to record Mini App open.", error);
-    }
+
+    miniAppSessionRefreshPromise = (async () => {
+        try {
+            const response = await fetch(MINI_APP_TRACKING_FUNCTION_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+                body: JSON.stringify({ initData })
+            });
+            const result = await response.json().catch(() => ({}));
+            const token = typeof result.sessionToken === "string" ? result.sessionToken : "";
+            if (!response.ok || !token) return "";
+            saveMiniAppSessionToken(token);
+            return token;
+        } catch (error) {
+            console.warn("Unable to establish Mini App session.", error);
+            return "";
+        } finally {
+            miniAppSessionRefreshPromise = null;
+        }
+    })();
+
+    return miniAppSessionRefreshPromise;
+}
+
+async function ensureMiniAppSessionToken() {
+    return getMiniAppSessionToken() || await refreshMiniAppSession();
+}
+
+async function trackFirstMiniAppOpen() {
+    await refreshMiniAppSession();
 }
 
 trackFirstMiniAppOpen();
@@ -286,18 +336,39 @@ trackFirstMiniAppOpen();
 let miniAppActivityTimer = null;
 let miniAppActivityRequestInFlight = false;
 
+async function sendMiniAppActivity(payload) {
+    return fetch(MINI_APP_ACTIVITY_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+        body: JSON.stringify(payload),
+        cache: "no-store"
+    });
+}
+
 async function trackMiniAppActivity() {
-    const initData = getTelegramInitData();
-    if (!initData || miniAppActivityRequestInFlight) return;
+    if (miniAppActivityRequestInFlight) return;
 
     miniAppActivityRequestInFlight = true;
     try {
-        await fetch(MINI_APP_ACTIVITY_FUNCTION_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
-            body: JSON.stringify({ initData }),
-            cache: "no-store"
-        });
+        const initData = getTelegramInitData();
+        let sessionToken = await ensureMiniAppSessionToken();
+        if (!sessionToken && !initData) return;
+
+        let response = await sendMiniAppActivity(
+            sessionToken ? { sessionToken } : { initData }
+        );
+        if (response.status === 401 && sessionToken) {
+            clearMiniAppSessionToken();
+            sessionToken = await refreshMiniAppSession();
+            if (sessionToken) {
+                response = await sendMiniAppActivity({ sessionToken });
+            } else if (initData) {
+                response = await sendMiniAppActivity({ initData });
+            }
+        }
+        if (!response.ok && response.status !== 429) {
+            console.warn("Unable to record Mini App activity.");
+        }
     } catch (error) {
         console.warn("Unable to record Mini App activity.", error);
     } finally {
@@ -313,7 +384,7 @@ function stopMiniAppActivityTracking() {
 }
 
 function startMiniAppActivityTracking() {
-    if (!getTelegramInitData() || document.visibilityState !== "visible") return;
+    if ((!getTelegramInitData() && !getMiniAppSessionToken()) || document.visibilityState !== "visible") return;
     stopMiniAppActivityTracking();
     trackMiniAppActivity();
     miniAppActivityTimer = window.setInterval(trackMiniAppActivity, 60 * 1000);
@@ -324,7 +395,12 @@ document.addEventListener("visibilitychange", () => {
     else stopMiniAppActivityTracking();
 });
 
-if (getTelegramInitData()) startMiniAppActivityTracking();
+if (getTelegramInitData() || getMiniAppSessionToken()) startMiniAppActivityTracking();
+
+/*
+ * The legacy initData fallback above keeps already-open/cached Mini Apps working
+ * while the session-token version propagates. It can be removed after rollout.
+ */
 
     function formatLocalDate(date) {
     const year = date.getFullYear();
@@ -854,15 +930,8 @@ function openMatchDetails(match, showReminderPicker = false) {
     matchModal.classList.add("open");
 }
 
-async function requestReminderAction(action, matchId, reminderMinutes) {
-    const initData = getTelegramInitData();
-    if (!initData) throw new Error("Open this Mini App from the bot’s Open App button.");
-
-    const payload = { initData, action };
-    if (matchId !== undefined) payload.matchId = matchId;
-    if (reminderMinutes !== undefined) payload.reminderMinutes = reminderMinutes;
-    if (browserTimeZone) payload.timezone = browserTimeZone;
-    const response = await fetch(REMINDER_FUNCTION_URL, {
+async function sendReminderRequest(payload) {
+    return fetch(REMINDER_FUNCTION_URL, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -871,6 +940,33 @@ async function requestReminderAction(action, matchId, reminderMinutes) {
         },
         body: JSON.stringify(payload)
     });
+}
+
+async function requestReminderAction(action, matchId, reminderMinutes) {
+    const initData = getTelegramInitData();
+    let sessionToken = await ensureMiniAppSessionToken();
+    if (!sessionToken && !initData) throw new Error("Open this Mini App from the bot’s Open App button.");
+
+    const payload = { action };
+    if (sessionToken) payload.sessionToken = sessionToken;
+    else payload.initData = initData;
+    if (matchId !== undefined) payload.matchId = matchId;
+    if (reminderMinutes !== undefined) payload.reminderMinutes = reminderMinutes;
+    if (browserTimeZone) payload.timezone = browserTimeZone;
+    let response = await sendReminderRequest(payload);
+    if (response.status === 401 && sessionToken) {
+        clearMiniAppSessionToken();
+        sessionToken = await refreshMiniAppSession();
+        if (sessionToken) {
+            delete payload.initData;
+            payload.sessionToken = sessionToken;
+            response = await sendReminderRequest(payload);
+        } else if (initData) {
+            delete payload.sessionToken;
+            payload.initData = initData;
+            response = await sendReminderRequest(payload);
+        }
+    }
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || "Could not save reminder.");
     return result;

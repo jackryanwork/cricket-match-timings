@@ -2,14 +2,65 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "jsr:@supabase/server@^1";
 
 const MINI_APP_URL = "https://www.cricnivo.com/?v=4";
+const MAX_BODY_BYTES = 64 * 1024;
 
 type TelegramUpdate = {
+  update_id?: number;
   message?: {
     text?: string;
     chat?: { id?: number };
     from?: { id?: number; first_name?: string; username?: string };
   };
 };
+
+type JsonBodyResult<T> = { value: T } | { error: "too_large" | "invalid" };
+
+async function readJsonBody<T>(request: Request, maxBytes: number): Promise<JsonBodyResult<T>> {
+  const contentLengthHeader = request.headers.get("content-length");
+  if (contentLengthHeader !== null) {
+    const contentLength = Number(contentLengthHeader);
+    if (!Number.isFinite(contentLength) || contentLength < 0) return { error: "invalid" };
+    if (contentLength > maxBytes) return { error: "too_large" };
+  }
+
+  const reader = request.body?.getReader();
+  if (!reader) return { error: "invalid" };
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) return { error: "invalid" };
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        try {
+          await reader.cancel();
+        } catch {
+          // The request is already being rejected; cancellation failure is non-fatal.
+        }
+        return { error: "too_large" };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return { error: "invalid" };
+  }
+
+  const bodyBytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bodyBytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  try {
+    return { value: JSON.parse(new TextDecoder().decode(bodyBytes)) as T };
+  } catch {
+    return { error: "invalid" };
+  }
+}
 
 const keyboard = {
   keyboard: [
@@ -119,6 +170,21 @@ async function sendGiveawayMessage(botToken: string, chatId: number, supabaseAdm
   );
 }
 
+async function claimTelegramUpdate(
+  supabaseAdmin: { from: (table: string) => any },
+  updateId: number,
+) {
+  const { error } = await supabaseAdmin
+    .from("telegram_webhook_updates")
+    .insert({ update_id: updateId });
+
+  if (!error) return "claimed" as const;
+  if (error.code === "23505") return "duplicate" as const;
+
+  console.error("Unable to record Telegram webhook update", error.code, error.message);
+  return "error" as const;
+}
+
 export default {
   fetch: withSupabase({ auth: "none" }, async (request, ctx) => {
     if (request.method !== "POST") {
@@ -137,11 +203,25 @@ export default {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    let update: TelegramUpdate;
-    try {
-      update = await request.json();
-    } catch {
+    const parsedBody = await readJsonBody<TelegramUpdate>(request, MAX_BODY_BYTES);
+    if (parsedBody.error === "too_large") {
+      return new Response("Request is too large", { status: 413 });
+    }
+    if (parsedBody.error === "invalid") {
       return new Response("Invalid request", { status: 400 });
+    }
+    const update = parsedBody.value;
+
+    if (!Number.isSafeInteger(update.update_id)) {
+      return new Response("Invalid request", { status: 400 });
+    }
+
+    const updateClaim = await claimTelegramUpdate(ctx.supabaseAdmin, update.update_id);
+    if (updateClaim === "duplicate") {
+      return new Response("OK");
+    }
+    if (updateClaim === "error") {
+      return new Response("Unable to accept update", { status: 503 });
     }
 
     const chatId = Number(update.message?.chat?.id);
