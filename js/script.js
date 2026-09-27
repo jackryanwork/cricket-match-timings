@@ -350,20 +350,15 @@ async function trackMiniAppActivity() {
 
     miniAppActivityRequestInFlight = true;
     try {
-        const initData = getTelegramInitData();
         let sessionToken = await ensureMiniAppSessionToken();
-        if (!sessionToken && !initData) return;
+        if (!sessionToken) return;
 
-        let response = await sendMiniAppActivity(
-            sessionToken ? { sessionToken } : { initData }
-        );
-        if (response.status === 401 && sessionToken) {
+        let response = await sendMiniAppActivity({ sessionToken });
+        if (response.status === 401) {
             clearMiniAppSessionToken();
             sessionToken = await refreshMiniAppSession();
             if (sessionToken) {
                 response = await sendMiniAppActivity({ sessionToken });
-            } else if (initData) {
-                response = await sendMiniAppActivity({ initData });
             }
         }
         if (!response.ok && response.status !== 429) {
@@ -396,11 +391,6 @@ document.addEventListener("visibilitychange", () => {
 });
 
 if (getTelegramInitData() || getMiniAppSessionToken()) startMiniAppActivityTracking();
-
-/*
- * The legacy initData fallback above keeps already-open/cached Mini Apps working
- * while the session-token version propagates. It can be removed after rollout.
- */
 
     function formatLocalDate(date) {
     const year = date.getFullYear();
@@ -958,13 +948,11 @@ function getSafeReminderErrorMessage(action, status) {
 }
 
 async function requestReminderAction(action, matchId, reminderMinutes) {
-    const initData = getTelegramInitData();
     let sessionToken = await ensureMiniAppSessionToken();
-    if (!sessionToken && !initData) throw new Error("Open this Mini App from the bot’s Open App button.");
+    if (!sessionToken) throw new Error("Open this Mini App from the bot’s Open App button.");
 
     const payload = { action };
-    if (sessionToken) payload.sessionToken = sessionToken;
-    else payload.initData = initData;
+    payload.sessionToken = sessionToken;
     if (matchId !== undefined) payload.matchId = matchId;
     if (reminderMinutes !== undefined) payload.reminderMinutes = reminderMinutes;
     if (browserTimeZone) payload.timezone = browserTimeZone;
@@ -973,12 +961,7 @@ async function requestReminderAction(action, matchId, reminderMinutes) {
         clearMiniAppSessionToken();
         sessionToken = await refreshMiniAppSession();
         if (sessionToken) {
-            delete payload.initData;
             payload.sessionToken = sessionToken;
-            response = await sendReminderRequest(payload);
-        } else if (initData) {
-            delete payload.sessionToken;
-            payload.initData = initData;
             response = await sendReminderRequest(payload);
         }
     }

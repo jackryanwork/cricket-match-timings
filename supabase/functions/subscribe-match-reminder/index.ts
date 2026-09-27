@@ -3,7 +3,6 @@ import { withSupabase } from "jsr:@supabase/server@^1";
 
 const encoder = new TextEncoder();
 const ALLOWED_MINUTES = new Set([5, 30, 60, 120]);
-const MAX_INIT_DATA_AGE_SECONDS = 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const MAX_BODY_BYTES = 32 * 1024;
@@ -83,35 +82,6 @@ async function hmac(key: Uint8Array, value: string) {
     "raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
   );
   return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(value)));
-}
-
-async function verifyInitData(initData: string, botToken: string) {
-  if (!initData || initData.length > 4096) return null;
-  const params = new URLSearchParams(initData);
-  const receivedHash = params.get("hash");
-  const authDate = Number(params.get("auth_date"));
-  const userText = params.get("user");
-  if (!receivedHash || !Number.isSafeInteger(authDate) || !userText) return null;
-
-  const now = Math.floor(Date.now() / 1000);
-  if (authDate > now + 60 || now - authDate > MAX_INIT_DATA_AGE_SECONDS) return null;
-
-  params.delete("hash");
-  const dataCheckString = [...params.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => `${key}=${value}`)
-    .join("\n");
-  const secretKey = await hmac(encoder.encode("WebAppData"), botToken);
-  const computedHash = [...await hmac(secretKey, dataCheckString)]
-    .map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  if (!safeEqual(computedHash, receivedHash)) return null;
-
-  try {
-    const user = JSON.parse(userText) as { id?: number };
-    return Number.isSafeInteger(user.id) && Number(user.id) > 0 ? Number(user.id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function verifySessionToken(token: string, botToken: string) {
@@ -194,7 +164,6 @@ export default {
     if (!botToken) return json({ error: "Reminder service is not configured." }, 500);
 
     const parsedBody = await readJsonBody<{
-      initData?: unknown;
       sessionToken?: unknown;
       action?: unknown;
       matchId?: unknown;
@@ -210,9 +179,7 @@ export default {
     const body = parsedBody.value;
 
     const sessionToken = typeof body.sessionToken === "string" ? body.sessionToken : "";
-    const initData = typeof body.initData === "string" ? body.initData : "";
-    const userId = (sessionToken ? await verifySessionToken(sessionToken, botToken) : null)
-      || (initData ? await verifyInitData(initData, botToken) : null);
+    const userId = sessionToken ? await verifySessionToken(sessionToken, botToken) : null;
     if (!userId) return json({ error: "Telegram verification is required." }, 401);
     if (isRateLimited(userId)) return json({ error: "Too many reminder requests. Please try again shortly." }, 429);
 

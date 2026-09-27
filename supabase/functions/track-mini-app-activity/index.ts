@@ -2,7 +2,6 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "jsr:@supabase/server@^1";
 
 const encoder = new TextEncoder();
-const MAX_INIT_DATA_AGE_SECONDS = 24 * 60 * 60;
 const MIN_ACTIVITY_INTERVAL_MS = 30 * 1000;
 const MAX_BODY_BYTES = 8 * 1024;
 const SESSION_TOKEN_TTL_SECONDS = 30 * 60;
@@ -14,7 +13,6 @@ const ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:8000",
 ]);
 
-type TelegramUser = { id?: number };
 type JsonBodyResult<T> = { value: T } | { error: "too_large" | "invalid" };
 
 async function readJsonBody<T>(request: Request, maxBytes: number): Promise<JsonBodyResult<T>> {
@@ -84,33 +82,6 @@ function safeEqual(left: string, right: string) {
   return result === 0;
 }
 
-async function verifyTelegramInitData(initData: string, botToken: string) {
-  const params = new URLSearchParams(initData);
-  const receivedHash = params.get("hash");
-  const authDate = Number(params.get("auth_date"));
-  const userText = params.get("user");
-  if (!receivedHash || !Number.isSafeInteger(authDate) || !userText) return null;
-
-  const nowSeconds = Math.floor(Date.now() / 1000);
-  if (authDate > nowSeconds + 60 || nowSeconds - authDate > MAX_INIT_DATA_AGE_SECONDS) return null;
-
-  params.delete("hash");
-  const dataCheckString = [...params.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => `${key}=${value}`)
-    .join("\n");
-  const secretKey = await hmacSha256(encoder.encode("WebAppData"), botToken);
-  const computedHash = toHex(await hmacSha256(secretKey, dataCheckString));
-  if (!safeEqual(computedHash, receivedHash)) return null;
-
-  try {
-    const user = JSON.parse(userText) as TelegramUser;
-    return Number.isSafeInteger(user.id) && Number(user.id) > 0 ? Number(user.id) : null;
-  } catch {
-    return null;
-  }
-}
-
 async function verifySessionToken(token: string, botToken: string) {
   if (!token || token.length > 256) return null;
   const parts = token.split(".");
@@ -167,18 +138,16 @@ export default {
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
     if (!botToken) return json({ error: "Activity service is not configured." }, 500, corsHeaders);
 
-    const parsedBody = await readJsonBody<{ initData?: unknown; sessionToken?: unknown }>(request, MAX_BODY_BYTES);
+    const parsedBody = await readJsonBody<{ sessionToken?: unknown }>(request, MAX_BODY_BYTES);
     if (parsedBody.error === "too_large") {
       return json({ error: "Request is too large." }, 413, corsHeaders);
     }
     if (parsedBody.error === "invalid") {
       return json({ error: "Invalid request body." }, 400, corsHeaders);
     }
-    const initData = typeof parsedBody.value.initData === "string" ? parsedBody.value.initData : "";
     const sessionToken = typeof parsedBody.value.sessionToken === "string" ? parsedBody.value.sessionToken : "";
 
-    const telegramUserId = (sessionToken ? await verifySessionToken(sessionToken, botToken) : null)
-      || (initData ? await verifyTelegramInitData(initData, botToken) : null);
+    const telegramUserId = sessionToken ? await verifySessionToken(sessionToken, botToken) : null;
     if (!telegramUserId) return json({ error: "Invalid Telegram user." }, 401, corsHeaders);
 
     const now = new Date();
