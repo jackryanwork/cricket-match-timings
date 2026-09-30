@@ -137,7 +137,7 @@ const teamNames = [...new Set(upcoming.flatMap(({ match }) => [match.team1, matc
 const TEAM_SEO_OVERRIDES = {
   India: {
     title: "India Cricket Schedule & Match Timings | CricNivo",
-    description: "Check India's cricket schedule, match timetable, upcoming T20 fixtures, venues, dates, and start times on CricNivo.",
+    description: "Check the India cricket schedule, match timetable, upcoming T20 fixtures, venues, dates, and start times on CricNivo.",
     heading: "India Cricket Schedule & Match Timings",
     intro: "Follow India's upcoming cricket fixtures with T20 match dates, venues, and scheduled start times.",
   },
